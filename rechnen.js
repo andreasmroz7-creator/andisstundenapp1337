@@ -62,7 +62,8 @@
     var zwischen = n >= 2 ? 0.5 : 0;
     var tl = 0;
     if (e.tl) laeden.forEach(function (l) { tl += tlLaden(l.art, e.fahrer); });
-    var fz = +e.fahrMin || 0, grenze = n >= 2 ? 120 : 60;
+    var zwUeber = n >= 2 ? Math.max(0, (+e.fahrZw || 0) - 30) : 0;
+    var fz = (+e.fahrMin || 0) + zwUeber, grenze = n >= 2 ? 120 : 60;
     var ueber = e.auswaerts ? fz : Math.max(0, fz - grenze);
     var fahrt = (e.fahrer ? ueber : ueber / 2) / 60;
     fahrt = Math.round(fahrt * 100) / 100;
@@ -75,7 +76,7 @@
       else if (e.uebernachtung) verpflegung = 20;
     }
     var gesamt = Math.round((arbeit + zwischen + tl + fahrt + anreise) * 100) / 100;
-    return { arbeitMin: arbeitMin, arbeit: arbeit, zwischen: zwischen, tl: tl, fahrt: fahrt,
+    return { zwUeber: zwUeber, fahrGesamt: fz, arbeitMin: arbeitMin, arbeit: arbeit, zwischen: zwischen, tl: tl, fahrt: fahrt,
       anreise: anreise, gesamt: gesamt, verpflegung: verpflegung };
   }
 

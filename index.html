@@ -121,6 +121,9 @@ input::placeholder{color:#5c6577}
   </div>
   <label class="l">Hinfahrt (Treffpunkt → 1. Laden) <span id="fhDauer" style="color:var(--akz);text-transform:none"></span></label>
   <div class="zeile" style="margin-top:0"><input type="text" inputmode="decimal" id="fhV" placeholder="von 6:30"><span>–</span><input type="text" inputmode="decimal" id="fhB" placeholder="bis 7:05"></div>
+  <div id="zwBox"><label class="l">Zwischenfahrt (Laden → Laden) <span id="fzDauer" style="color:var(--akz);text-transform:none"></span></label>
+  <div class="zeile" style="margin-top:0"><input type="text" inputmode="decimal" id="fzV" placeholder="von 11:45"><span>–</span><input type="text" inputmode="decimal" id="fzB" placeholder="bis 12:05"></div>
+  <div class="hinweis">0,5 Std. sind immer bezahlt. Was über 30 Min. geht, zählt zur Fahrzeit dazu.</div></div>
   <label class="l">Rückfahrt (letzter Laden → Treffpunkt) <span id="frDauer" style="color:var(--akz);text-transform:none"></span></label>
   <div class="zeile" style="margin-top:0"><input type="text" inputmode="decimal" id="frV" placeholder="von 14:25"><span>–</span><input type="text" inputmode="decimal" id="frB" placeholder="bis 15:05"></div>
   <div class="sw" data-k="auswaerts"><div>Auswärts (Inventur für anderes Team)<small>ganze Fahrzeit zählt</small></div><div class="knopf"></div></div>
@@ -157,7 +160,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.17';
+var VERSION = '1.18';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -245,7 +248,8 @@ function uhr(s) { var m = R.zeitZuMin(s); if (m == null) return String(s || '');
 function dauer(min) { return Math.floor(min / 60) + ':' + ('0' + (min % 60)).slice(-2) + ' Std.'; }
 function fahrFelder() {
   if (e.fahrHin == null && e.fahrZur == null && e.fahrMin) { e.fahrHin = Math.ceil(e.fahrMin / 2); e.fahrZur = e.fahrMin - e.fahrHin; }
-  [['fh', e.hinZeit, e.fahrHin], ['fr', e.zurZeit, e.fahrZur]].forEach(function (p) {
+  $('zwBox').style.display = e.laeden.length > 1 ? '' : 'none';
+  [['fh', e.hinZeit, e.fahrHin], ['fr', e.zurZeit, e.fahrZur], ['fz', e.zwZeit, e.fahrZw]].forEach(function (p) {
     var t = (p[1] || '').split('–'); $(p[0] + 'V').value = t[0] || ''; $(p[0] + 'B').value = t[1] || '';
     $(p[0] + 'Dauer').textContent = p[2] ? '· ' + dauer(p[2]) : '';
   });
@@ -333,7 +337,7 @@ function rechnung() {
   h += '<div><span>Arbeitszeit' + (e.modus === 'zeit' && am ? ' (' + Math.floor(am / 60) + ' Std. ' + (am % 60) + ' Min.)' : '') + '</span><b>' + z(r.arbeit) + '</b></div>';
   if (r.zwischen) h += '<div><span>Fahrt zwischen den Läden</span><b>' + z(r.zwischen) + '</b></div>';
   if (r.tl) h += '<div><span>Teamleiter</span><b>' + z(r.tl) + '</b></div>';
-  if (e.fahrMin) h += '<div><span>Fahrzeit ' + dauer(e.fahrMin) + ', bezahlt</span><b>' + z(r.fahrt) + '</b></div>';
+  if (r.fahrGesamt) h += '<div><span>Fahrzeit ' + dauer(r.fahrGesamt) + (r.zwUeber ? ' (inkl. ' + r.zwUeber + ' Min. Zwischenfahrt)' : '') + ', bezahlt</span><b>' + z(r.fahrt) + '</b></div>';
   if (r.anreise) h += '<div><span>' + (e.team === 'halle' ? 'Anreise Halle' : 'An-/Abreise') + '</span><b>' + z(r.anreise) + '</b></div>';
   if (r.verpflegung) h += '<div><span>Verpflegung</span><b>' + r.verpflegung + ' €</b></div>';
   h += '<div class="ges"><span>Gesamt</span><span>' + z(r.gesamt) + '</span></div>';
@@ -372,7 +376,7 @@ $('profListe').onclick = function (ev) {
   sichern(); profListeZeichnen();
 };
 $('modus').onclick = function (ev) { var v = ev.target.dataset.v; if (v) { e.modus = v; formZeichnen(); } };
-$('anzahl').onclick = function (ev) { var v = ev.target.dataset.v; if (v) { setAnzahl(+v); formZeichnen(); } };
+$('anzahl').onclick = function (ev) { var v = ev.target.dataset.v; if (v) { setAnzahl(+v); formZeichnen(); fahrFelder(); } };
 $('team').onclick = function (ev) { var v = ev.target.dataset.v; if (v) { e.team = v; formZeichnen(); } };
 $('laeden').addEventListener('click', function (ev) {
   var t = ev.target;
@@ -404,15 +408,15 @@ $('laeden').addEventListener('input', function (ev) {
     formZeichnen(); };
 });
 function fahrLesen() {
-  [['fh', 'fahrHin', 'hinZeit'], ['fr', 'fahrZur', 'zurZeit']].forEach(function (p) {
+  [['fh', 'fahrHin', 'hinZeit'], ['fr', 'fahrZur', 'zurZeit'], ['fz', 'fahrZw', 'zwZeit']].forEach(function (p) {
     var v = $(p[0] + 'V').value.trim(), b = $(p[0] + 'B').value.trim();
     if (v && b && R.zeitZuMin(v) != null && R.zeitZuMin(b) != null) { e[p[1]] = R.spanneMin(v, b); e[p[2]] = uhr(v) + '–' + uhr(b); }
-    else if (!v && !b) { e[p[2]] = ''; if (e[p[2] + '_war'] !== undefined) e[p[1]] = 0; }
+    else if (!v && !b && e[p[2]]) { e[p[2]] = ''; e[p[1]] = 0; }
     $(p[0] + 'Dauer').textContent = e[p[1]] ? '· ' + dauer(e[p[1]]) : '';
   });
   e.fahrMin = (e.fahrHin || 0) + (e.fahrZur || 0); rechnung();
 }
-['fhV', 'fhB', 'frV', 'frB'].forEach(function (id) {
+['fhV', 'fhB', 'frV', 'frB', 'fzV', 'fzB'].forEach(function (id) {
   $(id).oninput = fahrLesen;
   $(id).addEventListener('focusout', function () { if (this.value.trim() && R.zeitZuMin(this.value) != null) { this.value = uhr(this.value); fahrLesen(); } });
 });
@@ -527,7 +531,9 @@ $('pdfknopf').onclick = function () {
       var s = (l.ort ? l.ort + ' ' : '') + (l.fil ? l.fil + ' ' : '') + l.art; if (l.ausfall) return s + ' – abgesagt'; if (x.modus === 'zeit') s += ' ' + (l.zeiten || []).filter(function (q) { return q.von && q.bis; }).map(function (q) { return uhr(q.von) + '–' + uhr(q.bis); }).join(', ');
       return s; });
     if (!ld.length) ld = ['–'];
-    if (x.team === 'halle') ld[ld.length - 1] += ' (Halle)'; if (x.team === 'reise') ld[ld.length - 1] += x.anreise ? ' (Anreise)' : x.abreise ? ' (Abreise)' : ' (Reise)';
+    var gemacht = (x.laeden || []).filter(function (l) { return !l.ausfall; }).length;
+    if (gemacht >= 2 && (x.zwZeit || x.fahrZw)) ld.splice(1, 0, 'Zwischenfahrt ' + (x.zwZeit ? x.zwZeit + ' (' + dauer(x.fahrZw || 0).replace(' Std.', '') + ')' : dauer(x.fahrZw)));
+    var teamNotiz = x.team === 'halle' ? 'Halle' : x.team === 'reise' ? (x.anreise ? 'Anreisetag' : x.abreise ? 'Abreisetag' : '') : '';
     if (x.fahrHin || x.fahrZur || x.fahrMin) {
       var hin = x.fahrHin != null ? x.fahrHin : 0, zur = x.fahrZur != null ? x.fahrZur : 0;
       if (!hin && !zur && x.fahrMin) { hin = Math.ceil(x.fahrMin / 2); zur = x.fahrMin - hin; }
@@ -541,7 +547,7 @@ $('pdfknopf').onclick = function () {
       });
       ld = neu;
     }
-    var w = [d.toLocaleDateString('de-DE'), TAGE[d.getDay()], ld[0].slice(0, 46), z(r.arbeit), r.zwischen ? z(r.zwischen) : '', r.tl ? z(r.tl) : '', r.fahrt ? z(r.fahrt) : '', r.anreise ? z(r.anreise) : '', z(r.gesamt), r.verpflegung ? r.verpflegung + ' €' : '', (x.notiz || '').slice(0, 22)];
+    var w = [d.toLocaleDateString('de-DE'), TAGE[d.getDay()], ld[0].slice(0, 46), z(r.arbeit), r.zwischen ? z(r.zwischen) : '', r.tl ? z(r.tl) : '', r.fahrt ? z(r.fahrt) : '', r.anreise ? z(r.anreise) : '', z(r.gesamt), r.verpflegung ? r.verpflegung + ' €' : '', [teamNotiz, x.notiz || ''].filter(Boolean).join(', ').slice(0, 22)];
     sp.forEach(function (s, i) { doc.text(s.x, y, w[i], 9, i === 8, s.r ? 'r' : ''); });
     for (var li = 1; li < ld.length; li++) { y += 12; doc.text(sp[2].x, y, ld[li].slice(0, 46), 9); }
     doc.line(36, y + 5, 806, y + 5, 0.3, 0.8); y += 17;
