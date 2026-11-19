@@ -157,7 +157,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.13';
+var VERSION = '1.14';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -270,7 +270,7 @@ function zeichne() {
     teile.push('Arbeit ' + z(r.arbeit));
     if (r.zwischen) teile.push('Zw. ' + z(r.zwischen));
     if (r.tl) teile.push('TL ' + z(r.tl));
-    if (r.fahrt) teile.push('Fahrt ' + z(r.fahrt));
+    if (x.fahrMin) teile.push('Fahrt ' + dauer(x.fahrMin).replace(' Std.', '') + (r.fahrt ? ' (' + z(r.fahrt) + ')' : ''));
     if (r.anreise) teile.push('Anreise ' + z(r.anreise));
     html += '<div class="tag" data-id="' + x.id + '"><div class="d"><b>' + d.getDate() + '</b><span>' + TAGE[d.getDay()] + '</span></div>' +
       '<div class="info"><div class="z1">' + ld + (x.team === 'halle' ? ' · Halle' : '') + '</div>' + teile.join(' · ') + (r.verpflegung ? ' · ' + r.verpflegung + ' €' : '') + '</div>' +
@@ -518,7 +518,7 @@ $('pdfknopf').onclick = function () {
       return s; });
     if (!ld.length) ld = ['–'];
     if (x.team === 'halle') ld[ld.length - 1] += ' (Halle)'; if (x.team === 'reise') ld[ld.length - 1] += x.anreise ? ' (Anreise)' : x.abreise ? ' (Abreise)' : ' (Reise)';
-    if (r.fahrt > 0) {
+    if (x.fahrHin || x.fahrZur || x.fahrMin) {
       var hin = x.fahrHin != null ? x.fahrHin : 0, zur = x.fahrZur != null ? x.fahrZur : 0;
       if (!hin && !zur && x.fahrMin) { hin = Math.ceil(x.fahrMin / 2); zur = x.fahrMin - hin; }
       var gem = ld.filter(function (s) { return s.indexOf('abgesagt') < 0; });
