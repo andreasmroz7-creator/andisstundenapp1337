@@ -155,7 +155,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.10';
+var VERSION = '1.11';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -255,7 +255,8 @@ function zeichne() {
   ls.forEach(function (x) {
     var r = R.berechne(x); sum += r.gesamt; verpf += r.verpflegung;
     var d = new Date(x.datum + 'T12:00:00');
-    var ld = (x.laeden || []).map(function (l) { return l.ort ? esc(l.ort) + (l.fil ? ' <span style="color:var(--grau)">' + esc(l.fil) + '</span>' : '') + (l.art === 'GM' ? ' (GM)' : '') : l.art; }).join(' + ') || '–';
+    var ld = (x.laeden || []).map(function (l) { var s = l.ort ? esc(l.ort) + (l.fil ? ' <span style="color:var(--grau)">' + esc(l.fil) + '</span>' : '') + (l.art === 'GM' ? ' (GM)' : '') : l.art;
+      return l.ausfall ? '<s style="color:var(--grau)">' + s + '</s> <span style="color:var(--rot);font-size:12px">abgesagt</span>' : s; }).join(' + ') || '–';
     var teile = [];
     teile.push('Arbeit ' + z(r.arbeit));
     if (r.zwischen) teile.push('Zw. ' + z(r.zwischen));
@@ -299,6 +300,7 @@ function formZeichnen() {
     h += '<div class="laden"><div class="lk">' + (e.laeden.length > 1 ? (i + 1) + '. Laden' : 'Laden') + '</div>' +
       (l.fil || l.ort ? '<div class="filinfo">' + (l.fil ? 'Filiale <b>' + esc(l.fil) + '</b>' : '') + (l.ort ? (l.fil ? ' · ' : '') + esc(l.ort) : '') + (l.str ? '<br><span>' + esc(l.str) + '</span>' : '') + '</div>' : '') +
       '<div class="zeile" style="margin:0 0 8px"><input type="text" inputmode="numeric" data-fil="' + i + '" placeholder="Filial-Nr." value="' + esc(l.fil || '') + '" style="flex:0 0 38%"><input type="text" data-ort="' + i + '" placeholder="Ort" value="' + esc(l.ort || '') + '"></div>' +
+      (e.laeden.length > 1 ? '<div class="sw' + (l.ausfall ? ' an' : '') + '" data-ausfall="' + i + '" style="border:0;padding:4px 2px 10px"><div>Abgesagt<small>Laden nicht gemacht, zählt nicht mit</small></div><div class="knopf"></div></div>' : '') +
       '<div class="seg" data-art="' + i + '">' + ['NMD', 'GM', 'NC'].map(function (a) { return '<button data-v="' + a + '" class="' + (l.art === a ? 'an' : '') + '">' + ART[a] + '</button>'; }).join('') + '</div>';
     if (e.modus === 'std') {
       h += '<div class="zeile"><input type="text" inputmode="decimal" data-std="' + i + '" placeholder="Stunden, z. B. 5,5" value="' + (l.std || '') + '"></div>';
@@ -362,6 +364,8 @@ $('anzahl').onclick = function (ev) { var v = ev.target.dataset.v; if (v) { setA
 $('team').onclick = function (ev) { var v = ev.target.dataset.v; if (v) { e.team = v; formZeichnen(); } };
 $('laeden').addEventListener('click', function (ev) {
   var t = ev.target;
+  var au = t.closest && t.closest('[data-ausfall]');
+  if (au) { var li = +au.dataset.ausfall; e.laeden[li].ausfall = !e.laeden[li].ausfall; formZeichnen(); return; }
   if (t.dataset.mehr != null) { e.laeden[+t.dataset.mehr].zeiten.push({ von: '', bis: '' }); formZeichnen(); return; }
   var seg = t.parentNode && t.parentNode.dataset && t.parentNode.dataset.art;
   if (seg != null && t.dataset.v) { e.laeden[+seg].art = t.dataset.v; formZeichnen(); }
@@ -490,7 +494,7 @@ $('pdfknopf').onclick = function () {
     var r = R.berechne(x), d = new Date(x.datum + 'T12:00:00');
     Object.keys(S).forEach(function (k) { S[k] += r[k]; });
     var ld = (x.laeden || []).map(function (l) {
-      var s = (l.ort ? l.ort + ' ' : '') + (l.fil ? l.fil + ' ' : '') + l.art; if (x.modus === 'zeit') s += ' ' + (l.zeiten || []).filter(function (q) { return q.von && q.bis; }).map(function (q) { return q.von + '–' + q.bis; }).join(', ');
+      var s = (l.ort ? l.ort + ' ' : '') + (l.fil ? l.fil + ' ' : '') + l.art; if (l.ausfall) return s + ' – abgesagt'; if (x.modus === 'zeit') s += ' ' + (l.zeiten || []).filter(function (q) { return q.von && q.bis; }).map(function (q) { return q.von + '–' + q.bis; }).join(', ');
       return s; });
     if (!ld.length) ld = ['–'];
     if (x.team === 'halle') ld[ld.length - 1] += ' (Halle)'; if (x.team === 'reise') ld[ld.length - 1] += x.anreise ? ' (Anreise)' : x.abreise ? ' (Abreise)' : ' (Reise)';

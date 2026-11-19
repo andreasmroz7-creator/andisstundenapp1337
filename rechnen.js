@@ -48,7 +48,7 @@
   // e = Eintrag, siehe app: {laeden:[{art, zeiten:[{von,bis}], std}], modus:'zeit'|'std',
   //   tl, fahrer, fahrMin, auswaerts, team:'leipzig'|'halle'|'reise', anreise, abreise, uebernachtung}
   function berechne(e) {
-    var laeden = (e.laeden || []).filter(function (l) { return l; });
+    var laeden = (e.laeden || []).filter(function (l) { return l && !l.ausfall; });
     var n = laeden.length;
     var arbeitMin = 0, arbeit = 0;
     if (e.modus === 'std') {
