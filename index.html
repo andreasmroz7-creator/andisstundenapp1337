@@ -119,8 +119,10 @@ input::placeholder{color:#5c6577}
     <div class="sw" data-k="abreise"><div>Abreisetag<small>+1,5 Std. · 10 € Verpflegung</small></div><div class="knopf"></div></div>
     <div class="sw" data-k="uebernachtung"><div>Ganzer Tag mit Übernachtung<small>20 € Verpflegung</small></div><div class="knopf"></div></div>
   </div>
-  <label class="l">Fahrzeit gesamt (hin + zurück, ohne Zwischenfahrt)</label>
-  <div class="zeile" style="margin-top:0"><input type="number" inputmode="numeric" id="fzH" placeholder="Std"><input type="number" inputmode="numeric" id="fzM" placeholder="Min"></div>
+  <label class="l">Hinfahrt (Treffpunkt → 1. Laden)</label>
+  <div class="zeile" style="margin-top:0"><input type="number" inputmode="numeric" id="fhH" placeholder="Std"><input type="number" inputmode="numeric" id="fhM" placeholder="Min"></div>
+  <label class="l">Rückfahrt (letzter Laden → Treffpunkt)</label>
+  <div class="zeile" style="margin-top:0"><input type="number" inputmode="numeric" id="frH" placeholder="Std"><input type="number" inputmode="numeric" id="frM" placeholder="Min"></div>
   <div class="sw" data-k="auswaerts"><div>Auswärts (Inventur für anderes Team)<small>ganze Fahrzeit zählt</small></div><div class="knopf"></div></div>
   <div class="sw" data-k="tl"><div>Teamleiter-Stunde</div><div class="knopf"></div></div>
   <div class="sw" data-k="fahrer"><div>Ich bin Fahrer</div><div class="knopf"></div></div>
@@ -132,8 +134,8 @@ input::placeholder{color:#5c6577}
 <!-- Einstellungen -->
 <div class="blatt" id="blattS"><div class="innen">
   <div class="titel"><b>Einstellungen</b><button class="kugel schliessen" data-zu="blattS" aria-label="Schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="koerper">
-  <label class="l">Name (steht im PDF)</label><input type="text" id="sName" placeholder="Andreas …">
-  <label class="l">Personalnummer (optional)</label><input type="text" id="sPers">
+  <label class="l">Name (steht im PDF)</label><input type="text" id="sName" placeholder="Mroz Andreas">
+  <label class="l">Personalnummer (optional)</label><input type="text" id="sPers" placeholder="4048">
   <label class="l">Standard für neue Einträge</label>
   <div class="sw" data-s="tl"><div>Teamleiter-Stunde</div><div class="knopf"></div></div>
   <div class="sw" data-s="fahrer"><div>Ich bin Fahrer<small>in der Probezeit: aus</small></div><div class="knopf"></div></div>
@@ -155,7 +157,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.11';
+var VERSION = '1.13';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -182,9 +184,10 @@ function profilAnwenden(pr) {
   var w = profilWerte(pr);
   e.modus = w.modus; e.team = w.team; setAnzahl(w.arten.length);
   w.arten.forEach(function (a, i) { e.laeden[i].art = a; });
+  e.fahrHin = w.fahrHin != null ? w.fahrHin : null; e.fahrZur = w.fahrZur != null ? w.fahrZur : null;
   ['fahrMin', 'auswaerts', 'tl', 'fahrer', 'anreise', 'abreise', 'uebernachtung'].forEach(function (k) { e[k] = w[k]; });
   e.profil = pr.id;
-  $('fzH').value = e.fahrMin ? Math.floor(e.fahrMin / 60) : ''; $('fzM').value = e.fahrMin ? e.fahrMin % 60 : '';
+  fahrFelder();
 }
 function profilAuswahlZeichnen() {
   $('profil').innerHTML = profile().map(function (p) { return '<option value="' + p.id + '"' + (p.id === e.profil ? ' selected' : '') + '>' + p.name.replace(/</g, '&lt;') + '</option>'; }).join('') +
@@ -238,6 +241,12 @@ function sync() {
     syncLaeuft = false; syncAnzeige('☁ ' + (navigator.onLine === false ? 'offline, später' : 'Fehler: ' + x.message), navigator.onLine !== false);
   });
 }
+function uhr(s) { var m = R.zeitZuMin(s); if (m == null) return String(s || ''); m %= 1440; return Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2); }
+function dauer(min) { return Math.floor(min / 60) + ':' + ('0' + (min % 60)).slice(-2) + ' Std.'; }
+function fahrFelder() {
+  if (e.fahrHin == null && e.fahrZur == null && e.fahrMin) { e.fahrHin = Math.ceil(e.fahrMin / 2); e.fahrZur = e.fahrMin - e.fahrHin; }
+  [['fh', e.fahrHin], ['fr', e.fahrZur]].forEach(function (p) { $(p[0] + 'H').value = p[1] ? Math.floor(p[1] / 60) : ''; $(p[0] + 'M').value = p[1] ? p[1] % 60 : ''; });
+}
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
 function $(id) { return document.getElementById(id); }
 function z(n) { return (Math.round(n * 100) / 100).toFixed(2).replace('.', ','); }
@@ -286,7 +295,7 @@ function oeffne(eintrag, neu) {
   $('eTitel').textContent = neu ? 'Stunden hinzufügen' : 'Eintrag ändern';
   $('loeschen').style.display = neu ? 'none' : '';
   $('schnell').value = ''; $('datum').value = e.datum; $('notiz').value = e.notiz || '';
-  $('fzH').value = e.fahrMin ? Math.floor(e.fahrMin / 60) : ''; $('fzM').value = e.fahrMin ? e.fahrMin % 60 : '';
+  fahrFelder();
   formZeichnen();
   $('blattE').classList.add('offen');
 }
@@ -306,7 +315,7 @@ function formZeichnen() {
       h += '<div class="zeile"><input type="text" inputmode="decimal" data-std="' + i + '" placeholder="Stunden, z. B. 5,5" value="' + (l.std || '') + '"></div>';
     } else {
       (l.zeiten || []).forEach(function (zt, k) {
-        h += '<div class="zeile"><input type="text" inputmode="decimal" data-von="' + i + '_' + k + '" placeholder="von 7.50" value="' + (zt.von || '') + '"><span>–</span><input type="text" inputmode="decimal" data-bis="' + i + '_' + k + '" placeholder="bis 14.30" value="' + (zt.bis || '') + '"></div>';
+        h += '<div class="zeile"><input type="text" inputmode="decimal" data-von="' + i + '_' + k + '" placeholder="von 7:50" value="' + (zt.von || '') + '"><span>–</span><input type="text" inputmode="decimal" data-bis="' + i + '_' + k + '" placeholder="bis 14:30" value="' + (zt.bis || '') + '"></div>';
       });
       h += '<button class="mini" data-mehr="' + i + '">+ weitere Zeit (z. B. nach Pause)</button>';
     }
@@ -321,7 +330,7 @@ function rechnung() {
   h += '<div><span>Arbeitszeit' + (e.modus === 'zeit' && am ? ' (' + Math.floor(am / 60) + ' Std. ' + (am % 60) + ' Min.)' : '') + '</span><b>' + z(r.arbeit) + '</b></div>';
   if (r.zwischen) h += '<div><span>Fahrt zwischen den Läden</span><b>' + z(r.zwischen) + '</b></div>';
   if (r.tl) h += '<div><span>Teamleiter</span><b>' + z(r.tl) + '</b></div>';
-  if (e.fahrMin) h += '<div><span>Fahrzeit bezahlt</span><b>' + z(r.fahrt) + '</b></div>';
+  if (e.fahrMin) h += '<div><span>Fahrzeit ' + dauer(e.fahrMin) + ', bezahlt</span><b>' + z(r.fahrt) + '</b></div>';
   if (r.anreise) h += '<div><span>' + (e.team === 'halle' ? 'Anreise Halle' : 'An-/Abreise') + '</span><b>' + z(r.anreise) + '</b></div>';
   if (r.verpflegung) h += '<div><span>Verpflegung</span><b>' + r.verpflegung + ' €</b></div>';
   h += '<div class="ges"><span>Gesamt</span><span>' + z(r.gesamt) + '</span></div>';
@@ -338,7 +347,7 @@ $('profil').onchange = function () {
 };
 $('profSpeichern').onclick = function () {
   var name = (prompt('Name für das Profil (z. B. „Halle Getränkemarkt“):', '') || '').trim(); if (!name) return;
-  var w = { modus: e.modus, team: e.team, arten: e.laeden.map(function (l) { return l.art; }), fahrMin: e.fahrMin || 0, auswaerts: !!e.auswaerts, tl: !!e.tl, fahrer: !!e.fahrer, anreise: !!e.anreise, abreise: !!e.abreise, uebernachtung: !!e.uebernachtung };
+  var w = { modus: e.modus, team: e.team, arten: e.laeden.map(function (l) { return l.art; }), fahrMin: e.fahrMin || 0, fahrHin: e.fahrHin || 0, fahrZur: e.fahrZur || 0, auswaerts: !!e.auswaerts, tl: !!e.tl, fahrer: !!e.fahrer, anreise: !!e.anreise, abreise: !!e.abreise, uebernachtung: !!e.uebernachtung };
   var alt = profile().find(function (p) { return p.name.toLowerCase() === name.toLowerCase(); });
   if (alt) { if (!confirm('Profil „' + alt.name + '“ gibt es schon. Überschreiben?')) return; alt.w = w; alt.geaendert = Date.now(); e.profil = alt.id; }
   else { var np = { id: 'p' + Date.now(), name: name, w: w, geaendert: Date.now() }; profile().push(np); e.profil = np.id; }
@@ -370,6 +379,12 @@ $('laeden').addEventListener('click', function (ev) {
   var seg = t.parentNode && t.parentNode.dataset && t.parentNode.dataset.art;
   if (seg != null && t.dataset.v) { e.laeden[+seg].art = t.dataset.v; formZeichnen(); }
 });
+$('laeden').addEventListener('focusout', function (ev) {
+  var t = ev.target, d = t.dataset, p, k = d.von != null ? 'von' : d.bis != null ? 'bis' : null;
+  if (!k || !t.value.trim()) return;
+  var neu = uhr(t.value); if (neu === t.value) return;
+  t.value = neu; p = d[k].split('_'); e.laeden[+p[0]].zeiten[+p[1]][k] = neu; rechnung();
+});
 $('laeden').addEventListener('input', function (ev) {
   var t = ev.target, d = t.dataset, p;
   if (d.fil != null) e.laeden[+d.fil].fil = t.value.trim();
@@ -385,8 +400,12 @@ $('laeden').addEventListener('input', function (ev) {
     if ((k === 'anreise' || k === 'abreise') && e[k]) e.uebernachtung = false;
     formZeichnen(); };
 });
-function fahrLesen() { e.fahrMin = (parseInt($('fzH').value) || 0) * 60 + (parseInt($('fzM').value) || 0); rechnung(); }
-$('fzH').oninput = fahrLesen; $('fzM').oninput = fahrLesen;
+function fahrLesen() {
+  e.fahrHin = (parseInt($('fhH').value) || 0) * 60 + (parseInt($('fhM').value) || 0);
+  e.fahrZur = (parseInt($('frH').value) || 0) * 60 + (parseInt($('frM').value) || 0);
+  e.fahrMin = e.fahrHin + e.fahrZur; rechnung();
+}
+['fhH', 'fhM', 'frH', 'frM'].forEach(function (id) { $(id).oninput = fahrLesen; });
 $('datum').onchange = function () { e.datum = this.value; };
 $('notiz').oninput = function () { e.notiz = this.value; };
 $('schnell').addEventListener('change', schnellAuswerten);
@@ -396,6 +415,7 @@ function schnellAuswerten() {
   var zs = R.leseZeiten(t);
   if (zs.length) {
     e.modus = 'zeit';
+    zs = zs.map(function (q) { return { von: uhr(q.von), bis: uhr(q.bis) }; });
     var n = Math.min(2, zs.length); setAnzahl(n);
     if (n === 1) e.laeden[0].zeiten = zs;
     else { e.laeden[0].zeiten = [zs[0]]; e.laeden[1].zeiten = zs.slice(1); }
@@ -479,13 +499,13 @@ $('pdfknopf').onclick = function () {
   if (!ls.length) { toast('Keine Stunden in diesem Monat'); return; }
   var doc = new MiniPDF(); doc.addPage();
   var titel = 'Stundennachweis ' + MONATE[ansicht.m] + ' ' + ansicht.j;
-  doc.text(40, 50, titel, 18, true);
-  var wer = (daten.einst.name || '') + (daten.einst.pers ? '  ·  Pers.-Nr. ' + daten.einst.pers : '');
-  if (wer) doc.text(40, 70, wer, 11);
-  doc.text(802, 50, 'erstellt am ' + new Date().toLocaleDateString('de-DE'), 9, false, 'r');
+  doc.text(40, 40, daten.einst.name || 'Mroz Andreas', 12, true);
+  doc.text(40, 55, 'Pers.-Nr. ' + (daten.einst.pers || '4048'), 10);
+  doc.text(40, 84, titel, 18, true);
+  doc.text(802, 40, 'erstellt am ' + new Date().toLocaleDateString('de-DE'), 9, false, 'r');
   var sp = [{ t: 'Datum', x: 40 }, { t: 'Tag', x: 105 }, { t: 'Läden', x: 135 }, { t: 'Arbeit', x: 345, r: 1 }, { t: 'Zw.-Fahrt', x: 395, r: 1 },
     { t: 'TL', x: 445, r: 1 }, { t: 'Fahrzeit', x: 505, r: 1 }, { t: 'Anreise', x: 565, r: 1 }, { t: 'Gesamt', x: 630, r: 1 }, { t: 'Verpfl.', x: 685, r: 1 }, { t: 'Notiz', x: 700 }];
-  var y = 100;
+  var y = 112;
   function kopf() { doc.rect(36, y - 13, 770, 18, 0.9); sp.forEach(function (s) { doc.text(s.x, y, s.t, 9, true, s.r ? 'r' : ''); }); y += 18; }
   kopf();
   var S = { arbeit: 0, zwischen: 0, tl: 0, fahrt: 0, anreise: 0, gesamt: 0, verpflegung: 0 };
@@ -494,10 +514,23 @@ $('pdfknopf').onclick = function () {
     var r = R.berechne(x), d = new Date(x.datum + 'T12:00:00');
     Object.keys(S).forEach(function (k) { S[k] += r[k]; });
     var ld = (x.laeden || []).map(function (l) {
-      var s = (l.ort ? l.ort + ' ' : '') + (l.fil ? l.fil + ' ' : '') + l.art; if (l.ausfall) return s + ' – abgesagt'; if (x.modus === 'zeit') s += ' ' + (l.zeiten || []).filter(function (q) { return q.von && q.bis; }).map(function (q) { return q.von + '–' + q.bis; }).join(', ');
+      var s = (l.ort ? l.ort + ' ' : '') + (l.fil ? l.fil + ' ' : '') + l.art; if (l.ausfall) return s + ' – abgesagt'; if (x.modus === 'zeit') s += ' ' + (l.zeiten || []).filter(function (q) { return q.von && q.bis; }).map(function (q) { return uhr(q.von) + '–' + uhr(q.bis); }).join(', ');
       return s; });
     if (!ld.length) ld = ['–'];
     if (x.team === 'halle') ld[ld.length - 1] += ' (Halle)'; if (x.team === 'reise') ld[ld.length - 1] += x.anreise ? ' (Anreise)' : x.abreise ? ' (Abreise)' : ' (Reise)';
+    if (r.fahrt > 0) {
+      var hin = x.fahrHin != null ? x.fahrHin : 0, zur = x.fahrZur != null ? x.fahrZur : 0;
+      if (!hin && !zur && x.fahrMin) { hin = Math.ceil(x.fahrMin / 2); zur = x.fahrMin - hin; }
+      var gem = ld.filter(function (s) { return s.indexOf('abgesagt') < 0; });
+      var iErst = ld.indexOf(gem[0] || ld[0]), iLetzt = ld.lastIndexOf(gem[gem.length - 1] || ld[ld.length - 1]);
+      var neu = [];
+      ld.forEach(function (s, i) {
+        if (i === iErst && hin) neu.push('Hinfahrt Treffpunkt – Laden ' + dauer(hin));
+        neu.push(s);
+        if (i === iLetzt && zur) neu.push('Rückfahrt Laden – Treffpunkt ' + dauer(zur));
+      });
+      ld = neu;
+    }
     var w = [d.toLocaleDateString('de-DE'), TAGE[d.getDay()], ld[0].slice(0, 46), z(r.arbeit), r.zwischen ? z(r.zwischen) : '', r.tl ? z(r.tl) : '', r.fahrt ? z(r.fahrt) : '', r.anreise ? z(r.anreise) : '', z(r.gesamt), r.verpflegung ? r.verpflegung + ' €' : '', (x.notiz || '').slice(0, 22)];
     sp.forEach(function (s, i) { doc.text(s.x, y, w[i], 9, i === 8, s.r ? 'r' : ''); });
     for (var li = 1; li < ld.length; li++) { y += 12; doc.text(sp[2].x, y, ld[li].slice(0, 46), 9); }
