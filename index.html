@@ -90,7 +90,7 @@ input::placeholder{color:#5c6577}
   <button class="kugel" id="vor" aria-label="Nächster Monat"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
 </div>
 <div class="summe">
-  <div><div class="klein">Gesamt diesen Monat</div><div class="gross" id="msumme">0,00</div><div class="klein" id="mdetail"></div></div>
+  <div><div class="klein">Gesamt diesen Monat</div><div class="gross" id="msumme">0,00</div><div class="klein" id="mdetail"></div><div class="klein" id="sync" style="margin-top:4px"></div></div>
   <div style="display:flex;gap:8px">
     <button class="kugel" id="pdfknopf" aria-label="PDF"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button>
     <button class="kugel" id="einstknopf" aria-label="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
@@ -136,6 +136,10 @@ input::placeholder{color:#5c6577}
   <label class="l">Standard für neue Einträge</label>
   <div class="sw" data-s="tl"><div>Teamleiter-Stunde</div><div class="knopf"></div></div>
   <div class="sw" data-s="fahrer"><div>Ich bin Fahrer<small>in der Probezeit: aus</small></div><div class="knopf"></div></div>
+  <label class="l">Abgleich mit GitHub (stunden-daten)</label>
+  <input type="password" id="sToken" placeholder="Schlüssel github_pat_…" autocomplete="off" autocapitalize="off" spellcheck="false">
+  <div class="knopfzeile" style="margin-top:10px"><button class="btn zweit" id="syncJetzt">Jetzt abgleichen</button></div>
+  <div class="hinweis">Damit landen deine Stunden im privaten Repo, und Claude kann sie für dich eintragen.</div>
   <label class="l">Profile</label>
   <div class="profliste" id="profListe"></div>
   <div class="hinweis">Neue Profile legst du im Plus-Fenster an: alles einstellen, dann „Aktuelle Auswahl als Profil speichern“.</div>
@@ -150,7 +154,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.5';
+var VERSION = '1.6';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -185,7 +189,53 @@ function profilAuswahlZeichnen() {
   $('profil').innerHTML = profile().map(function (p) { return '<option value="' + p.id + '"' + (p.id === e.profil ? ' selected' : '') + '>' + p.name.replace(/</g, '&lt;') + '</option>'; }).join('') +
     (e.profil ? '' : '<option value="" selected>– ohne Profil –</option>');
 }
-function sichern() { try { localStorage.setItem(KEY, JSON.stringify(daten)); } catch (x) { toast('Speichern fehlgeschlagen'); } }
+function sichern(ohneSync) { try { localStorage.setItem(KEY, JSON.stringify(daten)); } catch (x) { toast('Speichern fehlgeschlagen'); } if (!ohneSync) syncBald(); }
+// ---------- Abgleich mit GitHub (privates Repo stunden-daten) ----------
+var GH = 'https://api.github.com/repos/andreasmroz7-creator/stunden-daten/contents/daten.json';
+var syncTimer = null, syncLaeuft = false;
+function syncBald() { clearTimeout(syncTimer); syncTimer = setTimeout(sync, 800); }
+function b64enc(s) { return btoa(unescape(encodeURIComponent(s))); }
+function b64dec(s) { return decodeURIComponent(escape(atob(s.replace(/\s/g, '')))); }
+function mische(lokal, fern) {
+  var tot = {}; [lokal.geloescht || {}, fern.geloescht || {}].forEach(function (g) { Object.keys(g).forEach(function (k) { tot[k] = Math.max(tot[k] || 0, g[k]); }); });
+  function liste(a, b) {
+    var m = {};
+    (a || []).concat(b || []).forEach(function (x) { var y = m[x.id]; if (!y || (x.geaendert || 0) > (y.geaendert || 0)) m[x.id] = x; });
+    return Object.keys(m).map(function (k) { return m[k]; }).filter(function (x) { return !(tot[x.id] && tot[x.id] >= (x.geaendert || 0)); });
+  }
+  return { eintraege: liste(lokal.eintraege, fern.eintraege), profile: liste(lokal.profile, fern.profile), geloescht: tot };
+}
+function syncAnzeige(t, fehler) { var el = $('sync'); el.textContent = t; el.style.color = fehler ? 'var(--rot)' : ''; }
+function sync() {
+  var tok = daten.einst.token; if (!tok) { syncAnzeige(''); return Promise.resolve(); }
+  if (syncLaeuft) { syncBald(); return Promise.resolve(); }
+  syncLaeuft = true; syncAnzeige('Abgleich …');
+  var kopf = { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json' };
+  return fetch(GH + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) {
+    if (r.status === 404) return { sha: null, d: {} };
+    if (r.status === 401) throw new Error('Schlüssel ungültig');
+    if (!r.ok) throw new Error('GitHub ' + r.status);
+    return r.json().then(function (j) { return { sha: j.sha, d: JSON.parse(b64dec(j.content) || '{}') }; });
+  }).then(function (fern) {
+    var m = mische(daten, fern.d);
+    var alt = JSON.stringify({ e: daten.eintraege, p: daten.profile, g: daten.geloescht });
+    daten.eintraege = m.eintraege; daten.profile = m.profile.length ? m.profile : profile(); daten.geloescht = m.geloescht;
+    sichern(true); if (JSON.stringify({ e: daten.eintraege, p: daten.profile, g: daten.geloescht }) !== alt) zeichne();
+    var neuText = JSON.stringify({ eintraege: daten.eintraege, profile: daten.profile, geloescht: daten.geloescht }, null, 1);
+    var fernText = JSON.stringify({ eintraege: fern.d.eintraege || [], profile: fern.d.profile || [], geloescht: fern.d.geloescht || {} }, null, 1);
+    if (neuText === fernText) return;
+    var body = { message: 'Stunden-App ' + new Date().toLocaleString('de-DE'), content: b64enc(neuText) };
+    if (fern.sha) body.sha = fern.sha;
+    return fetch(GH, { method: 'PUT', headers: kopf, body: JSON.stringify(body) }).then(function (r) {
+      if (r.status === 409 || r.status === 422) { syncLaeuft = false; return sync(); }
+      if (!r.ok) throw new Error('Hochladen ' + r.status);
+    });
+  }).then(function () {
+    syncLaeuft = false; syncAnzeige('☁ abgeglichen ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
+  }).catch(function (x) {
+    syncLaeuft = false; syncAnzeige('☁ ' + (navigator.onLine === false ? 'offline, später' : 'Fehler: ' + x.message), navigator.onLine !== false);
+  });
+}
 function $(id) { return document.getElementById(id); }
 function z(n) { return (Math.round(n * 100) / 100).toFixed(2).replace('.', ','); }
 function iso(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
@@ -283,8 +333,8 @@ $('profSpeichern').onclick = function () {
   var name = (prompt('Name für das Profil (z. B. „Halle Getränkemarkt“):', '') || '').trim(); if (!name) return;
   var w = { modus: e.modus, team: e.team, arten: e.laeden.map(function (l) { return l.art; }), fahrMin: e.fahrMin || 0, auswaerts: !!e.auswaerts, tl: !!e.tl, fahrer: !!e.fahrer, anreise: !!e.anreise, abreise: !!e.abreise, uebernachtung: !!e.uebernachtung };
   var alt = profile().find(function (p) { return p.name.toLowerCase() === name.toLowerCase(); });
-  if (alt) { if (!confirm('Profil „' + alt.name + '“ gibt es schon. Überschreiben?')) return; alt.w = w; e.profil = alt.id; }
-  else { var np = { id: 'p' + Date.now(), name: name, w: w }; profile().push(np); e.profil = np.id; }
+  if (alt) { if (!confirm('Profil „' + alt.name + '“ gibt es schon. Überschreiben?')) return; alt.w = w; alt.geaendert = Date.now(); e.profil = alt.id; }
+  else { var np = { id: 'p' + Date.now(), name: name, w: w, geaendert: Date.now() }; profile().push(np); e.profil = np.id; }
   daten.letztesProfil = e.profil; sichern(); profilAuswahlZeichnen(); toast('Profil gespeichert');
 };
 function profListeZeichnen() {
@@ -298,6 +348,7 @@ $('profListe').onclick = function (ev) {
   var p = profile().find(function (x) { return x.id === b.dataset.weg; });
   if (!p || !confirm('Profil „' + p.name + '“ löschen?')) return;
   daten.profile = profile().filter(function (x) { return x !== p; });
+  (daten.geloescht = daten.geloescht || {})[p.id] = Date.now();
   if (daten.letztesProfil === p.id) daten.letztesProfil = 'standard';
   sichern(); profListeZeichnen();
 };
@@ -349,7 +400,7 @@ function schnellAuswerten() {
 }
 $('speichern').onclick = function () {
   e.datum = $('datum').value || e.datum;
-  var neu = e._neu; delete e._neu;
+  var neu = e._neu; delete e._neu; e.geaendert = Date.now();
   var i = daten.eintraege.findIndex(function (x) { return x.id === e.id; });
   if (i >= 0) daten.eintraege[i] = e; else daten.eintraege.push(e);
   sichern();
@@ -360,6 +411,7 @@ $('speichern').onclick = function () {
 $('loeschen').onclick = function () {
   if (!confirm('Diesen Tag löschen?')) return;
   daten.eintraege = daten.eintraege.filter(function (x) { return x.id !== e.id; });
+  (daten.geloescht = daten.geloescht || {})[e.id] = Date.now();
   sichern(); $('blattE').classList.remove('offen'); zeichne(); toast('Gelöscht');
 };
 
@@ -379,11 +431,14 @@ $('vor').onclick = function () { ansicht.m++; if (ansicht.m > 11) { ansicht.m = 
 
 // ---------- Einstellungen ----------
 $('einstknopf').onclick = function () {
+  $('sToken').value = daten.einst.token || '';
   $('sName').value = daten.einst.name || ''; $('sPers').value = daten.einst.pers || '';
   [].forEach.call(document.querySelectorAll('.sw[data-s]'), function (s) { s.classList.toggle('an', !!daten.einst[s.dataset.s]); });
   $('version').textContent = 'Version ' + VERSION; profListeZeichnen();
   $('blattS').classList.add('offen');
 };
+$('sToken').onchange = function () { daten.einst.token = this.value.trim(); sichern(true); sync().then(function () { toast($('sync').textContent || 'Gespeichert'); }); };
+$('syncJetzt').onclick = function () { sync().then(function () { toast($('sync').textContent); }); };
 $('sName').oninput = function () { daten.einst.name = this.value; sichern(); };
 $('sPers').oninput = function () { daten.einst.pers = this.value; sichern(); };
 [].forEach.call(document.querySelectorAll('.sw[data-s]'), function (s) {
@@ -448,7 +503,9 @@ $('pdfknopf').onclick = function () {
 new MutationObserver(function () {
   document.documentElement.classList.toggle('blattoffen', !!document.querySelector('.blatt.offen'));
 }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
-zeichne();
+zeichne(); sync();
+document.addEventListener('visibilitychange', function () { if (!document.hidden) sync(); });
+setInterval(function () { if (!document.hidden) sync(); }, 60000);
 if ('serviceWorker' in navigator) {
   var hatteSW = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (reg) {
