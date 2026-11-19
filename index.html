@@ -119,6 +119,7 @@ input::placeholder{color:#5c6577}
     <div class="sw" data-k="abreise"><div>Abreisetag<small>+1,5 Std. · 10 € Verpflegung</small></div><div class="knopf"></div></div>
     <div class="sw" data-k="uebernachtung"><div>Ganzer Tag mit Übernachtung<small>20 € Verpflegung</small></div><div class="knopf"></div></div>
   </div>
+  <div class="hinweis" id="fahrtErkannt" style="margin-top:14px"></div>
   <label class="l">Hinfahrt (Treffpunkt → 1. Laden) <span id="fhDauer" style="color:var(--akz);text-transform:none"></span></label>
   <div class="zeile" style="margin-top:0"><input type="text" inputmode="decimal" id="fhV" placeholder="von 6:30"><span>–</span><input type="text" inputmode="decimal" id="fhB" placeholder="bis 7:05"></div>
   <div id="zwBox"><label class="l">Zwischenfahrt (Laden → Laden) <span id="fzDauer" style="color:var(--akz);text-transform:none"></span></label>
@@ -160,7 +161,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.20';
+var VERSION = '1.21';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -212,6 +213,44 @@ function mische(lokal, fern) {
   }
   return { eintraege: liste(lokal.eintraege, fern.eintraege), profile: liste(lokal.profile, fern.profile), geloescht: tot };
 }
+var GHF = GH.replace('daten.json', 'fahrten');
+function fahrtenHolen(kopf) {
+  return fetch(GHF + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) {
+    if (r.status === 404) return [];
+    return r.ok ? r.json() : [];
+  }).then(function (liste) {
+    var ev = [];
+    (liste || []).forEach(function (f) {
+      var m = /^(\d{4}-\d{2}-\d{2})_(\d{2})-(\d{2})(?:-\d{2})?_(an|aus)\.json$/.exec(f.name || '');
+      if (m) ev.push({ datum: m[1], min: +m[2] * 60 + +m[3], art: m[4] });
+    });
+    daten.fahrtEvents = ev; sichern(true);
+  }).catch(function () {});
+}
+// Fahrten eines Tages: an/aus paaren, kurze Unterbrechungen (bis 5 Min.) zusammenfassen, Fahrten unter 3 Min. weglassen
+function fahrtenTag(datum) {
+  var ev = (daten.fahrtEvents || []).filter(function (x) { return x.datum === datum; }).sort(function (a, b) { return a.min - b.min; });
+  var fa = [], start = null;
+  ev.forEach(function (x) { if (x.art === 'an') { if (start == null) start = x.min; } else if (start != null) { fa.push({ von: start, bis: x.min }); start = null; } });
+  var zus = [];
+  fa.forEach(function (f) { var l = zus[zus.length - 1]; if (l && f.von - l.bis <= 5) l.bis = f.bis; else zus.push({ von: f.von, bis: f.bis }); });
+  return zus.filter(function (f) { return f.bis - f.von >= 3; });
+}
+function mz(m) { return Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2); }
+// erkannte Fahrten in den Eintrag übernehmen (nur leere Felder)
+function fahrtenUebernehmen(x) {
+  var fa = fahrtenTag(x.datum); if (!fa.length) return false;
+  var geaendert = false, gem = (x.laeden || []).filter(function (l) { return !l.ausfall; }).length;
+  function setz(k, kz, f) { if (!x[kz]) { x[kz] = mz(f.von) + '–' + mz(f.bis); x[k] = f.bis - f.von; geaendert = true; } }
+  setz('fahrHin', 'hinZeit', fa[0]);
+  if (fa.length >= 2) setz('fahrZur', 'zurZeit', fa[fa.length - 1]);
+  if (gem >= 2 && fa.length >= 3 && !x.zwZeit) {
+    var mitte = fa.slice(1, -1), sum = 0; mitte.forEach(function (f) { sum += f.bis - f.von; });
+    x.zwZeit = mz(mitte[0].von) + '–' + mz(mitte[mitte.length - 1].bis); x.fahrZw = sum; geaendert = true;
+  }
+  if (geaendert) x.fahrMin = (x.fahrHin || 0) + (x.fahrZur || 0);
+  return geaendert;
+}
 function syncAnzeige(t, fehler) { var el = $('sync'); el.textContent = t; el.style.color = fehler ? 'var(--rot)' : ''; }
 function sync() {
   var tok = daten.einst.token; if (!tok) { syncAnzeige(''); return Promise.resolve(); }
@@ -238,7 +277,7 @@ function sync() {
       if (r.status === 404 || r.status === 403) throw new Error('Schlüssel darf nur lesen. Contents auf „Read and write“ stellen');
       if (!r.ok) throw new Error('Hochladen ' + r.status);
     });
-  }).then(function () {
+  }).then(function () { return fahrtenHolen(kopf); }).then(function () {
     syncLaeuft = false; syncAnzeige('☁ abgeglichen ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
   }).catch(function (x) {
     syncLaeuft = false;
@@ -248,7 +287,13 @@ function sync() {
 }
 function uhr(s) { var m = R.zeitZuMin(s); if (m == null) return String(s || ''); m %= 1440; return Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2); }
 function dauer(min) { return Math.floor(min / 60) + ':' + ('0' + (min % 60)).slice(-2) + ' Std.'; }
+function fahrtHinweis() {
+  var fa = fahrtenTag(e.datum);
+  $('fahrtErkannt').innerHTML = fa.length ? '🚗 Erkannte Fahrten: ' + fa.map(function (f) { return mz(f.von) + '–' + mz(f.bis); }).join(', ') + ' <button class="mini" id="fahrtUebern">übernehmen</button>' : '';
+  var b = $('fahrtUebern'); if (b) b.onclick = function () { e.hinZeit = e.zurZeit = e.zwZeit = ''; fahrtenUebernehmen(e); fahrFelder(); rechnung(); toast('Fahrten übernommen'); };
+}
 function fahrFelder() {
+  fahrtHinweis();
   if (e.fahrHin == null && e.fahrZur == null && e.fahrMin) { e.fahrHin = Math.ceil(e.fahrMin / 2); e.fahrZur = e.fahrMin - e.fahrHin; }
   $('zwBox').style.display = e.laeden.length > 1 ? '' : 'none';
   [['fh', e.hinZeit, e.fahrHin], ['fr', e.zurZeit, e.fahrZur], ['fz', e.zwZeit, e.fahrZw]].forEach(function (p) {
@@ -300,6 +345,7 @@ function neuerEintrag(datum) {
 function oeffne(eintrag, neu) {
   e = JSON.parse(JSON.stringify(eintrag)); e._neu = !!neu;
   if (neu) { var pr = profile().find(function (p) { return p.id === daten.letztesProfil; }) || profile()[0]; profilAnwenden(pr); }
+  if (fahrtenUebernehmen(e)) setTimeout(function () { toast('Fahrten automatisch eingetragen'); }, 300);
   profilAuswahlZeichnen();
   $('eTitel').textContent = neu ? 'Stunden hinzufügen' : 'Eintrag ändern';
   $('loeschen').style.display = neu ? 'none' : '';
@@ -422,7 +468,7 @@ function fahrLesen() {
   $(id).oninput = fahrLesen;
   $(id).addEventListener('focusout', function () { if (this.value.trim() && R.zeitZuMin(this.value) != null) { this.value = uhr(this.value); fahrLesen(); } });
 });
-$('datum').onchange = function () { e.datum = this.value; };
+$('datum').onchange = function () { e.datum = this.value; if (fahrtenUebernehmen(e)) toast('Fahrten automatisch eingetragen'); fahrFelder(); rechnung(); };
 $('notiz').oninput = function () { e.notiz = this.value; };
 $('schnell').addEventListener('change', schnellAuswerten);
 $('schnell').addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { schnellAuswerten(); this.blur(); } });
