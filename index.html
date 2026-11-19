@@ -119,10 +119,10 @@ input::placeholder{color:#5c6577}
     <div class="sw" data-k="abreise"><div>Abreisetag<small>+1,5 Std. · 10 € Verpflegung</small></div><div class="knopf"></div></div>
     <div class="sw" data-k="uebernachtung"><div>Ganzer Tag mit Übernachtung<small>20 € Verpflegung</small></div><div class="knopf"></div></div>
   </div>
-  <label class="l">Hinfahrt (Treffpunkt → 1. Laden)</label>
-  <div class="zeile" style="margin-top:0"><input type="number" inputmode="numeric" id="fhH" placeholder="Std"><input type="number" inputmode="numeric" id="fhM" placeholder="Min"></div>
-  <label class="l">Rückfahrt (letzter Laden → Treffpunkt)</label>
-  <div class="zeile" style="margin-top:0"><input type="number" inputmode="numeric" id="frH" placeholder="Std"><input type="number" inputmode="numeric" id="frM" placeholder="Min"></div>
+  <label class="l">Hinfahrt (Treffpunkt → 1. Laden) <span id="fhDauer" style="color:var(--akz);text-transform:none"></span></label>
+  <div class="zeile" style="margin-top:0"><input type="text" inputmode="decimal" id="fhV" placeholder="von 6:30"><span>–</span><input type="text" inputmode="decimal" id="fhB" placeholder="bis 7:05"></div>
+  <label class="l">Rückfahrt (letzter Laden → Treffpunkt) <span id="frDauer" style="color:var(--akz);text-transform:none"></span></label>
+  <div class="zeile" style="margin-top:0"><input type="text" inputmode="decimal" id="frV" placeholder="von 14:25"><span>–</span><input type="text" inputmode="decimal" id="frB" placeholder="bis 15:05"></div>
   <div class="sw" data-k="auswaerts"><div>Auswärts (Inventur für anderes Team)<small>ganze Fahrzeit zählt</small></div><div class="knopf"></div></div>
   <div class="sw" data-k="tl"><div>Teamleiter-Stunde</div><div class="knopf"></div></div>
   <div class="sw" data-k="fahrer"><div>Ich bin Fahrer</div><div class="knopf"></div></div>
@@ -157,7 +157,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.15';
+var VERSION = '1.16';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -245,7 +245,10 @@ function uhr(s) { var m = R.zeitZuMin(s); if (m == null) return String(s || '');
 function dauer(min) { return Math.floor(min / 60) + ':' + ('0' + (min % 60)).slice(-2) + ' Std.'; }
 function fahrFelder() {
   if (e.fahrHin == null && e.fahrZur == null && e.fahrMin) { e.fahrHin = Math.ceil(e.fahrMin / 2); e.fahrZur = e.fahrMin - e.fahrHin; }
-  [['fh', e.fahrHin], ['fr', e.fahrZur]].forEach(function (p) { $(p[0] + 'H').value = p[1] ? Math.floor(p[1] / 60) : ''; $(p[0] + 'M').value = p[1] ? p[1] % 60 : ''; });
+  [['fh', e.hinZeit, e.fahrHin], ['fr', e.zurZeit, e.fahrZur]].forEach(function (p) {
+    var t = (p[1] || '').split('–'); $(p[0] + 'V').value = t[0] || ''; $(p[0] + 'B').value = t[1] || '';
+    $(p[0] + 'Dauer').textContent = p[2] ? '· ' + dauer(p[2]) : '';
+  });
 }
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
 function $(id) { return document.getElementById(id); }
@@ -401,11 +404,18 @@ $('laeden').addEventListener('input', function (ev) {
     formZeichnen(); };
 });
 function fahrLesen() {
-  e.fahrHin = (parseInt($('fhH').value) || 0) * 60 + (parseInt($('fhM').value) || 0);
-  e.fahrZur = (parseInt($('frH').value) || 0) * 60 + (parseInt($('frM').value) || 0);
-  e.fahrMin = e.fahrHin + e.fahrZur; rechnung();
+  [['fh', 'fahrHin', 'hinZeit'], ['fr', 'fahrZur', 'zurZeit']].forEach(function (p) {
+    var v = $(p[0] + 'V').value.trim(), b = $(p[0] + 'B').value.trim();
+    if (v && b && R.zeitZuMin(v) != null && R.zeitZuMin(b) != null) { e[p[1]] = R.spanneMin(v, b); e[p[2]] = uhr(v) + '–' + uhr(b); }
+    else if (!v && !b) { e[p[2]] = ''; if (e[p[2] + '_war'] !== undefined) e[p[1]] = 0; }
+    $(p[0] + 'Dauer').textContent = e[p[1]] ? '· ' + dauer(e[p[1]]) : '';
+  });
+  e.fahrMin = (e.fahrHin || 0) + (e.fahrZur || 0); rechnung();
 }
-['fhH', 'fhM', 'frH', 'frM'].forEach(function (id) { $(id).oninput = fahrLesen; });
+['fhV', 'fhB', 'frV', 'frB'].forEach(function (id) {
+  $(id).oninput = fahrLesen;
+  $(id).addEventListener('focusout', function () { if (this.value.trim() && R.zeitZuMin(this.value) != null) { this.value = uhr(this.value); fahrLesen(); } });
+});
 $('datum').onchange = function () { e.datum = this.value; };
 $('notiz').oninput = function () { e.notiz = this.value; };
 $('schnell').addEventListener('change', schnellAuswerten);
