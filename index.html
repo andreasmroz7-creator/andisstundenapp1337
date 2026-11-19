@@ -16,6 +16,8 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",Helvetica,Arial,sans-serif;overscroll-behavior:none}
 html,body{overflow-x:hidden;max-width:100%;touch-action:pan-y}
+html.blattoffen,html.blattoffen body{background:#121826}
+html.blattoffen body:before{display:none}
 body{padding:calc(env(safe-area-inset-top) + 10px) 16px calc(env(safe-area-inset-bottom) + 100px)}
 body:before{content:"";position:fixed;inset:0;z-index:-1;background:radial-gradient(800px 500px at 10% -10%,rgba(90,200,250,.18),transparent 60%),radial-gradient(700px 500px at 110% 10%,rgba(120,90,250,.14),transparent 60%)}
 h1{font-size:15px;font-weight:600;color:var(--grau);margin:0;letter-spacing:.3px}
@@ -39,11 +41,11 @@ h1{font-size:15px;font-weight:600;color:var(--grau);margin:0;letter-spacing:.3px
 .tag .h{font-size:20px;font-weight:700}
 .leer{color:var(--grau);text-align:center;padding:40px 10px}
 /* Blatt */
-.blatt{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.5);display:none;align-items:flex-end}
+.blatt{position:fixed;top:0;left:0;right:0;bottom:calc(-1 * env(safe-area-inset-bottom) - 60px);z-index:10;background:rgba(0,0,0,.5);display:none;align-items:flex-end}
 .blatt.offen{display:flex}
 .blatt .innen{overflow:hidden;background:#121826;position:absolute;inset:0;display:flex;flex-direction:column}
 .blatt .titel{display:flex;align-items:center;justify-content:space-between;flex:none;padding:calc(env(safe-area-inset-top) + 10px) 16px 10px;border-bottom:1px solid var(--rand);background:#121826}
-.blatt .koerper{flex:1;overflow-y:auto;overflow-x:hidden;touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:4px 16px calc(env(safe-area-inset-bottom) + 40px)}
+.blatt .koerper{flex:1;margin-bottom:calc(env(safe-area-inset-bottom) + 60px);overflow-y:auto;overflow-x:hidden;touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:4px 16px calc(env(safe-area-inset-bottom) + 40px)}
 .blatt .titel b{font-size:18px}
 label.l{display:block;font-size:12px;color:var(--grau);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.5px}
 input[type=text],input[type=date],input[type=number],input[type=time]{width:100%;min-width:0;max-width:100%;display:block;-webkit-appearance:none;appearance:none;background:rgba(255,255,255,.07);border:1px solid var(--rand);color:var(--txt);border-radius:12px;padding:11px 12px;font-size:16px;font-family:inherit}
@@ -148,7 +150,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.4';
+var VERSION = '1.5';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -443,6 +445,9 @@ $('pdfknopf').onclick = function () {
   teile(name, new Blob([doc.bytes()], { type: 'application/pdf' }));
 };
 
+new MutationObserver(function () {
+  document.documentElement.classList.toggle('blattoffen', !!document.querySelector('.blatt.offen'));
+}).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
 zeichne();
 if ('serviceWorker' in navigator) {
   var hatteSW = !!navigator.serviceWorker.controller;
