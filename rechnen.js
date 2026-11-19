@@ -65,8 +65,8 @@
     var zwUeber = n >= 2 ? Math.max(0, (+e.fahrZw || 0) - 30) : 0;
     var fz = (+e.fahrMin || 0) + zwUeber, grenze = n >= 2 ? 120 : 60;
     var ueber = e.auswaerts ? fz : Math.max(0, fz - grenze);
-    var fahrt = (e.fahrer ? ueber : ueber / 2) / 60;
-    fahrt = Math.round(fahrt * 100) / 100;
+    // bezahlter Teil wird wie die Arbeitszeit auf die Viertelstunde gerundet
+    var fahrt = rundeViertel(e.fahrer ? ueber : ueber / 2) / 60;
     var anreise = 0;
     if (e.team === 'halle' && n > 0) anreise = 1.5;
     if (e.team === 'reise') { if (e.anreise) anreise += 1.5; if (e.abreise) anreise += 1.5; }
