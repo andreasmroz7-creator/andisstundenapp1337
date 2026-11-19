@@ -525,9 +525,9 @@ $('pdfknopf').onclick = function () {
       var iErst = ld.indexOf(gem[0] || ld[0]), iLetzt = ld.lastIndexOf(gem[gem.length - 1] || ld[ld.length - 1]);
       var neu = [];
       ld.forEach(function (s, i) {
-        if (i === iErst && hin) neu.push('Hinfahrt Treffpunkt – Laden ' + (x.hinZeit ? x.hinZeit + ' (' + dauer(hin) + ')' : dauer(hin)));
+        if (i === iErst && hin) neu.push('Hinfahrt Treffp.–Laden ' + (x.hinZeit ? x.hinZeit + ' (' + dauer(hin).replace(' Std.', '') + ')' : dauer(hin)));
         neu.push(s);
-        if (i === iLetzt && zur) neu.push('Rückfahrt Laden – Treffpunkt ' + (x.zurZeit ? x.zurZeit + ' (' + dauer(zur) + ')' : dauer(zur)));
+        if (i === iLetzt && zur) neu.push('Rückfahrt Laden–Treffp. ' + (x.zurZeit ? x.zurZeit + ' (' + dauer(zur).replace(' Std.', '') + ')' : dauer(zur)));
       });
       ld = neu;
     }
