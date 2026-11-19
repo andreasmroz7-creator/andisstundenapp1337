@@ -69,7 +69,9 @@
     var fahrt = rundeViertel(e.fahrer ? ueber : ueber / 2) / 60;
     var anreise = 0;
     if (e.team === 'halle' && n > 0) anreise = 1.5;
-    if (e.team === 'reise') { if (e.anreise) anreise += 1.5; if (e.abreise) anreise += 1.5; }
+    // Reise: An-/Abreise pauschal 1,5 Std. (Dresden, Coburg …), für andere Standorte eigener Wert
+    var reiseStd = (e.anreiseStd != null && e.anreiseStd !== '') ? +e.anreiseStd : 1.5;
+    if (e.team === 'reise') { if (e.anreise) anreise += reiseStd; if (e.abreise) anreise += reiseStd; }
     var verpflegung = 0;
     if (e.team === 'reise') {
       if (e.anreise || e.abreise) verpflegung = (e.anreise ? 10 : 0) + (e.abreise ? 10 : 0);

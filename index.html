@@ -118,6 +118,9 @@ input::placeholder{color:#5c6577}
     <div class="sw" data-k="anreise"><div>Anreisetag<small>+1,5 Std. · 10 € Verpflegung</small></div><div class="knopf"></div></div>
     <div class="sw" data-k="abreise"><div>Abreisetag<small>+1,5 Std. · 10 € Verpflegung</small></div><div class="knopf"></div></div>
     <div class="sw" data-k="uebernachtung"><div>Ganzer Tag mit Übernachtung<small>20 € Verpflegung</small></div><div class="knopf"></div></div>
+    <label class="l">An-/Abreisezeit je Reisetag (Std.)</label>
+    <input type="text" inputmode="decimal" id="reiseStd" placeholder="1,5 (Standard)">
+    <div class="hinweis">Nur ändern, wenn es an einem Standort andere Anreisezeiten gibt.</div>
   </div>
   <div class="hinweis" id="fahrtErkannt" style="margin-top:14px"></div>
   <label class="l">Hinfahrt (Treffpunkt → 1. Laden) <span id="fhDauer" style="color:var(--akz);text-transform:none"></span></label>
@@ -161,7 +164,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.26';
+var VERSION = '1.27';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -358,6 +361,7 @@ function setSeg(id, v) { [].forEach.call($(id).children, function (b) { b.classL
 function formZeichnen() {
   setSeg('modus', e.modus); setSeg('anzahl', e.laeden.length); setSeg('team', e.team);
   $('reiseBox').style.display = e.team === 'reise' ? '' : 'none';
+  $('reiseStd').value = e.anreiseStd != null && e.anreiseStd !== '' ? String(e.anreiseStd).replace('.', ',') : '';
   [].forEach.call(document.querySelectorAll('#blattE .sw[data-k]'), function (s) { s.classList.toggle('an', !!e[s.dataset.k]); });
   var h = '';
   e.laeden.forEach(function (l, i) {
@@ -469,6 +473,7 @@ function fahrLesen() {
   $(id).addEventListener('focusout', function () { if (this.value.trim() && R.zeitZuMin(this.value) != null) { this.value = uhr(this.value); fahrLesen(); } });
 });
 $('datum').onchange = function () { e.datum = this.value; if (fahrtenUebernehmen(e)) toast('Fahrten automatisch eingetragen'); fahrFelder(); rechnung(); };
+$('reiseStd').oninput = function () { var v = this.value.trim().replace(',', '.'); e.anreiseStd = v === '' ? null : (parseFloat(v) || 0); rechnung(); };
 $('notiz').oninput = function () { e.notiz = this.value; };
 $('schnell').addEventListener('change', schnellAuswerten);
 $('schnell').addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { schnellAuswerten(); this.blur(); } });
