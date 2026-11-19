@@ -160,7 +160,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.18';
+var VERSION = '1.19';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -241,7 +241,9 @@ function sync() {
   }).then(function () {
     syncLaeuft = false; syncAnzeige('☁ abgeglichen ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
   }).catch(function (x) {
-    syncLaeuft = false; syncAnzeige('☁ ' + (navigator.onLine === false ? 'offline, später' : 'Fehler: ' + x.message), navigator.onLine !== false);
+    syncLaeuft = false;
+    var netz = navigator.onLine === false || x instanceof TypeError || /load failed|failed to fetch|network/i.test(x.message || '');
+    syncAnzeige(netz ? '☁ offline, gleicht später ab' : '☁ Fehler: ' + x.message, !netz);
   });
 }
 function uhr(s) { var m = R.zeitZuMin(s); if (m == null) return String(s || ''); m %= 1440; return Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2); }
