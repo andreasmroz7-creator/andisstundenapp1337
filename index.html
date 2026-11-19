@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stunden">
+<meta name="theme-color" content="#0b0f17">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Stunden</title>
+<style>
+:root{--bg:#0b0f17;--karte:rgba(255,255,255,.06);--rand:rgba(255,255,255,.10);--txt:#e8edf5;--grau:#8a94a6;--akz:#5ac8fa;--gruen:#34c759;--rot:#ff453a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--txt);font:16px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text",Helvetica,Arial,sans-serif;overscroll-behavior:none}
+body{padding:calc(env(safe-area-inset-top) + 10px) 16px calc(env(safe-area-inset-bottom) + 100px)}
+body:before{content:"";position:fixed;inset:0;z-index:-1;background:radial-gradient(800px 500px at 10% -10%,rgba(90,200,250,.18),transparent 60%),radial-gradient(700px 500px at 110% 10%,rgba(120,90,250,.14),transparent 60%)}
+h1{font-size:15px;font-weight:600;color:var(--grau);margin:0;letter-spacing:.3px}
+.kopf{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.kopf .mitte{flex:1;text-align:center}
+.monat{font-size:20px;font-weight:700}
+/* runde Kugel-Knöpfe: überall dasselbe Design */
+.kugel{width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.28),rgba(255,255,255,.06) 60%,rgba(0,0,0,.15));box-shadow:inset 0 1px 1px rgba(255,255,255,.25),0 4px 14px rgba(0,0,0,.35);color:var(--txt);display:inline-flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:transform .15s,box-shadow .15s;flex:none;padding:0}
+.kugel:active{transform:scale(.92);box-shadow:inset 0 1px 1px rgba(255,255,255,.25),0 0 18px rgba(90,200,250,.45)}
+.kugel svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.plus{position:fixed;right:20px;bottom:calc(env(safe-area-inset-bottom) + 22px);width:62px;height:62px;z-index:5}
+.plus svg{width:28px;height:28px}
+.summe{background:var(--karte);border:1px solid var(--rand);border-radius:20px;padding:16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.summe .gross{font-size:34px;font-weight:700;letter-spacing:-.5px}
+.summe .klein{color:var(--grau);font-size:13px}
+.tag{background:var(--karte);border:1px solid var(--rand);border-radius:16px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer}
+.tag .d{width:44px;text-align:center;flex:none}
+.tag .d b{display:block;font-size:20px}.tag .d span{font-size:12px;color:var(--grau)}
+.tag .info{flex:1;min-width:0;font-size:13px;color:var(--grau)}
+.tag .info .z1{color:var(--txt);font-size:15px}
+.tag .h{font-size:20px;font-weight:700}
+.leer{color:var(--grau);text-align:center;padding:40px 10px}
+/* Blatt */
+.blatt{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.5);display:none;align-items:flex-end}
+.blatt.offen{display:flex}
+.blatt .innen{background:#121826;width:100%;max-height:94vh;overflow:auto;border-radius:22px 22px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom) + 24px);border-top:1px solid var(--rand)}
+.blatt .titel{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.blatt .titel b{font-size:18px}
+label.l{display:block;font-size:12px;color:var(--grau);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.5px}
+input[type=text],input[type=date],input[type=number],input[type=time]{width:100%;background:rgba(255,255,255,.07);border:1px solid var(--rand);color:var(--txt);border-radius:12px;padding:11px 12px;font-size:16px;font-family:inherit}
+input::placeholder{color:#5c6577}
+.seg{display:flex;background:rgba(255,255,255,.06);border:1px solid var(--rand);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:transparent;color:var(--grau);padding:9px 4px;border-radius:9px;font-size:14px;font-family:inherit;cursor:pointer}
+.seg button.an{background:rgba(90,200,250,.22);color:var(--txt);font-weight:600}
+/* Schiebeschalter: ganze Zeile klickbar, kein Hover-Hinweis */
+.sw{display:flex;align-items:center;justify-content:space-between;padding:12px 2px;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer;user-select:none;-webkit-user-select:none}
+.sw .knopf{width:50px;height:30px;border-radius:15px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);position:relative;transition:background .2s;flex:none}
+.sw .knopf:after{content:"";position:absolute;top:2px;left:2px;width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#cfd6e2);box-shadow:0 2px 6px rgba(0,0,0,.4);transition:transform .2s}
+.sw.an .knopf{background:rgba(52,199,89,.75)}
+.sw.an .knopf:after{transform:translateX(20px)}
+.sw small{display:block;color:var(--grau);font-size:12px}
+.laden{background:rgba(255,255,255,.04);border:1px solid var(--rand);border-radius:14px;padding:10px 12px;margin-top:10px}
+.laden .lk{font-weight:600;margin-bottom:6px}
+.zeile{display:flex;gap:8px;align-items:center;margin-top:8px}
+.zeile input{flex:1}
+.mini{background:none;border:0;color:var(--akz);font-size:14px;padding:8px 0;cursor:pointer;font-family:inherit}
+.rechnung{background:rgba(90,200,250,.08);border:1px solid rgba(90,200,250,.25);border-radius:14px;padding:12px 14px;margin-top:16px;font-size:14px}
+.rechnung div{display:flex;justify-content:space-between;padding:2px 0}
+.rechnung .ges{border-top:1px solid rgba(255,255,255,.12);margin-top:6px;padding-top:8px;font-size:18px;font-weight:700}
+.knopfzeile{display:flex;gap:10px;margin-top:16px}
+.btn{flex:1;border:0;border-radius:14px;padding:14px;font-size:16px;font-weight:600;font-family:inherit;cursor:pointer;background:var(--akz);color:#04121c}
+.btn.zweit{background:rgba(255,255,255,.08);color:var(--txt);border:1px solid var(--rand)}
+.btn.rot{background:rgba(255,69,58,.15);color:var(--rot);border:1px solid rgba(255,69,58,.35)}
+.hinweis{font-size:12px;color:var(--grau);margin-top:6px}
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translateX(-50%);background:rgba(30,38,54,.95);border:1px solid var(--rand);padding:10px 16px;border-radius:14px;z-index:20;font-size:14px;display:none}
+</style>
+</head>
+<body>
+<div class="kopf">
+  <button class="kugel" id="zurueck" aria-label="Vormonat"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+  <div class="mitte"><h1>STUNDEN</h1><div class="monat" id="monat"></div></div>
+  <button class="kugel" id="vor" aria-label="Nächster Monat"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+</div>
+<div class="summe">
+  <div><div class="klein">Gesamt diesen Monat</div><div class="gross" id="msumme">0,00</div><div class="klein" id="mdetail"></div></div>
+  <div style="display:flex;gap:8px">
+    <button class="kugel" id="pdfknopf" aria-label="PDF"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button>
+    <button class="kugel" id="einstknopf" aria-label="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+  </div>
+</div>
+<div id="liste"></div>
+<button class="kugel plus" id="plus" aria-label="Stunden hinzufügen"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+
+<!-- Eintrag -->
+<div class="blatt" id="blattE"><div class="innen">
+  <div class="titel"><b id="eTitel">Stunden hinzufügen</b><button class="kugel schliessen" data-zu="blattE" aria-label="Schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <label class="l">Schnell eintragen</label>
+  <input type="text" id="schnell" placeholder="z. B. 7.50 bis 14.30 und 15 bis 19" autocomplete="off">
+  <div class="hinweis">Oder: „erster Laden 5 Std, zweiter 4 Std“. Füllt die Felder unten aus.</div>
+  <label class="l">Datum</label><input type="date" id="datum">
+  <label class="l">Eingabe</label><div class="seg" id="modus"><button data-v="zeit">Uhrzeit von–bis</button><button data-v="std">Stunden</button></div>
+  <label class="l">Läden</label><div class="seg" id="anzahl"><button data-v="1">1 Laden</button><button data-v="2">2 Läden</button></div>
+  <div id="laeden"></div>
+  <label class="l">Team / Einsatz</label><div class="seg" id="team"><button data-v="leipzig">Leipzig</button><button data-v="halle">Halle</button><button data-v="reise">Reise</button></div>
+  <div id="reiseBox" style="display:none">
+    <div class="sw" data-k="anreise"><div>Anreisetag<small>+1,5 Std. · 10 € Verpflegung</small></div><div class="knopf"></div></div>
+    <div class="sw" data-k="abreise"><div>Abreisetag<small>+1,5 Std. · 10 € Verpflegung</small></div><div class="knopf"></div></div>
+    <div class="sw" data-k="uebernachtung"><div>Ganzer Tag mit Übernachtung<small>20 € Verpflegung</small></div><div class="knopf"></div></div>
+  </div>
+  <label class="l">Fahrzeit gesamt (hin + zurück, ohne Zwischenfahrt)</label>
+  <div class="zeile" style="margin-top:0"><input type="number" inputmode="numeric" id="fzH" placeholder="Std"><input type="number" inputmode="numeric" id="fzM" placeholder="Min"></div>
+  <div class="sw" data-k="auswaerts"><div>Auswärts (Inventur für anderes Team)<small>ganze Fahrzeit zählt</small></div><div class="knopf"></div></div>
+  <div class="sw" data-k="tl"><div>Teamleiter-Stunde</div><div class="knopf"></div></div>
+  <div class="sw" data-k="fahrer"><div>Ich bin Fahrer</div><div class="knopf"></div></div>
+  <label class="l">Notiz</label><input type="text" id="notiz" placeholder="optional">
+  <div class="rechnung" id="rechnung"></div>
+  <div class="knopfzeile"><button class="btn rot" id="loeschen" style="display:none">Löschen</button><button class="btn" id="speichern">Speichern</button></div>
+</div></div>
+
+<!-- Einstellungen -->
+<div class="blatt" id="blattS"><div class="innen">
+  <div class="titel"><b>Einstellungen</b><button class="kugel schliessen" data-zu="blattS" aria-label="Schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <label class="l">Name (steht im PDF)</label><input type="text" id="sName" placeholder="Andreas …">
+  <label class="l">Personalnummer (optional)</label><input type="text" id="sPers">
+  <label class="l">Standard für neue Einträge</label>
+  <div class="sw" data-s="tl"><div>Teamleiter-Stunde</div><div class="knopf"></div></div>
+  <div class="sw" data-s="fahrer"><div>Ich bin Fahrer<small>in der Probezeit: aus</small></div><div class="knopf"></div></div>
+  <label class="l">Sicherung</label>
+  <div class="knopfzeile" style="margin-top:0"><button class="btn zweit" id="export">Sichern (Datei)</button><button class="btn zweit" id="import">Laden (Datei)</button></div>
+  <input type="file" id="importDatei" accept=".json,application/json" style="display:none">
+  <div class="hinweis">Deine Stunden liegen nur auf diesem Handy. Ab und zu sichern.</div>
+  <div class="hinweis" id="version"></div>
+</div></div>
+
+<div class="toast" id="toast"></div>
+<script src="rechnen.js"></script>
+<script src="pdf.js"></script>
+<script>
+var VERSION = '1.0';
+var R = window.Rechnen;
+var KEY = 'stunden_v1';
+var daten = laden();
+var jetzt = new Date();
+var ansicht = { j: jetzt.getFullYear(), m: jetzt.getMonth() };
+var MONATE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+var TAGE = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+var ART = { NMD: 'Laden', GM: 'Getränkemarkt', NC: 'Netto City' };
+var e = null; // aktueller Eintrag im Formular
+
+function laden() {
+  try { var d = JSON.parse(localStorage.getItem(KEY)); if (d && d.eintraege) return d; } catch (x) {}
+  return { eintraege: [], einst: { tl: true, fahrer: false, name: '', pers: '' } };
+}
+function sichern() { try { localStorage.setItem(KEY, JSON.stringify(daten)); } catch (x) { toast('Speichern fehlgeschlagen'); } }
+function $(id) { return document.getElementById(id); }
+function z(n) { return (Math.round(n * 100) / 100).toFixed(2).replace('.', ','); }
+function iso(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+function toast(t) { var el = $('toast'); el.textContent = t; el.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(function () { el.style.display = 'none'; }, 2200); }
+
+function monatsEintraege(j, m) {
+  var p = j + '-' + ('0' + (m + 1)).slice(-2);
+  return daten.eintraege.filter(function (x) { return x.datum.slice(0, 7) === p; }).sort(function (a, b) { return a.datum < b.datum ? -1 : 1; });
+}
+
+function zeichne() {
+  $('monat').textContent = MONATE[ansicht.m] + ' ' + ansicht.j;
+  var ls = monatsEintraege(ansicht.j, ansicht.m), sum = 0, verpf = 0, html = '';
+  ls.forEach(function (x) {
+    var r = R.berechne(x); sum += r.gesamt; verpf += r.verpflegung;
+    var d = new Date(x.datum + 'T12:00:00');
+    var ld = (x.laeden || []).map(function (l) { return l.art; }).join(' + ') || '–';
+    var teile = [];
+    teile.push('Arbeit ' + z(r.arbeit));
+    if (r.zwischen) teile.push('Zw. ' + z(r.zwischen));
+    if (r.tl) teile.push('TL ' + z(r.tl));
+    if (r.fahrt) teile.push('Fahrt ' + z(r.fahrt));
+    if (r.anreise) teile.push('Anreise ' + z(r.anreise));
+    html += '<div class="tag" data-id="' + x.id + '"><div class="d"><b>' + d.getDate() + '</b><span>' + TAGE[d.getDay()] + '</span></div>' +
+      '<div class="info"><div class="z1">' + ld + (x.team === 'halle' ? ' · Halle' : x.team === 'reise' ? ' · Reise' : '') + '</div>' + teile.join(' · ') + (r.verpflegung ? ' · ' + r.verpflegung + ' €' : '') + '</div>' +
+      '<div class="h">' + z(r.gesamt) + '</div></div>';
+  });
+  $('liste').innerHTML = html || '<div class="leer">Noch keine Stunden in diesem Monat.<br>Tippe auf +</div>';
+  $('msumme').textContent = z(sum);
+  $('mdetail').textContent = ls.length + (ls.length === 1 ? ' Tag' : ' Tage') + (verpf ? ' · Verpflegung ' + verpf + ' €' : '');
+}
+
+// ---------- Formular ----------
+function neuerEintrag(datum) {
+  return { id: 'e' + Date.now(), datum: datum || iso(new Date()), modus: 'zeit', team: 'leipzig',
+    laeden: [{ art: 'NMD', zeiten: [{ von: '', bis: '' }], std: '' }],
+    tl: daten.einst.tl, fahrer: daten.einst.fahrer, fahrMin: 0, auswaerts: false,
+    anreise: false, abreise: false, uebernachtung: false, notiz: '' };
+}
+function oeffne(eintrag, neu) {
+  e = JSON.parse(JSON.stringify(eintrag)); e._neu = !!neu;
+  $('eTitel').textContent = neu ? 'Stunden hinzufügen' : 'Eintrag ändern';
+  $('loeschen').style.display = neu ? 'none' : '';
+  $('schnell').value = ''; $('datum').value = e.datum; $('notiz').value = e.notiz || '';
+  $('fzH').value = e.fahrMin ? Math.floor(e.fahrMin / 60) : ''; $('fzM').value = e.fahrMin ? e.fahrMin % 60 : '';
+  formZeichnen();
+  $('blattE').classList.add('offen');
+}
+function setSeg(id, v) { [].forEach.call($(id).children, function (b) { b.classList.toggle('an', b.dataset.v === String(v)); }); }
+function formZeichnen() {
+  setSeg('modus', e.modus); setSeg('anzahl', e.laeden.length); setSeg('team', e.team);
+  $('reiseBox').style.display = e.team === 'reise' ? '' : 'none';
+  [].forEach.call(document.querySelectorAll('#blattE .sw[data-k]'), function (s) { s.classList.toggle('an', !!e[s.dataset.k]); });
+  var h = '';
+  e.laeden.forEach(function (l, i) {
+    h += '<div class="laden"><div class="lk">' + (e.laeden.length > 1 ? (i + 1) + '. Laden' : 'Laden') + '</div>' +
+      '<div class="seg" data-art="' + i + '">' + ['NMD', 'GM', 'NC'].map(function (a) { return '<button data-v="' + a + '" class="' + (l.art === a ? 'an' : '') + '">' + ART[a] + '</button>'; }).join('') + '</div>';
+    if (e.modus === 'std') {
+      h += '<div class="zeile"><input type="text" inputmode="decimal" data-std="' + i + '" placeholder="Stunden, z. B. 5,5" value="' + (l.std || '') + '"></div>';
+    } else {
+      (l.zeiten || []).forEach(function (zt, k) {
+        h += '<div class="zeile"><input type="text" inputmode="decimal" data-von="' + i + '_' + k + '" placeholder="von 7.50" value="' + (zt.von || '') + '"><span>–</span><input type="text" inputmode="decimal" data-bis="' + i + '_' + k + '" placeholder="bis 14.30" value="' + (zt.bis || '') + '"></div>';
+      });
+      h += '<button class="mini" data-mehr="' + i + '">+ weitere Zeit (z. B. nach Pause)</button>';
+    }
+    h += '</div>';
+  });
+  $('laeden').innerHTML = h;
+  rechnung();
+}
+function rechnung() {
+  var r = R.berechne(e), h = '';
+  var am = r.arbeitMin;
+  h += '<div><span>Arbeitszeit' + (e.modus === 'zeit' && am ? ' (' + Math.floor(am / 60) + ' Std. ' + (am % 60) + ' Min.)' : '') + '</span><b>' + z(r.arbeit) + '</b></div>';
+  if (r.zwischen) h += '<div><span>Fahrt zwischen den Läden</span><b>' + z(r.zwischen) + '</b></div>';
+  if (r.tl) h += '<div><span>Teamleiter</span><b>' + z(r.tl) + '</b></div>';
+  if (e.fahrMin) h += '<div><span>Fahrzeit bezahlt</span><b>' + z(r.fahrt) + '</b></div>';
+  if (r.anreise) h += '<div><span>' + (e.team === 'halle' ? 'Anreise Halle' : 'An-/Abreise') + '</span><b>' + z(r.anreise) + '</b></div>';
+  if (r.verpflegung) h += '<div><span>Verpflegung</span><b>' + r.verpflegung + ' €</b></div>';
+  h += '<div class="ges"><span>Gesamt</span><span>' + z(r.gesamt) + '</span></div>';
+  $('rechnung').innerHTML = h;
+}
+function setAnzahl(n) {
+  while (e.laeden.length < n) e.laeden.push({ art: e.laeden[0] ? e.laeden[0].art : 'NMD', zeiten: [{ von: '', bis: '' }], std: '' });
+  e.laeden.length = n;
+}
+
+$('modus').onclick = function (ev) { var v = ev.target.dataset.v; if (v) { e.modus = v; formZeichnen(); } };
+$('anzahl').onclick = function (ev) { var v = ev.target.dataset.v; if (v) { setAnzahl(+v); formZeichnen(); } };
+$('team').onclick = function (ev) { var v = ev.target.dataset.v; if (v) { e.team = v; formZeichnen(); } };
+$('laeden').addEventListener('click', function (ev) {
+  var t = ev.target;
+  if (t.dataset.mehr != null) { e.laeden[+t.dataset.mehr].zeiten.push({ von: '', bis: '' }); formZeichnen(); return; }
+  var seg = t.parentNode && t.parentNode.dataset && t.parentNode.dataset.art;
+  if (seg != null && t.dataset.v) { e.laeden[+seg].art = t.dataset.v; formZeichnen(); }
+});
+$('laeden').addEventListener('input', function (ev) {
+  var t = ev.target, d = t.dataset, p;
+  if (d.std != null) e.laeden[+d.std].std = parseFloat(t.value.replace(',', '.')) || '';
+  if (d.von != null) { p = d.von.split('_'); e.laeden[+p[0]].zeiten[+p[1]].von = t.value; }
+  if (d.bis != null) { p = d.bis.split('_'); e.laeden[+p[0]].zeiten[+p[1]].bis = t.value; }
+  rechnung();
+});
+[].forEach.call(document.querySelectorAll('#blattE .sw[data-k]'), function (s) {
+  s.onclick = function () { var k = s.dataset.k; e[k] = !e[k];
+    if (k === 'uebernachtung' && e[k]) { e.anreise = false; e.abreise = false; }
+    if ((k === 'anreise' || k === 'abreise') && e[k]) e.uebernachtung = false;
+    formZeichnen(); };
+});
+function fahrLesen() { e.fahrMin = (parseInt($('fzH').value) || 0) * 60 + (parseInt($('fzM').value) || 0); rechnung(); }
+$('fzH').oninput = fahrLesen; $('fzM').oninput = fahrLesen;
+$('datum').onchange = function () { e.datum = this.value; };
+$('notiz').oninput = function () { e.notiz = this.value; };
+$('schnell').addEventListener('change', schnellAuswerten);
+$('schnell').addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { schnellAuswerten(); this.blur(); } });
+function schnellAuswerten() {
+  var t = $('schnell').value; if (!t.trim()) return;
+  var zs = R.leseZeiten(t);
+  if (zs.length) {
+    e.modus = 'zeit';
+    var n = Math.min(2, zs.length); setAnzahl(n);
+    if (n === 1) e.laeden[0].zeiten = zs;
+    else { e.laeden[0].zeiten = [zs[0]]; e.laeden[1].zeiten = zs.slice(1); }
+    formZeichnen(); toast(n === 2 ? '2 Läden erkannt' : '1 Laden erkannt'); return;
+  }
+  var st = R.leseStunden(t);
+  if (st.length) {
+    e.modus = 'std'; setAnzahl(Math.min(2, st.length));
+    e.laeden[0].std = st[0]; if (st.length > 1) e.laeden[1].std = st.slice(1).reduce(function (a, b) { return a + b; }, 0);
+    formZeichnen(); toast(st.length > 1 ? '2 Läden erkannt' : '1 Laden erkannt'); return;
+  }
+  toast('Nicht erkannt');
+}
+$('speichern').onclick = function () {
+  e.datum = $('datum').value || e.datum;
+  var neu = e._neu; delete e._neu;
+  var i = daten.eintraege.findIndex(function (x) { return x.id === e.id; });
+  if (i >= 0) daten.eintraege[i] = e; else daten.eintraege.push(e);
+  sichern();
+  var d = new Date(e.datum + 'T12:00:00'); ansicht = { j: d.getFullYear(), m: d.getMonth() };
+  $('blattE').classList.remove('offen'); zeichne();
+  toast((neu ? 'Gespeichert: ' : 'Geändert: ') + z(R.berechne(e).gesamt) + ' Std.');
+};
+$('loeschen').onclick = function () {
+  if (!confirm('Diesen Tag löschen?')) return;
+  daten.eintraege = daten.eintraege.filter(function (x) { return x.id !== e.id; });
+  sichern(); $('blattE').classList.remove('offen'); zeichne(); toast('Gelöscht');
+};
+
+// ---------- Liste / Kopf ----------
+$('liste').onclick = function (ev) {
+  var t = ev.target.closest('.tag'); if (!t) return;
+  var x = daten.eintraege.find(function (y) { return y.id === t.dataset.id; }); if (x) oeffne(x, false);
+};
+$('plus').onclick = function () {
+  var heute = new Date(), d = (heute.getFullYear() === ansicht.j && heute.getMonth() === ansicht.m) ? iso(heute) : iso(new Date(ansicht.j, ansicht.m, 1));
+  oeffne(neuerEintrag(d), true);
+};
+$('zurueck').onclick = function () { ansicht.m--; if (ansicht.m < 0) { ansicht.m = 11; ansicht.j--; } zeichne(); };
+$('vor').onclick = function () { ansicht.m++; if (ansicht.m > 11) { ansicht.m = 0; ansicht.j++; } zeichne(); };
+[].forEach.call(document.querySelectorAll('.schliessen'), function (b) { b.onclick = function () { $(b.dataset.zu).classList.remove('offen'); }; });
+[].forEach.call(document.querySelectorAll('.blatt'), function (bl) { bl.addEventListener('click', function (ev) { if (ev.target === bl) bl.classList.remove('offen'); }); });
+
+// ---------- Einstellungen ----------
+$('einstknopf').onclick = function () {
+  $('sName').value = daten.einst.name || ''; $('sPers').value = daten.einst.pers || '';
+  [].forEach.call(document.querySelectorAll('.sw[data-s]'), function (s) { s.classList.toggle('an', !!daten.einst[s.dataset.s]); });
+  $('version').textContent = 'Version ' + VERSION;
+  $('blattS').classList.add('offen');
+};
+$('sName').oninput = function () { daten.einst.name = this.value; sichern(); };
+$('sPers').oninput = function () { daten.einst.pers = this.value; sichern(); };
+[].forEach.call(document.querySelectorAll('.sw[data-s]'), function (s) {
+  s.onclick = function () { var k = s.dataset.s; daten.einst[k] = !daten.einst[k]; s.classList.toggle('an', daten.einst[k]); sichern(); };
+});
+function teile(name, blob) {
+  var f = new File([blob], name, { type: blob.type });
+  if (navigator.canShare && navigator.canShare({ files: [f] })) { navigator.share({ files: [f] }).catch(function () {}); return; }
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+}
+$('export').onclick = function () { teile('stunden-sicherung-' + iso(new Date()) + '.json', new Blob([JSON.stringify(daten, null, 1)], { type: 'application/json' })); };
+$('import').onclick = function () { $('importDatei').click(); };
+$('importDatei').onchange = function () {
+  var f = this.files[0]; if (!f) return;
+  f.text().then(function (t) {
+    var d = JSON.parse(t); if (!d.eintraege) throw 0;
+    if (!confirm('Sicherung laden? ' + d.eintraege.length + ' Einträge. Die jetzigen werden ersetzt.')) return;
+    daten = d; sichern(); zeichne(); toast('Sicherung geladen');
+  }).catch(function () { toast('Datei ungültig'); });
+  this.value = '';
+};
+
+// ---------- PDF ----------
+$('pdfknopf').onclick = function () {
+  var ls = monatsEintraege(ansicht.j, ansicht.m);
+  if (!ls.length) { toast('Keine Stunden in diesem Monat'); return; }
+  var doc = new MiniPDF(); doc.addPage();
+  var titel = 'Stundennachweis ' + MONATE[ansicht.m] + ' ' + ansicht.j;
+  doc.text(40, 50, titel, 18, true);
+  var wer = (daten.einst.name || '') + (daten.einst.pers ? '  ·  Pers.-Nr. ' + daten.einst.pers : '');
+  if (wer) doc.text(40, 70, wer, 11);
+  doc.text(802, 50, 'erstellt am ' + new Date().toLocaleDateString('de-DE'), 9, false, 'r');
+  var sp = [{ t: 'Datum', x: 40 }, { t: 'Tag', x: 105 }, { t: 'Läden', x: 135 }, { t: 'Arbeit', x: 330, r: 1 }, { t: 'Zw.-Fahrt', x: 395, r: 1 },
+    { t: 'TL', x: 445, r: 1 }, { t: 'Fahrzeit', x: 505, r: 1 }, { t: 'Anreise', x: 565, r: 1 }, { t: 'Gesamt', x: 630, r: 1 }, { t: 'Verpfl.', x: 685, r: 1 }, { t: 'Notiz', x: 700 }];
+  var y = 100;
+  function kopf() { doc.rect(36, y - 13, 770, 18, 0.9); sp.forEach(function (s) { doc.text(s.x, y, s.t, 9, true, s.r ? 'r' : ''); }); y += 18; }
+  kopf();
+  var S = { arbeit: 0, zwischen: 0, tl: 0, fahrt: 0, anreise: 0, gesamt: 0, verpflegung: 0 };
+  ls.forEach(function (x) {
+    if (y > 545) { doc.addPage(); y = 50; kopf(); }
+    var r = R.berechne(x), d = new Date(x.datum + 'T12:00:00');
+    Object.keys(S).forEach(function (k) { S[k] += r[k]; });
+    var ld = (x.laeden || []).map(function (l) {
+      var s = l.art; if (x.modus === 'zeit') s += ' ' + (l.zeiten || []).filter(function (q) { return q.von && q.bis; }).map(function (q) { return q.von + '–' + q.bis; }).join(', ');
+      return s; }).join(' / ');
+    if (x.team === 'halle') ld += ' (Halle)'; if (x.team === 'reise') ld += x.anreise ? ' (Anreise)' : x.abreise ? ' (Abreise)' : ' (Reise)';
+    var w = [d.toLocaleDateString('de-DE'), TAGE[d.getDay()], ld.slice(0, 40), z(r.arbeit), r.zwischen ? z(r.zwischen) : '', r.tl ? z(r.tl) : '', r.fahrt ? z(r.fahrt) : '', r.anreise ? z(r.anreise) : '', z(r.gesamt), r.verpflegung ? r.verpflegung + ' €' : '', (x.notiz || '').slice(0, 22)];
+    sp.forEach(function (s, i) { doc.text(s.x, y, w[i], 9, i === 8, s.r ? 'r' : ''); });
+    doc.line(36, y + 5, 806, y + 5, 0.3, 0.8); y += 17;
+  });
+  if (y > 530) { doc.addPage(); y = 50; }
+  y += 6; doc.line(36, y - 12, 806, y - 12, 1);
+  doc.text(40, y, 'Summe (' + ls.length + ' Tage)', 10, true);
+  [['arbeit', 3], ['zwischen', 4], ['tl', 5], ['fahrt', 6], ['anreise', 7], ['gesamt', 8]].forEach(function (p) { doc.text(sp[p[1]].x, y, z(S[p[0]]), 10, true, 'r'); });
+  if (S.verpflegung) doc.text(sp[9].x, y, S.verpflegung + ' €', 10, true, 'r');
+  y += 28; doc.text(40, y, 'Alle Stunden im 100er-System (Industriestunden). Arbeitszeit je Tag auf die Viertelstunde gerundet.', 8);
+  var name = 'Stundennachweis-' + ansicht.j + '-' + ('0' + (ansicht.m + 1)).slice(-2) + '.pdf';
+  teile(name, new Blob([doc.bytes()], { type: 'application/pdf' }));
+};
+
+zeichne();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
+</script>
+</body>
+</html>
