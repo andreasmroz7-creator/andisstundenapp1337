@@ -161,7 +161,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.25';
+var VERSION = '1.26';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -591,8 +591,8 @@ $('pdfknopf').onclick = function () {
       ld.forEach(function (s, i) {
         if (i === iErst && hin) neu.push('Hinfahrt Treffp.–Laden ' + (x.hinZeit ? x.hinZeit + ' ' : '') + '(' + dauer(hin).replace(' Std.', '') + ')');
         neu.push(s);
-        if (i === iLetzt && zur) neu.push('Rückfahrt Laden–Treffp. ' + (x.zurZeit ? x.zurZeit + ' ' : '') + '(' + dauer(zur).replace(' Std.', '') + ')');
       });
+      if (zur) neu.push('Rückfahrt Laden–Treffp. ' + (x.zurZeit ? x.zurZeit + ' ' : '') + '(' + dauer(zur).replace(' Std.', '') + ')');
       ld = neu;
     }
     var w = [d.toLocaleDateString('de-DE'), TAGE[d.getDay()], ld[0].slice(0, 46), z(r.arbeit), r.zwischen ? z(r.zwischen) : '', r.tl ? z(r.tl) : '', r.fahrt ? z(r.fahrt) : '', r.anreise ? z(r.anreise) : '', z(r.gesamt), r.verpflegung ? r.verpflegung + ' €' : '', [teamNotiz, x.notiz || ''].filter(Boolean).join(', ').slice(0, 22)];
@@ -606,7 +606,16 @@ $('pdfknopf').onclick = function () {
   [['arbeit', 3], ['zwischen', 4], ['tl', 5], ['fahrt', 6], ['anreise', 7], ['gesamt', 8]].forEach(function (p) { doc.text(sp[p[1]].x, y, z(S[p[0]]), 10, true, 'r'); });
   if (S.verpflegung) doc.text(sp[9].x, y, S.verpflegung + ' €', 10, true, 'r');
   y += 28; doc.text(40, y, 'Alle Stunden in Industriestunden (100er-System). Arbeitszeit je Tag auf die Viertelstunde gerundet.', 8);
-  y += 12; doc.text(40, y, 'Fahrzeiten minutengenau erfasst über die Bluetooth-Verbindung zum Fahrzeug bzw. den Standortverlauf (Beginn und Ende jeder Fahrt).', 8);
+  var BT_AB = '2026-11-20';
+  var vorBT = ls.some(function (x) { return x.datum < BT_AB; }), abBT = ls.some(function (x) { return x.datum >= BT_AB; });
+  if (vorBT && (abBT || (ansicht.j === 2026 && ansicht.m === 10))) {
+    y += 12; doc.text(40, y, 'Fahrzeiten bis 19.11.2026 minutengenau aus dem Standortverlauf (Google-Zeitachse) übernommen.', 8);
+    y += 12; doc.text(40, y, 'Ab 20.11.2026 werden die Fahrzeiten automatisch und minutengenau über die Bluetooth-Verbindung zum Fahrzeug erfasst.', 8);
+  } else if (vorBT) {
+    y += 12; doc.text(40, y, 'Fahrzeiten minutengenau aus dem Standortverlauf (Google-Zeitachse) übernommen.', 8);
+  } else {
+    y += 12; doc.text(40, y, 'Fahrzeiten automatisch und minutengenau über die Bluetooth-Verbindung zum Fahrzeug erfasst (Beginn und Ende jeder Fahrt).', 8);
+  }
   y += 12; doc.text(40, y, 'Zwischenfahrt, Teamleiterzeit, bezahlte Fahrzeit und Verpflegung werden automatisch nach den geltenden Regeln berechnet.', 8);
   var name = 'Stundennachweis-' + ansicht.j + '-' + ('0' + (ansicht.m + 1)).slice(-2) + '.pdf';
   teile(name, new Blob([doc.bytes()], { type: 'application/pdf' }));
