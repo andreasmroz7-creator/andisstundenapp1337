@@ -136,7 +136,7 @@ input::placeholder{color:#5c6577}
   <label class="l">Standard für neue Einträge</label>
   <div class="sw" data-s="tl"><div>Teamleiter-Stunde</div><div class="knopf"></div></div>
   <div class="sw" data-s="fahrer"><div>Ich bin Fahrer<small>in der Probezeit: aus</small></div><div class="knopf"></div></div>
-  <label class="l">Abgleich mit GitHub (stunden-daten)</label>
+  <label class="l">Abgleich mit GitHub (stunden-raten)</label>
   <input type="password" id="sToken" placeholder="Schlüssel github_pat_…" autocomplete="off" autocapitalize="off" spellcheck="false">
   <div class="knopfzeile" style="margin-top:10px"><button class="btn zweit" id="syncJetzt">Jetzt abgleichen</button></div>
   <div class="hinweis">Damit landen deine Stunden im privaten Repo, und Claude kann sie für dich eintragen.</div>
@@ -154,7 +154,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.6';
+var VERSION = '1.7';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -191,7 +191,7 @@ function profilAuswahlZeichnen() {
 }
 function sichern(ohneSync) { try { localStorage.setItem(KEY, JSON.stringify(daten)); } catch (x) { toast('Speichern fehlgeschlagen'); } if (!ohneSync) syncBald(); }
 // ---------- Abgleich mit GitHub (privates Repo stunden-daten) ----------
-var GH = 'https://api.github.com/repos/andreasmroz7-creator/stunden-daten/contents/daten.json';
+var GH = 'https://api.github.com/repos/andreasmroz7-creator/stunden-raten/contents/daten.json';
 var syncTimer = null, syncLaeuft = false;
 function syncBald() { clearTimeout(syncTimer); syncTimer = setTimeout(sync, 800); }
 function b64enc(s) { return btoa(unescape(encodeURIComponent(s))); }
