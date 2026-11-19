@@ -30,7 +30,10 @@ h1{font-size:15px;font-weight:600;color:var(--grau);margin:0;letter-spacing:.3px
 .kugel svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .plus{position:fixed;right:20px;bottom:calc(env(safe-area-inset-bottom) + 22px);width:62px;height:62px;z-index:5}
 .plus svg{width:28px;height:28px}
-.plus{background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.22),rgba(60,70,92,.22) 60%,rgba(20,26,38,.28));-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);border-color:rgba(255,255,255,.25);box-shadow:inset 0 1px 1px rgba(255,255,255,.3),0 6px 20px rgba(0,0,0,.5)}
+.festpfeil{position:fixed;top:calc(env(safe-area-inset-top) + 10px);z-index:5}
+#zurueck{left:16px}#vor{right:16px}
+.kopf .platz{width:42px;height:42px;flex:none}
+.plus,.festpfeil{background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.22),rgba(60,70,92,.22) 60%,rgba(20,26,38,.28));-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);border-color:rgba(255,255,255,.25);box-shadow:inset 0 1px 1px rgba(255,255,255,.3),0 6px 20px rgba(0,0,0,.5)}
 .summe{background:var(--karte);border:1px solid var(--rand);border-radius:20px;padding:16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
 .summe .gross{font-size:34px;font-weight:700;letter-spacing:-.5px}
 .summe .klein{color:var(--grau);font-size:13px}
@@ -87,9 +90,9 @@ input::placeholder{color:#5c6577}
 </head>
 <body>
 <div class="kopf">
-  <button class="kugel" id="zurueck" aria-label="Vormonat"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+  <span class="platz"></span><button class="kugel festpfeil" id="zurueck" aria-label="Vormonat"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
   <div class="mitte"><h1>STUNDEN</h1><div class="monat" id="monat"></div></div>
-  <button class="kugel" id="vor" aria-label="Nächster Monat"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+  <span class="platz"></span><button class="kugel festpfeil" id="vor" aria-label="Nächster Monat"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
 </div>
 <div class="summe">
   <div><div class="klein">Gesamt diesen Monat</div><div class="gross" id="msumme">0,00</div><div class="klein" id="mdetail"></div><div class="klein" id="mlohn" style="color:var(--gruen);margin-top:2px"></div><div class="klein" id="sync" style="margin-top:4px"></div></div>
@@ -167,7 +170,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.31';
+var VERSION = '1.32';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
