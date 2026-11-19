@@ -91,7 +91,7 @@ input::placeholder{color:#5c6577}
   <button class="kugel" id="vor" aria-label="Nächster Monat"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
 </div>
 <div class="summe">
-  <div><div class="klein">Gesamt diesen Monat</div><div class="gross" id="msumme">0,00</div><div class="klein" id="mdetail"></div><div class="klein" id="sync" style="margin-top:4px"></div></div>
+  <div><div class="klein">Gesamt diesen Monat</div><div class="gross" id="msumme">0,00</div><div class="klein" id="mdetail"></div><div class="klein" id="mlohn" style="color:var(--gruen);margin-top:2px"></div><div class="klein" id="sync" style="margin-top:4px"></div></div>
   <div style="display:flex;gap:8px">
     <button class="kugel" id="pdfknopf" aria-label="PDF"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button>
     <button class="kugel" id="einstknopf" aria-label="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
@@ -143,6 +143,8 @@ input::placeholder{color:#5c6577}
   <div class="titel"><b>Einstellungen</b><button class="kugel schliessen" data-zu="blattS" aria-label="Schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="koerper">
   <label class="l">Name (steht im PDF)</label><input type="text" id="sName" placeholder="Mroz Andreas">
   <label class="l">Personalnummer (optional)</label><input type="text" id="sPers" placeholder="4048">
+  <label class="l">Stundenlohn brutto (€)</label><input type="text" inputmode="decimal" id="sLohn" placeholder="16,00">
+  <div class="hinweis">Für die Hochrechnung oben (Stunden × Lohn, ohne Abzüge).</div>
   <label class="l">Standard für neue Einträge</label>
   <div class="sw" data-s="tl"><div>Teamleiter-Stunde</div><div class="knopf"></div></div>
   <div class="sw" data-s="fahrer"><div>Ich bin Fahrer<small>in der Probezeit: aus</small></div><div class="knopf"></div></div>
@@ -164,7 +166,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.27';
+var VERSION = '1.28';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -304,6 +306,7 @@ function fahrFelder() {
     $(p[0] + 'Dauer').textContent = p[2] ? '· ' + dauer(p[2]) : '';
   });
 }
+function euro(n) { return n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
 function $(id) { return document.getElementById(id); }
 function z(n) { return (Math.round(n * 100) / 100).toFixed(2).replace('.', ','); }
@@ -335,7 +338,9 @@ function zeichne() {
   });
   $('liste').innerHTML = html || '<div class="leer">Noch keine Stunden in diesem Monat.<br>Tippe auf +</div>';
   $('msumme').textContent = z(sum);
-  $('mdetail').textContent = ls.length + (ls.length === 1 ? ' Tag' : ' Tage') + (verpf ? ' · Verpflegung ' + verpf + ' €' : '');
+  var lohn = daten.einst.lohn != null && daten.einst.lohn !== '' ? +daten.einst.lohn : 16;
+  $('mlohn').textContent = sum ? '≈ ' + euro(sum * lohn) + ' brutto' + (verpf ? ' + ' + euro(verpf) + ' Verpflegung' : '') : '';
+  $('mdetail').textContent = ls.length + (ls.length === 1 ? ' Tag' : ' Tage');
 }
 
 // ---------- Formular ----------
@@ -530,13 +535,15 @@ $('vor').onclick = function () { ansicht.m++; if (ansicht.m > 11) { ansicht.m = 
 // ---------- Einstellungen ----------
 $('einstknopf').onclick = function () {
   $('sToken').value = daten.einst.token || '';
-  $('sName').value = daten.einst.name || ''; $('sPers').value = daten.einst.pers || '';
+  $('sName').value = daten.einst.name || '';
+  $('sLohn').value = daten.einst.lohn != null && daten.einst.lohn !== '' ? String(daten.einst.lohn).replace('.', ',') : ''; $('sPers').value = daten.einst.pers || '';
   [].forEach.call(document.querySelectorAll('.sw[data-s]'), function (s) { s.classList.toggle('an', !!daten.einst[s.dataset.s]); });
   $('version').textContent = 'Version ' + VERSION; profListeZeichnen();
   $('blattS').classList.add('offen');
 };
 $('sToken').onchange = function () { daten.einst.token = this.value.trim(); sichern(true); sync().then(function () { toast($('sync').textContent || 'Gespeichert'); }); };
 $('syncJetzt').onclick = function () { sync().then(function () { toast($('sync').textContent); }); };
+$('sLohn').oninput = function () { var v = this.value.trim().replace(',', '.'); daten.einst.lohn = v === '' ? null : (parseFloat(v) || 0); sichern(true); zeichne(); };
 $('sName').oninput = function () { daten.einst.name = this.value; sichern(); };
 $('sPers').oninput = function () { daten.einst.pers = this.value; sichern(); };
 [].forEach.call(document.querySelectorAll('.sw[data-s]'), function (s) {
