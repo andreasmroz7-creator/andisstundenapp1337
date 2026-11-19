@@ -68,6 +68,7 @@ input::placeholder{color:#5c6577}
 .sw.an .knopf:after{transform:translateX(20px)}
 .sw small{display:block;color:var(--grau);font-size:12px}
 .laden{background:rgba(255,255,255,.04);border:1px solid var(--rand);border-radius:14px;padding:10px 12px;margin-top:10px}
+.filinfo{background:rgba(90,200,250,.10);border-radius:10px;padding:8px 10px;margin-bottom:8px;font-size:14px}.filinfo span{color:var(--grau);font-size:13px}
 .laden .lk{font-weight:600;margin-bottom:6px}
 .zeile{display:flex;gap:8px;align-items:center;margin-top:8px}
 .zeile input{flex:1}
@@ -154,7 +155,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.8';
+var VERSION = '1.10';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -237,6 +238,7 @@ function sync() {
     syncLaeuft = false; syncAnzeige('☁ ' + (navigator.onLine === false ? 'offline, später' : 'Fehler: ' + x.message), navigator.onLine !== false);
   });
 }
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
 function $(id) { return document.getElementById(id); }
 function z(n) { return (Math.round(n * 100) / 100).toFixed(2).replace('.', ','); }
 function iso(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
@@ -253,7 +255,7 @@ function zeichne() {
   ls.forEach(function (x) {
     var r = R.berechne(x); sum += r.gesamt; verpf += r.verpflegung;
     var d = new Date(x.datum + 'T12:00:00');
-    var ld = (x.laeden || []).map(function (l) { return l.art; }).join(' + ') || '–';
+    var ld = (x.laeden || []).map(function (l) { return l.ort ? esc(l.ort) + (l.fil ? ' <span style="color:var(--grau)">' + esc(l.fil) + '</span>' : '') + (l.art === 'GM' ? ' (GM)' : '') : l.art; }).join(' + ') || '–';
     var teile = [];
     teile.push('Arbeit ' + z(r.arbeit));
     if (r.zwischen) teile.push('Zw. ' + z(r.zwischen));
@@ -261,7 +263,7 @@ function zeichne() {
     if (r.fahrt) teile.push('Fahrt ' + z(r.fahrt));
     if (r.anreise) teile.push('Anreise ' + z(r.anreise));
     html += '<div class="tag" data-id="' + x.id + '"><div class="d"><b>' + d.getDate() + '</b><span>' + TAGE[d.getDay()] + '</span></div>' +
-      '<div class="info"><div class="z1">' + ld + (x.team === 'halle' ? ' · Halle' : x.team === 'reise' ? ' · Reise' : '') + '</div>' + teile.join(' · ') + (r.verpflegung ? ' · ' + r.verpflegung + ' €' : '') + '</div>' +
+      '<div class="info"><div class="z1">' + ld + (x.team === 'halle' ? ' · Halle' : '') + '</div>' + teile.join(' · ') + (r.verpflegung ? ' · ' + r.verpflegung + ' €' : '') + '</div>' +
       '<div class="h">' + z(r.gesamt) + '</div></div>';
   });
   $('liste').innerHTML = html || '<div class="leer">Noch keine Stunden in diesem Monat.<br>Tippe auf +</div>';
@@ -295,6 +297,8 @@ function formZeichnen() {
   var h = '';
   e.laeden.forEach(function (l, i) {
     h += '<div class="laden"><div class="lk">' + (e.laeden.length > 1 ? (i + 1) + '. Laden' : 'Laden') + '</div>' +
+      (l.fil || l.ort ? '<div class="filinfo">' + (l.fil ? 'Filiale <b>' + esc(l.fil) + '</b>' : '') + (l.ort ? (l.fil ? ' · ' : '') + esc(l.ort) : '') + (l.str ? '<br><span>' + esc(l.str) + '</span>' : '') + '</div>' : '') +
+      '<div class="zeile" style="margin:0 0 8px"><input type="text" inputmode="numeric" data-fil="' + i + '" placeholder="Filial-Nr." value="' + esc(l.fil || '') + '" style="flex:0 0 38%"><input type="text" data-ort="' + i + '" placeholder="Ort" value="' + esc(l.ort || '') + '"></div>' +
       '<div class="seg" data-art="' + i + '">' + ['NMD', 'GM', 'NC'].map(function (a) { return '<button data-v="' + a + '" class="' + (l.art === a ? 'an' : '') + '">' + ART[a] + '</button>'; }).join('') + '</div>';
     if (e.modus === 'std') {
       h += '<div class="zeile"><input type="text" inputmode="decimal" data-std="' + i + '" placeholder="Stunden, z. B. 5,5" value="' + (l.std || '') + '"></div>';
@@ -364,6 +368,8 @@ $('laeden').addEventListener('click', function (ev) {
 });
 $('laeden').addEventListener('input', function (ev) {
   var t = ev.target, d = t.dataset, p;
+  if (d.fil != null) e.laeden[+d.fil].fil = t.value.trim();
+  if (d.ort != null) e.laeden[+d.ort].ort = t.value.trim();
   if (d.std != null) e.laeden[+d.std].std = parseFloat(t.value.replace(',', '.')) || '';
   if (d.von != null) { p = d.von.split('_'); e.laeden[+p[0]].zeiten[+p[1]].von = t.value; }
   if (d.bis != null) { p = d.bis.split('_'); e.laeden[+p[0]].zeiten[+p[1]].bis = t.value; }
@@ -473,27 +479,29 @@ $('pdfknopf').onclick = function () {
   var wer = (daten.einst.name || '') + (daten.einst.pers ? '  ·  Pers.-Nr. ' + daten.einst.pers : '');
   if (wer) doc.text(40, 70, wer, 11);
   doc.text(802, 50, 'erstellt am ' + new Date().toLocaleDateString('de-DE'), 9, false, 'r');
-  var sp = [{ t: 'Datum', x: 40 }, { t: 'Tag', x: 105 }, { t: 'Läden', x: 135 }, { t: 'Arbeit', x: 330, r: 1 }, { t: 'Zw.-Fahrt', x: 395, r: 1 },
+  var sp = [{ t: 'Datum', x: 40 }, { t: 'Tag', x: 105 }, { t: 'Läden', x: 135 }, { t: 'Arbeit', x: 345, r: 1 }, { t: 'Zw.-Fahrt', x: 395, r: 1 },
     { t: 'TL', x: 445, r: 1 }, { t: 'Fahrzeit', x: 505, r: 1 }, { t: 'Anreise', x: 565, r: 1 }, { t: 'Gesamt', x: 630, r: 1 }, { t: 'Verpfl.', x: 685, r: 1 }, { t: 'Notiz', x: 700 }];
   var y = 100;
   function kopf() { doc.rect(36, y - 13, 770, 18, 0.9); sp.forEach(function (s) { doc.text(s.x, y, s.t, 9, true, s.r ? 'r' : ''); }); y += 18; }
   kopf();
   var S = { arbeit: 0, zwischen: 0, tl: 0, fahrt: 0, anreise: 0, gesamt: 0, verpflegung: 0 };
   ls.forEach(function (x) {
-    if (y > 545) { doc.addPage(); y = 50; kopf(); }
+    if (y > 530) { doc.addPage(); y = 50; kopf(); }
     var r = R.berechne(x), d = new Date(x.datum + 'T12:00:00');
     Object.keys(S).forEach(function (k) { S[k] += r[k]; });
     var ld = (x.laeden || []).map(function (l) {
-      var s = l.art; if (x.modus === 'zeit') s += ' ' + (l.zeiten || []).filter(function (q) { return q.von && q.bis; }).map(function (q) { return q.von + '–' + q.bis; }).join(', ');
-      return s; }).join(' / ');
-    if (x.team === 'halle') ld += ' (Halle)'; if (x.team === 'reise') ld += x.anreise ? ' (Anreise)' : x.abreise ? ' (Abreise)' : ' (Reise)';
-    var w = [d.toLocaleDateString('de-DE'), TAGE[d.getDay()], ld.slice(0, 40), z(r.arbeit), r.zwischen ? z(r.zwischen) : '', r.tl ? z(r.tl) : '', r.fahrt ? z(r.fahrt) : '', r.anreise ? z(r.anreise) : '', z(r.gesamt), r.verpflegung ? r.verpflegung + ' €' : '', (x.notiz || '').slice(0, 22)];
+      var s = (l.ort ? l.ort + ' ' : '') + (l.fil ? l.fil + ' ' : '') + l.art; if (x.modus === 'zeit') s += ' ' + (l.zeiten || []).filter(function (q) { return q.von && q.bis; }).map(function (q) { return q.von + '–' + q.bis; }).join(', ');
+      return s; });
+    if (!ld.length) ld = ['–'];
+    if (x.team === 'halle') ld[ld.length - 1] += ' (Halle)'; if (x.team === 'reise') ld[ld.length - 1] += x.anreise ? ' (Anreise)' : x.abreise ? ' (Abreise)' : ' (Reise)';
+    var w = [d.toLocaleDateString('de-DE'), TAGE[d.getDay()], ld[0].slice(0, 46), z(r.arbeit), r.zwischen ? z(r.zwischen) : '', r.tl ? z(r.tl) : '', r.fahrt ? z(r.fahrt) : '', r.anreise ? z(r.anreise) : '', z(r.gesamt), r.verpflegung ? r.verpflegung + ' €' : '', (x.notiz || '').slice(0, 22)];
     sp.forEach(function (s, i) { doc.text(s.x, y, w[i], 9, i === 8, s.r ? 'r' : ''); });
+    for (var li = 1; li < ld.length; li++) { y += 12; doc.text(sp[2].x, y, ld[li].slice(0, 46), 9); }
     doc.line(36, y + 5, 806, y + 5, 0.3, 0.8); y += 17;
   });
   if (y > 530) { doc.addPage(); y = 50; }
   y += 6; doc.line(36, y - 12, 806, y - 12, 1);
-  doc.text(40, y, 'Summe (' + ls.length + ' Tage)', 10, true);
+  doc.text(40, y, 'Summe (' + ls.length + (ls.length === 1 ? ' Tag)' : ' Tage)'), 10, true);
   [['arbeit', 3], ['zwischen', 4], ['tl', 5], ['fahrt', 6], ['anreise', 7], ['gesamt', 8]].forEach(function (p) { doc.text(sp[p[1]].x, y, z(S[p[0]]), 10, true, 'r'); });
   if (S.verpflegung) doc.text(sp[9].x, y, S.verpflegung + ' €', 10, true, 'r');
   y += 28; doc.text(40, y, 'Alle Stunden im 100er-System (Industriestunden). Arbeitszeit je Tag auf die Viertelstunde gerundet.', 8);
