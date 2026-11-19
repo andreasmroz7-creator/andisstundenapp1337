@@ -148,7 +148,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.3';
+var VERSION = '1.4';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -444,7 +444,15 @@ $('pdfknopf').onclick = function () {
 };
 
 zeichne();
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
+if ('serviceWorker' in navigator) {
+  var hatteSW = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(function (reg) {
+    reg.update();
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) reg.update(); });
+  }).catch(function () {});
+  // neue Version da -> einmal neu laden
+  navigator.serviceWorker.addEventListener('controllerchange', function () { if (hatteSW && !window.__neu) { window.__neu = 1; location.reload(); } });
+}
 </script>
 </body>
 </html>
