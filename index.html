@@ -161,7 +161,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.23';
+var VERSION = '1.24';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -319,9 +319,9 @@ function zeichne() {
     var r = R.berechne(x); sum += r.gesamt; verpf += r.verpflegung;
     var d = new Date(x.datum + 'T12:00:00');
     var ld = (x.laeden || []).map(function (l) { var s = l.ort ? esc(l.ort) + (l.fil ? ' <span style="color:var(--grau)">' + esc(l.fil) + '</span>' : '') + (l.art === 'GM' ? ' (GM)' : '') : l.art;
-      return l.ausfall ? '<s style="color:var(--grau)">' + s + '</s> <span style="color:var(--rot);font-size:12px">abgesagt</span>' : s; }).join(' + ') || '–';
+      return l.ausfall ? '<s style="color:var(--grau)">' + s + '</s> <span style="color:var(--rot);font-size:12px">abgesagt</span>' : s; }).join(' + ') || (x.anreise ? 'Anreise' : x.abreise ? 'Abreise' : '–');
     var teile = [];
-    teile.push('Arbeit ' + z(r.arbeit));
+    if (r.arbeit || (x.laeden || []).length) teile.push('Arbeit ' + z(r.arbeit));
     if (r.zwischen) teile.push('Zw. ' + z(r.zwischen));
     if (r.tl) teile.push('TL ' + z(r.tl));
     if (x.fahrMin) teile.push('Fahrt ' + dauer(x.fahrMin).replace(' Std.', '') + (r.fahrt ? ' (' + z(r.fahrt) + ')' : ''));
@@ -578,7 +578,7 @@ $('pdfknopf').onclick = function () {
     var ld = (x.laeden || []).map(function (l) {
       var s = (l.ort ? l.ort + ' ' : '') + (l.fil ? l.fil + ' ' : '') + l.art; if (l.ausfall) return s + ' – abgesagt'; if (x.modus === 'zeit') s += ' ' + (l.zeiten || []).filter(function (q) { return q.von && q.bis; }).map(function (q) { return uhr(q.von) + '–' + uhr(q.bis); }).join(', ');
       return s; });
-    if (!ld.length) ld = ['–'];
+    if (!ld.length) ld = [x.anreise ? 'Anreise (Reisetag)' : x.abreise ? 'Abreise (Reisetag)' : '–'];
     var gemacht = (x.laeden || []).filter(function (l) { return !l.ausfall; }).length;
     if (gemacht >= 2 && (x.zwZeit || x.fahrZw)) ld.splice(1, 0, 'Zwischenfahrt ' + (x.zwZeit ? x.zwZeit + ' ' : '') + '(' + dauer(x.fahrZw || 0).replace(' Std.', '') + ')');
     var teamNotiz = x.team === 'halle' ? 'Halle' : x.team === 'reise' ? (x.anreise ? 'Anreisetag' : x.abreise ? 'Abreisetag' : '') : '';
