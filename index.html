@@ -154,7 +154,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.7';
+var VERSION = '1.8';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -212,10 +212,10 @@ function sync() {
   syncLaeuft = true; syncAnzeige('Abgleich …');
   var kopf = { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json' };
   return fetch(GH + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) {
-    if (r.status === 404) return { sha: null, d: {} };
     if (r.status === 401) throw new Error('Schlüssel ungültig');
+    if (r.status === 404 && !daten._dateiDa) throw new Error('Repo nicht erreichbar (Schlüssel hat keinen Zugriff auf stunden-raten)');
     if (!r.ok) throw new Error('GitHub ' + r.status);
-    return r.json().then(function (j) { return { sha: j.sha, d: JSON.parse(b64dec(j.content) || '{}') }; });
+    return r.json().then(function (j) { daten._dateiDa = 1; return { sha: j.sha, d: JSON.parse(b64dec(j.content) || '{}') }; });
   }).then(function (fern) {
     var m = mische(daten, fern.d);
     var alt = JSON.stringify({ e: daten.eintraege, p: daten.profile, g: daten.geloescht });
@@ -228,6 +228,7 @@ function sync() {
     if (fern.sha) body.sha = fern.sha;
     return fetch(GH, { method: 'PUT', headers: kopf, body: JSON.stringify(body) }).then(function (r) {
       if (r.status === 409 || r.status === 422) { syncLaeuft = false; return sync(); }
+      if (r.status === 404 || r.status === 403) throw new Error('Schlüssel darf nur lesen. Contents auf „Read and write“ stellen');
       if (!r.ok) throw new Error('Hochladen ' + r.status);
     });
   }).then(function () {
