@@ -157,7 +157,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.14';
+var VERSION = '1.15';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -525,9 +525,9 @@ $('pdfknopf').onclick = function () {
       var iErst = ld.indexOf(gem[0] || ld[0]), iLetzt = ld.lastIndexOf(gem[gem.length - 1] || ld[ld.length - 1]);
       var neu = [];
       ld.forEach(function (s, i) {
-        if (i === iErst && hin) neu.push('Hinfahrt Treffpunkt – Laden ' + dauer(hin));
+        if (i === iErst && hin) neu.push('Hinfahrt Treffpunkt – Laden ' + (x.hinZeit ? x.hinZeit + ' (' + dauer(hin) + ')' : dauer(hin)));
         neu.push(s);
-        if (i === iLetzt && zur) neu.push('Rückfahrt Laden – Treffpunkt ' + dauer(zur));
+        if (i === iLetzt && zur) neu.push('Rückfahrt Laden – Treffpunkt ' + (x.zurZeit ? x.zurZeit + ' (' + dauer(zur) + ')' : dauer(zur)));
       });
       ld = neu;
     }
