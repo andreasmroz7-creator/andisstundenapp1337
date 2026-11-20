@@ -1,6 +1,5 @@
-// TEST (1.70): Offline-Speicher abgeschaltet, um zu prüfen, ob der helle Blitz beim Start dadurch verschwindet.
-// Dieser Helfer räumt sich selbst weg: Speicher löschen und abmelden. Kein fetch-Handler mehr.
-var CACHE = 'stunden-1.70-test';
+// Test 1.70: ohne Offline-Speicher. Dieser Service-Worker räumt nur auf und meldet sich selbst ab,
+// damit iOS beim Start keinen Hintergrund-Helfer mehr hochfahren muss.
 self.addEventListener('install', function () { self.skipWaiting(); });
 self.addEventListener('activate', function (e) {
   e.waitUntil(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); })
