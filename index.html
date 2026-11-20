@@ -459,7 +459,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.05';
+var VERSION = '2.06';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1406,6 +1406,7 @@ function fixZeichnen() {
     var p = x.p, d = fixNaechste(p, heute), info = rhTxt(p);
     if (p.rhythmus === 'monat' && p.tag) info += ' · am ' + p.tag + '.';
     else if (d) info += ' · nächste ' + d.getDate() + '. ' + mon[d.getMonth()] + ' ' + d.getFullYear();
+    if (p.dynamik) info += ' · +' + String(p.dynamik).replace('.', ',') + ' %/Jahr';
     var marke = p.ende ? '<span class="fkmarke">bis ' + mon[+p.ende.slice(5, 7) - 1] + ' ' + p.ende.slice(0, 4) + '</span>' : '';
     var notiz = (p.notiz || '').replace(/,?\s*Jahresvertrag läuft bis [\d.]+/, '').trim();
     return '<div class="fkpos" style="animation-delay:' + (.08 + i * .04) + 's"><div class="ic">' + esc((p.name.match(/[A-Za-zÄÖÜäöü]/) || ['•'])[0].toUpperCase()) + '</div><div class="mi"><b>' + esc(p.name) + marke + '</b><small>' + info + '</small>' + (notiz ? '<em>' + esc(notiz) + '</em>' : '') +
