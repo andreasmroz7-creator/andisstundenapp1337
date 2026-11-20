@@ -161,6 +161,22 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 #start.ordnen .ordfertig{transform:translate(-50%,0);opacity:1;pointer-events:auto}
 .ordtipp{font-size:12px;color:var(--grau);text-align:center;margin:14px 0 0;opacity:0;transition:opacity .3s;height:0}
 #start.ordnen .ordtipp{opacity:1;height:auto}
+.noneu{display:flex;flex-direction:column;gap:10px;margin:12px 0 6px}
+#blattNo textarea{width:100%;display:block;-webkit-appearance:none;appearance:none;background:rgba(255,255,255,.07);border:1px solid var(--rand);color:var(--txt);border-radius:14px;padding:12px 13px;font-size:16px;font-family:inherit;line-height:1.4;resize:none;min-height:48px;overflow:hidden}
+#blattNo textarea::placeholder{color:#646464}
+.nobtn{align-self:flex-end;background:#fff;color:#000;border:0;border-radius:999px;padding:10px 20px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;transition:transform .15s,opacity .2s}
+.nobtn:active{transform:scale(.95)}.nobtn:disabled{opacity:.35}
+.nobtn.zweit{background:rgba(255,255,255,.1);color:var(--txt)}.nobtn.rot{background:rgba(255,69,58,.16);color:var(--rot)}
+.notiz{display:flex;gap:12px;align-items:flex-start;background:var(--karte);border:1px solid var(--rand);border-radius:16px;padding:13px 14px;margin:10px 0;animation:auftauchen .35s cubic-bezier(.2,.8,.2,1) backwards;transition:opacity .25s,transform .25s}
+.notiz .hak{flex:none;width:24px;height:24px;border-radius:50%;border:1.6px solid rgba(255,255,255,.4);margin-top:1px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .2s,border-color .2s}
+.notiz .hak svg{width:14px;height:14px;stroke:#000;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;opacity:0;transition:opacity .2s}
+.notiz.erl .hak{background:#fff;border-color:#fff}.notiz.erl .hak svg{opacity:1}
+.notiz .tx{flex:1;min-width:0;cursor:pointer}.notiz .tx p{margin:0;font-size:15px;line-height:1.4;white-space:pre-wrap;word-wrap:break-word}
+.notiz .tx small{display:block;color:var(--grau);font-size:11.5px;margin-top:4px}
+.notiz.erl .tx p{color:var(--grau);text-decoration:line-through}
+.notiz .bt{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+.nozw{font-size:12px;color:var(--grau);text-transform:uppercase;letter-spacing:.5px;margin:20px 0 4px}
+.noleer{text-align:center;color:var(--grau);font-size:14px;margin:40px 0}
 .welle{position:absolute;border-radius:50%;background:rgba(255,255,255,.25);transform:scale(0);animation:welle .55s ease-out forwards;pointer-events:none}
 @keyframes welle{to{transform:scale(4);opacity:0}}
 body.vonstart .kopf .mitte,body.vonstart .summe,body.vonstart .suche,body.vonstart #liste{animation:auftauchen .5s cubic-bezier(.2,.8,.2,1) backwards}
@@ -278,6 +294,10 @@ body.istoffline .sstand{color:#ff6b61}
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattF" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Fixkosten &amp; Sparpläne</b></div></div>
   <div class="koerper" id="fKoerper"></div>
 </div></div>
+<div class="blatt" id="blattNo"><div class="innen">
+  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattNo" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Notizen</b></div></div>
+  <div class="koerper"><div class="noneu"><textarea id="noText" rows="1" placeholder="Neue Notiz …"></textarea><button id="noPlus" class="nobtn">Hinzufügen</button></div><div id="noListe"></div></div>
+</div></div>
 <div class="blatt" id="blattN"><div class="innen">
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattN" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b id="nwTitel">Arbeitsnachweis</b></div><div style="display:flex;gap:8px"><button class="kugel" id="nwpdf" aria-label="PDF erstellen"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button></div></div>
   <div class="koerper" id="nwKoerper"></div>
@@ -316,7 +336,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.78';
+var VERSION = '1.79';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -453,7 +473,7 @@ function sync() {
       if (r.status === 404 || r.status === 403) throw new Error('Schlüssel darf nur lesen. Contents auf „Read and write“ stellen');
       if (!r.ok) throw new Error('Hochladen ' + r.status);
     });
-  }).then(function () { return fahrtenHolen(kopf); }).then(function () { fahrtenAuto(); return nachweisHolen(kopf); }).then(function () { return fixkostenHolen(kopf); }).then(function () {
+  }).then(function () { return fahrtenHolen(kopf); }).then(function () { fahrtenAuto(); return nachweisHolen(kopf); }).then(function () { return fixkostenHolen(kopf); }).then(function () { return notizenSync(kopf); }).then(function () {
     offlineZeigen(false); daten.letzterAbgleich = Date.now(); sichern(true); standPruefen(); if ($('sstand')) $('sstand').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     syncLaeuft = false; syncAnzeige('☁ abgeglichen ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
   }).catch(function (x) {
@@ -1010,7 +1030,8 @@ var IC = {
   uhr: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   geld: '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M16 14.5h2"/></svg>',
   koffer: '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></svg>',
-  balken: '<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>'
+  balken: '<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+  notiz: '<svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v4h4M8.5 12h7M8.5 16h5"/></svg>'
 };
 function startTag() { var s = 0, n = 0, m = iso2(new Date()).slice(0, 7); daten.eintraege.forEach(function (x) { if (x.datum.slice(0, 7) === m) { s += R.berechne(x).gesamt; n++; } }); return { s: s, n: n }; }
 function startZeichnen(still) {
@@ -1033,12 +1054,14 @@ function startZeichnen(still) {
   var k0 = function (ziel, ic, farbe, titel, wert, unter, extra, breit, delay) {
     return '<div class="kachel rein' + (breit ? ' breit' : '') + '" data-ziel="' + ziel + '" style="animation-delay:' + delay + 's"><div class="glanz" style="background:' + farbe + '"></div><span class="pfeil">›</span><div class="ic" style="background:' + farbe + '">' + ic + '</div><div><div class="t">' + titel + '</div><div class="w">' + wert + '</div><div class="u">' + unter + '</div>' + (extra || '') + '</div></div>';
   };
-  var kk = {}, kdef = ['stunden', 'kosten', 'nachweis', 'jahr'];
+  var kk = {}, kdef = ['stunden', 'kosten', 'nachweis', 'jahr', 'notizen'];
   var k = function (ziel, ic, farbe, titel, wert, unter, extra, breit) { kk[ziel] = function (delay) { return k0(ziel, ic, farbe, titel, wert, unter, extra, breit, delay); }; };
   k('stunden', IC.uhr, 'linear-gradient(135deg,#b4b4b4,#737373)', 'Stunden ' + MONATE[d.getMonth()], z(std.s), std.n + ' Tage · ≈ ' + euro(std.s * lohn) + ' brutto<br>≈ ' + euro(netto(std.s * lohn)) + ' netto', '', false, .12);
   k('kosten', IC.geld, 'linear-gradient(135deg,#b0b0b0,#5a5a5a)', 'Laufende Kosten', f ? euro(fk) : '–', f ? 'pro Monat · ' + nfk + ' Posten' + (naechste ? '<br>nächste: ' + esc(naechste.p.name.split(' (')[0]) + ' am ' + naechste.p.tag + '.' : '') : 'noch nicht geladen', '', false, .18);
   k('nachweis', IC.koffer, 'linear-gradient(135deg,#a6a6a6,#909090)', 'Arbeitsnachweis ' + hi.slice(0, 4), nt + ' Tage', 'Verpflegung erhalten ' + euro(vp) + (nx ? '<br>nächster Einsatz: ' + WT[new Date(nx.datum + 'T12:00').getDay()] + ' ' + +nx.datum.slice(8) + '.' + +nx.datum.slice(5, 7) + '. ' + esc(nx.laeden[0].ort) : ''), '', false, .24);
   k('jahr', IC.balken, 'linear-gradient(135deg,#7a7a7a,#666666)', 'Jahresübersicht', 'Jahr ›', 'Stunden, Brutto und Verpflegung pro Monat', '', false, .30);
+  var no = (daten.notizen || []).filter(function (x) { return !x.erledigt; }).sort(function (a, b) { return (b.erstellt || 0) - (a.erstellt || 0); });
+  k('notizen', IC.notiz, 'linear-gradient(135deg,#9a9a9a,#5c5c5c)', 'Notizen', no.length ? no.length + ' offen' : 'Keine', no.length ? esc(no[0].text.split('\n')[0]).slice(0, 70) + (no.length > 1 ? '<br>' + esc(no[1].text.split('\n')[0]).slice(0, 70) : '') : 'Tippen, um etwas aufzuschreiben', '', true);
   kachelReihe(kdef).forEach(function (z, i) { h += kk[z](.12 + i * .06); });
   h += '</div><div class="ordtipp">Kachel ziehen zum Verschieben</div><button class="ordfertig" id="ordfertig">Fertig</button>';
   $('start').innerHTML = '<div class="ptr" id="ptr"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>' + h;
@@ -1128,10 +1151,11 @@ function startZiel(z) {
   if (z === 'stunden') { document.body.classList.remove('versteckt'); var d = new Date(); ansicht.j = d.getFullYear(); ansicht.m = d.getMonth(); zeichne(); window.scrollTo(0, 0); startWeg(); }
   else if (z === 'heute') { var hi = iso2(new Date()), eh = daten.eintraege.find(function (x) { return x.datum === hi; }); startWeg(); setTimeout(function () { oeffne(eh || neuerEintrag(hi), !eh); }, 250); }
   else {
-    var id = { kosten: 'blattF', nachweis: 'blattN', jahr: 'blattJ' }[z]; if (!id) return;
+    var id = { kosten: 'blattF', nachweis: 'blattN', jahr: 'blattJ', notizen: 'blattNo' }[z]; if (!id) return;
     var s = $('start'); s.classList.add('oben'); void s.offsetWidth; s.classList.add('weg'); setTimeout(function () { s.classList.add('aus'); s.classList.remove('oben'); }, 420);
     $(id).dataset.vonstart = '1'; document.body.classList.add('versteckt');
     if (z === 'kosten') { fixZeichnen(); $('blattF').classList.add('offen'); }
+    else if (z === 'notizen') { notizenZeichnen(); $('blattNo').classList.add('offen'); }
     else if (z === 'nachweis') $('nwknopf').onclick();
     else { jahrZeichnen(); $('blattJ').classList.add('offen'); }
   }
@@ -1215,6 +1239,57 @@ function fixZeichnen() {
   $('fKoerper').innerHTML = h;
 }
 $('fkauf').onclick = function (ev) { ev.stopPropagation(); fixZeichnen(); $('blattF').classList.add('offen'); };
+// ---------- Notizen (notizen.json im Daten-Repo, gleicht zwischen Geräten ab) ----------
+var GHO = GH.replace('daten.json', 'notizen.json');
+function notizenSync(kopf) {
+  return fetch(GHO + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) {
+    if (r.status === 404) return { sha: null, d: {} };
+    if (!r.ok) throw 0;
+    return r.json().then(function (j) { return { sha: j.sha, d: JSON.parse(b64dec(j.content) || '{}') }; });
+  }).then(function (fern) {
+    var m = mische({ eintraege: daten.notizen || [], geloescht: daten.notizWeg || {} }, { eintraege: fern.d.notizen || [], geloescht: fern.d.geloescht || {} });
+    var alt = JSON.stringify(daten.notizen || []);
+    daten.notizen = m.eintraege; daten.notizWeg = m.geloescht; sichern(true);
+    if (JSON.stringify(daten.notizen) !== alt) { if ($('blattNo').classList.contains('offen') && !document.querySelector('#noListe textarea')) notizenZeichnen(); if (!$('start').classList.contains('aus')) startZeichnen(true); }
+    var neu = JSON.stringify({ notizen: daten.notizen, geloescht: daten.notizWeg }, null, 1), alt2 = JSON.stringify({ notizen: fern.d.notizen || [], geloescht: fern.d.geloescht || {} }, null, 1);
+    if (neu === alt2) return;
+    var body = { message: 'Notizen ' + new Date().toLocaleString('de-DE'), content: b64enc(neu) }; if (fern.sha) body.sha = fern.sha;
+    return fetch(GHO, { method: 'PUT', headers: kopf, body: JSON.stringify(body) });
+  }).catch(function () {});
+}
+function noDatum(t) { var d = new Date(t), h = new Date(); return (iso2(d) === iso2(h) ? 'Heute' : d.getDate() + '.' + (d.getMonth() + 1) + '.' + (d.getFullYear() !== h.getFullYear() ? d.getFullYear() : '')) + ', ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }); }
+function noWachsen(t) { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; }
+function notizenZeichnen() {
+  var l = (daten.notizen || []).slice().sort(function (a, b) { return (b.erstellt || 0) - (a.erstellt || 0); });
+  var of = l.filter(function (x) { return !x.erledigt; }), er = l.filter(function (x) { return x.erledigt; });
+  var karte = function (x) { return '<div class="notiz' + (x.erledigt ? ' erl' : '') + '" data-id="' + x.id + '"><div class="hak"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div><div class="tx"><p>' + esc(x.text) + '</p><small>' + noDatum(x.geaendert || x.erstellt) + '</small></div></div>'; };
+  var h = of.map(karte).join('');
+  if (er.length) h += '<div class="nozw">Erledigt</div>' + er.map(karte).join('');
+  if (!l.length) h = '<div class="noleer">Noch keine Notizen.</div>';
+  $('noListe').innerHTML = h; $('noPlus').disabled = !$('noText').value.trim();
+  [].forEach.call($('noListe').querySelectorAll('.notiz'), function (el) {
+    var x = daten.notizen.find(function (y) { return y.id === el.dataset.id; });
+    el.querySelector('.hak').onclick = function () { x.erledigt = !x.erledigt; x.geaendert = Date.now(); sichern(); el.style.opacity = 0; el.style.transform = 'scale(.97)'; setTimeout(notizenZeichnen, 220); };
+    el.querySelector('.tx').onclick = function () { if (el.querySelector('textarea')) return; noBearbeiten(el, x); };
+  });
+}
+function noBearbeiten(el, x) {
+  var tx = el.querySelector('.tx'); tx.innerHTML = '<textarea rows="1"></textarea><div class="bt"><button class="nobtn rot">Löschen</button><button class="nobtn zweit">Abbrechen</button><button class="nobtn">Sichern</button></div>';
+  var ta = tx.querySelector('textarea'), b = tx.querySelectorAll('button'); ta.value = x.text; noWachsen(ta); ta.oninput = function () { noWachsen(ta); }; ta.focus();
+  b[0].onclick = function (ev) { ev.stopPropagation(); noLoeschen(x); };
+  b[1].onclick = function (ev) { ev.stopPropagation(); notizenZeichnen(); };
+  b[2].onclick = function (ev) { ev.stopPropagation(); var t = ta.value.trim(); if (!t) { noLoeschen(x); return; } if (t !== x.text) { x.text = t; x.geaendert = Date.now(); sichern(); } notizenZeichnen(); };
+}
+function noLoeschen(x) {
+  var jetzt = Date.now(); daten.notizen = daten.notizen.filter(function (y) { return y.id !== x.id; }); daten.notizWeg = daten.notizWeg || {}; daten.notizWeg[x.id] = jetzt; sichern(); notizenZeichnen();
+  toastAktion('Notiz gelöscht', 'Rückgängig', function () { delete daten.notizWeg[x.id]; x.geaendert = Date.now(); daten.notizen.push(x); sichern(); notizenZeichnen(); });
+}
+$('noText').oninput = function () { noWachsen(this); $('noPlus').disabled = !this.value.trim(); };
+$('noPlus').onclick = function () {
+  var t = $('noText').value.trim(); if (!t) return; var j = Date.now();
+  daten.notizen = daten.notizen || []; daten.notizen.push({ id: 'n' + j, text: t, erstellt: j, geaendert: j });
+  $('noText').value = ''; noWachsen($('noText')); sichern(); notizenZeichnen();
+};
 var GHN = GH.replace('daten.json', 'nachweis.json');
 function nachweisHolen(kopf) {
   return fetch(GHN + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) {
