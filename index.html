@@ -220,7 +220,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .jvhin i{flex:none;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#fff,#9a9a9a 60%,#444);box-shadow:0 0 10px rgba(255,255,255,.35);animation:jvatem 3.2s ease-in-out infinite}
 .jvhin span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #start{padding-bottom:calc(env(safe-area-inset-bottom) + 110px)!important}
-.jvfab{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 6px);width:100px;height:100px;margin-left:-50px;border-radius:50%;border:0;background:radial-gradient(circle,rgba(0,0,0,.55) 30%,transparent 70%);-webkit-tap-highlight-color:transparent;z-index:9;padding:0;cursor:pointer;transition:transform .25s cubic-bezier(.2,.8,.2,1),opacity .3s}
+.jvfab{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) - 10px);width:100px;height:100px;margin-left:-50px;border-radius:50%;border:0;background:radial-gradient(circle,rgba(0,0,0,.55) 30%,transparent 70%);-webkit-tap-highlight-color:transparent;z-index:9;padding:0;cursor:pointer;transition:transform .25s cubic-bezier(.2,.8,.2,1),opacity .3s}
 .jvfab:active{transform:none}
 .jvfab b{position:absolute;inset:15px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#fff,#bdbdbd 45%,#4a4a4a 100%);animation:jvatem 3.2s ease-in-out infinite}
 .jvfab i{position:absolute;inset:6px;border-radius:50%;border:1px solid rgba(255,255,255,.22);animation:jvring 3.2s ease-out infinite}
@@ -429,7 +429,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.96';
+var VERSION = '1.97';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1544,11 +1544,11 @@ window.jvKernStart=function(){
 };
 // ---------- Kleine Jarvis-Kugel unten auf der Startseite (gleicher Look wie der große Kern, 1.700 Punkte wie die Mac-Kugel in Ruhe, 30 Bilder/s, ruht wenn nicht sichtbar) ----------
 // Eine einzige Jarvis-Kugel: klein unten auf der Startseite, beim Antippen wächst genau diese Kugel in die Mitte (kein Umschalten zwischen zwei Kugeln)
-var jvMini = { an: false, gross: false, flug: false };
+var jvMini = { an: false, gross: false, flug: false }, JV_HOEHE = .62;
 $('jvFab').onclick = function () { if (window.ordnen && ordnen.an) return; jvOeffnen(); };
 function jvZiel(gross) {
   var o = $('jvOrb'), w = o.offsetWidth, h = o.offsetHeight, r, cx, cy, sk;
-  if (gross) { cx = innerWidth / 2; cy = innerHeight * .56; sk = 1; }
+  if (gross) { cx = innerWidth / 2; cy = innerHeight * JV_HOEHE; sk = 1; }
   else { r = $('jvFab').getBoundingClientRect(); cx = r.left + r.width / 2; cy = r.top + r.height / 2; sk = 78 / (Math.min(w, h) * .64 * (window.__jvR0f || 1)); }
   return 'translate(' + (cx - w / 2).toFixed(1) + 'px,' + (cy - h / 2).toFixed(1) + 'px) scale(' + sk.toFixed(4) + ')';
 }
@@ -1558,7 +1558,7 @@ function jvKugel(gross, anim) {
   o.style.transform = jvMini.letzt = jvZiel(gross);
 }
 function jvMiniStart() {
-  if (jvMini.an) return; jvMini.an = true; window.__jvDreh = true; window.__jvDprMax = 3; window.__jvR0f = .82;
+  if (jvMini.an) return; jvMini.an = true; window.__jvDreh = true; window.__jvDprMax = 3; window.__jvR0f = .6;
   try { jvKernStart(); jv.kern = 1; } catch (x) {}
   jvKugel(false, false);
   addEventListener('resize', function () { if (!jvMini.flug) jvKugel(jvMini.gross, false); });
@@ -1588,7 +1588,8 @@ function jvUnter(t, klein) {
   var u = $('jvUnter'); clearTimeout(jv.unterT);
   if (!t) { u.classList.remove('an'); return; }
   u.innerHTML = (klein ? '<small>' + esc(klein) + '</small>' : '') + esc(t);
-  u.style.top = (innerHeight * .56 + 125) + 'px'; $('jvTipp').style.top = (innerHeight * .56 + 210) + 'px';
+  var r0 = Math.min(innerWidth, innerHeight) * .32 * (window.__jvR0f || 1), unten = innerHeight * JV_HOEHE + r0 * 1.62 + 14; // unter der ganz geöffneten Zuhör-Wolke
+  u.style.top = Math.min(innerHeight - 90, unten) + 'px'; $('jvTipp').style.top = Math.min(innerHeight - 60, unten + 70) + 'px';
   u.classList.add('an');
 }
 function jvOeffnen() {
