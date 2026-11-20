@@ -415,6 +415,9 @@ body.istoffline .sstand{color:#ff6b61}
   <input type="password" id="sToken" placeholder="Schlüssel github_pat_…" autocomplete="off" autocapitalize="off" spellcheck="false">
   <div class="knopfzeile" style="margin-top:10px"><button class="btn zweit" id="syncJetzt">Jetzt abgleichen</button></div>
   <div class="hinweis">Damit landen deine Stunden im privaten Repo, und Claude kann sie für dich eintragen.</div>
+  <label class="l">Jarvis-Stimme (ElevenLabs)</label>
+  <input type="password" id="sEleven" placeholder="ElevenLabs-Schlüssel sk_…" autocomplete="off" autocapitalize="off" spellcheck="false">
+  <div class="hinweis">Bleibt nur auf diesem iPhone. Damit spricht Jarvis Antworten zu deinen Cockpit-Daten in etwa 1 Sekunde mit seiner echten Stimme (sonst über den Mac).</div>
   <label class="l">Profile</label>
   <div class="profliste" id="profListe"></div>
   <div class="hinweis">Neue Profile legst du im Plus-Fenster an: alles einstellen, dann „Aktuelle Auswahl als Profil speichern“.</div>
@@ -429,7 +432,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.01';
+var VERSION = '2.02';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -566,7 +569,7 @@ function sync() {
       if (r.status === 404 || r.status === 403) throw new Error('Schlüssel darf nur lesen. Contents auf „Read and write“ stellen');
       if (!r.ok) throw new Error('Hochladen ' + r.status);
     });
-  }).then(function () { return fahrtenHolen(kopf); }).then(function () { fahrtenAuto(); return nachweisHolen(kopf); }).then(function () { return fixkostenHolen(kopf); }).then(function () { return notizenSync(kopf); }).then(function () { return gbSync(kopf); }).then(function () { return depotHolen(kopf); }).then(function () {
+  }).then(function () { return fahrtenHolen(kopf); }).then(function () { fahrtenAuto(); return nachweisHolen(kopf); }).then(function () { return fixkostenHolen(kopf); }).then(function () { return notizenSync(kopf); }).then(function () { return gbSync(kopf); }).then(function () { return depotHolen(kopf); }).then(function () { return stimmeHolen(kopf); }).then(function () {
     offlineZeigen(false); daten.letzterAbgleich = Date.now(); sichern(true); standPruefen(); if ($('sstand')) $('sstand').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     syncLaeuft = false; syncAnzeige('☁ abgeglichen ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
   }).catch(function (x) {
@@ -875,7 +878,7 @@ function blattZu(bl) {
 
 // ---------- Einstellungen ----------
 $('einstknopf').onclick = function () {
-  $('sToken').value = daten.einst.token || ''; try { swSperreZeichnen(); } catch (x) {}
+  $('sToken').value = daten.einst.token || ''; $('sEleven').value = daten.einst.elKey || ''; try { swSperreZeichnen(); } catch (x) {}
   $('sName').value = daten.einst.name || '';
   $('sZusatz').value = daten.einst.zusatz != null ? String(daten.einst.zusatz).replace('.', ',') : '';
   $('sLohn').value = daten.einst.lohn != null && daten.einst.lohn !== '' ? String(daten.einst.lohn).replace('.', ',') : ''; $('sPers').value = daten.einst.pers || '';
@@ -883,6 +886,7 @@ $('einstknopf').onclick = function () {
   $('version').textContent = 'Version ' + VERSION; profListeZeichnen();
   $('blattS').classList.add('offen');
 };
+$('sEleven').onchange = function () { daten.einst.elKey = this.value.trim(); sichern(true); toast(daten.einst.elKey ? 'Jarvis-Stimme gespeichert' : 'Jarvis-Stimme entfernt'); };
 $('sToken').onchange = function () { daten.einst.token = this.value.trim(); sichern(true); sync().then(function () { toast($('sync').textContent || 'Gespeichert'); }); };
 $('syncJetzt').onclick = function () { sync().then(function () { toast($('sync').textContent); }); };
 $('sZusatz').oninput = function () { var v = this.value.trim().replace(',', '.'); daten.einst.zusatz = v === '' ? null : (parseFloat(v) || 0); sichern(true); zeichne(); };
@@ -1682,7 +1686,7 @@ function jvSprechen(text, audioB64) {
   var fertig = function () { if (jv.el) { jv.el.onended = jv.el.onpause = jv.el.onerror = null; } jv.spielt = false; try { window.setJarvisVoice && setJarvisVoice(0); } catch (x) {} jvZustand('schlaf', ''); clearTimeout(jv.unterT); jv.unterT = setTimeout(function () { if (!jv.laeuft) jvUnter(''); }, 4000); };
   if (audioB64 && jv.el) {
     try {
-      var bin = atob(audioB64), buf = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+      var buf; if (typeof audioB64 === 'string') { var bin = atob(audioB64); buf = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i); } else buf = new Uint8Array(audioB64);
       jvStopp(); var el = jv.el; if (jv.url) URL.revokeObjectURL(jv.url); jv.url = URL.createObjectURL(new Blob([buf], { type: 'audio/mpeg' }));
       el.src = jv.url; jv.spielt = true; jvZustand('spricht', '');
       el.onended = fertig; el.onerror = function () { fertig(); };
@@ -1701,7 +1705,53 @@ function jvTts(text, fertig) {
   u.onend = fertig; u.onerror = fertig; u.onboundary = function () { try { window.jarvisKick && jarvisKick(); } catch (x) {} }; jvZustand('spricht', ''); speechSynthesis.cancel(); speechSynthesis.speak(u);
 }
 // Antwort steht schon fest (Cockpit-Daten): nur die ElevenLabs-Stimme vom Mac holen; kommt sie nicht in ~6 s, spricht das iPhone selbst
+function stimmeHolen(kopf) {
+  return fetch(GH.replace('daten.json', 'stimme.json') + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+    if (!j) return; var d = JSON.parse(b64dec(j.content) || '{}'); if (d && d.voice) { daten.stimme = d; sichern(true); }
+  }).catch(function () {});
+}
+// Zahlen für die Stimme in deutsche Worte (wie _cp_sprechbar auf dem Mac)
+var ZE = ['null', 'eins', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben', 'acht', 'neun', 'zehn', 'elf', 'zwölf', 'dreizehn', 'vierzehn', 'fünfzehn', 'sechzehn', 'siebzehn', 'achtzehn', 'neunzehn'], ZZ = { 2: 'zwanzig', 3: 'dreißig', 4: 'vierzig', 5: 'fünfzig', 6: 'sechzig', 7: 'siebzig', 8: 'achtzig', 9: 'neunzig' };
+var MONK = { jan: 'Januar', feb: 'Februar', 'mär': 'März', mrz: 'März', apr: 'April', mai: 'Mai', jun: 'Juni', jul: 'Juli', aug: 'August', sep: 'September', okt: 'Oktober', nov: 'November', dez: 'Dezember' };
+function zw(n, ende) {
+  n = Math.round(+n); if (ende === undefined) ende = true;
+  if (n < 0) return 'minus ' + zw(-n);
+  if (n < 20) return n === 1 && !ende ? 'ein' : ZE[n];
+  if (n < 100) { var e = n % 10; return (e ? (e === 1 ? 'ein' : ZE[e]) + 'und' : '') + ZZ[Math.floor(n / 10)]; }
+  if (n < 1000) { var r = n % 100, h = Math.floor(n / 100); return (h === 1 ? '' : ZE[h]) + 'hundert' + (r ? zw(r, ende) : ''); }
+  if (n < 1e6) { var r2 = n % 1000, t = Math.floor(n / 1000); return (t === 1 ? '' : zw(t, false)) + 'tausend' + (r2 ? zw(r2, ende) : ''); }
+  var m = Math.floor(n / 1e6), r3 = n % 1e6; return (m === 1 ? 'eine Million' : zw(m, false) + ' Millionen') + (r3 ? ' ' + zw(r3, ende) : '');
+}
+function ordinal(n) { n = +n; var b = { 1: 'ersten', 3: 'dritten', 7: 'siebten', 8: 'achten' }; return b[n] || zw(n, false) + (n < 20 ? 'ten' : 'sten'); }
+function sprechbar(t) {
+  t = String(t || ''); var zahl = function (s) { return +s.replace(/\./g, ''); };
+  t = t.replace(/\b(Mo|Di|Mi|Do|Fr|Sa|So)\.?(?=\s+\d{1,2}\.)/g, function (m, d) { return { Mo: 'Montag', Di: 'Dienstag', Mi: 'Mittwoch', Do: 'Donnerstag', Fr: 'Freitag', Sa: 'Samstag', So: 'Sonntag' }[d] + ', den'; });
+  t = t.replace(/(^|[^\w,.])[-−](?=\d)/g, '$1minus ');
+  t = t.replace(/([+]?)(\d{1,3}(?:\.\d{3})+|\d+)(?:,(\d{1,2}))?\s*(?:€|Euro\b)/g, function (m, sg, a, b) { return (sg === '+' ? 'plus ' : '') + zw(zahl(a) + (b ? +b / Math.pow(10, b.length) : 0)) + ' Euro'; });
+  t = t.replace(/\b(\d{1,2})\.\s*(Jan|Feb|Mär|Mrz|Apr|Mai|Jun|Jul|Aug|Sep|Okt|Nov|Dez)[a-zä]*\.?/g, function (m, d, mo) { return ordinal(d) + ' ' + MONK[mo.toLowerCase()]; });
+  t = t.replace(/\b(\d{1,2})\.(\d{1,2})\.(\d{4})?/g, function (m, d, mo, j) { return ordinal(d) + ' ' + (MONATE[+mo - 1] || mo) + (j ? ' ' + zw(j) : ''); });
+  t = t.replace(/\b([01]?\d|2[0-3]):([0-5]\d)\b/g, function (m, h, mi) { return zw(h) + ' Uhr' + (mi === '00' ? '' : ' ' + zw(mi)); });
+  t = t.replace(/\b(\d{1,3}(?:\.\d{3})+|\d+),(\d+)/g, function (m, a, b) { return zw(zahl(a)) + ' Komma ' + b.split('').map(function (c) { return ZE[+c]; }).join(' '); });
+  t = t.replace(/\b(\d{1,3}(?:\.\d{3})+|\d+)\b/g, function (m, a) { return zw(zahl(a)); });
+  return t.replace(/%/g, ' Prozent').replace(/Std\./g, 'Stunden').replace(/\s{2,}/g, ' ');
+}
+// Stimme direkt vom iPhone bei ElevenLabs holen (Schlüssel nur auf diesem Gerät), ~1 s
+function jvDirektStimme(t, nr) {
+  var st = daten.stimme || { voice: 'pNInz6obpgDQGcFmaJgB', model: 'eleven_flash_v2_5', base: 'https://api.elevenlabs.io' };
+  var body = { text: sprechbar(t), model_id: st.model || 'eleven_flash_v2_5', voice_settings: st.settings || { stability: .5, similarity_boost: .75, style: 0, use_speaker_boost: true } };
+  if (/flash|turbo/.test(body.model_id)) body.language_code = 'de';
+  return fetch((st.base || 'https://api.elevenlabs.io').replace(/\/$/, '') + '/v1/text-to-speech/' + st.voice + '?output_format=mp3_44100_96', { method: 'POST', headers: { 'xi-api-key': daten.einst.elKey, 'Content-Type': 'application/json', Accept: 'audio/mpeg' }, body: JSON.stringify(body) })
+    .then(function (r) { if (!r.ok) throw new Error('el ' + r.status); return r.arrayBuffer(); });
+}
 function jvMacStimme(t) {
+  if (!jv.stumm && daten.einst.elKey) {
+    var nr = jv.stimmeNr = (jv.stimmeNr || 0) + 1; jvZustand('denkt', null);
+    jvDirektStimme(t, nr).then(function (ab) { if (nr !== jv.stimmeNr) return; jvSprechen(t, ab); }).catch(function (e) { if (nr !== jv.stimmeNr) return; jvMacStimme2(t); });
+    return;
+  }
+  jvMacStimme2(t);
+}
+function jvMacStimme2(t) {
   if (jv.stumm) { jvZustand('schlaf', ''); return; }
   if (!daten.einst.token) { jvSprechen(t, null); return; }
   var id = 's' + Date.now() + '-' + Math.random().toString(36).slice(2, 6), kopf = jvKopf(), start = Date.now(), fertig = false, mein = jv.stimmeNr = (jv.stimmeNr || 0) + 1;
