@@ -429,7 +429,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.97';
+var VERSION = '1.98';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1558,7 +1558,7 @@ function jvKugel(gross, anim) {
   o.style.transform = jvMini.letzt = jvZiel(gross);
 }
 function jvMiniStart() {
-  if (jvMini.an) return; jvMini.an = true; window.__jvDreh = true; window.__jvDprMax = 3; window.__jvR0f = .6;
+  if (jvMini.an) return; jvMini.an = true; window.__jvDreh = true; window.__jvDprMax = 3; window.__jvR0f = .82;
   try { jvKernStart(); jv.kern = 1; } catch (x) {}
   jvKugel(false, false);
   addEventListener('resize', function () { if (!jvMini.flug) jvKugel(jvMini.gross, false); });
