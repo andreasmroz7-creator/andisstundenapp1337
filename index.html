@@ -144,10 +144,15 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 body.vonstart .kopf .mitte,body.vonstart .summe,body.vonstart .suche,body.vonstart #liste{animation:auftauchen .5s cubic-bezier(.2,.8,.2,1) both}
 body.vonstart .summe{animation-delay:.05s}body.vonstart .suche{animation-delay:.1s}body.vonstart #liste{animation-delay:.15s}
 @keyframes auftauchen{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
-.blatt.offen .innen{animation:blattrein .38s cubic-bezier(.2,.8,.2,1)}
-@keyframes blattrein{from{transform:translateY(40px);opacity:.0}to{transform:none;opacity:1}}
+.blatt.offen .innen{animation:blattrein .42s cubic-bezier(.16,1,.3,1)}
+.blatt.zugeht .innen{animation:blattraus .34s cubic-bezier(.4,0,.6,1) forwards}
+.blatt.zugeht{background:transparent;transition:background .3s}
+@keyframes blattraus{to{transform:translateX(100%)}}
+.blatt .innen{box-shadow:-12px 0 40px rgba(0,0,0,.45)}
+@keyframes blattrein{from{transform:translateX(100%)}to{transform:none}}
 h1 .heim{display:inline-flex;align-items:center;gap:5px;color:var(--akz);cursor:pointer}
 h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.geistseite{position:absolute;left:0;width:100%;padding:calc(env(safe-area-inset-top) + 10px) 16px 0;pointer-events:none;z-index:1;will-change:transform}
 .tlinks{display:flex;align-items:center;gap:12px;min-width:0}
 .monatzeile{display:flex;align-items:center;justify-content:center;gap:10px}
 .monatzeile .wh{color:var(--grau);opacity:.45;font-size:20px;line-height:1}
@@ -257,7 +262,7 @@ h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.46';
+var VERSION = '1.47';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -644,8 +649,9 @@ $('plus').onclick = function () {
   oeffne(neuerEintrag(d), true);
 };
 function monatSchritt(n) { ansicht.m += n; if (ansicht.m < 0) { ansicht.m = 11; ansicht.j--; } if (ansicht.m > 11) { ansicht.m = 0; ansicht.j++; } zeichne(); }
-[].forEach.call(document.querySelectorAll('.schliessen'), function (b) { b.onclick = function () { $(b.dataset.zu).classList.remove('offen'); }; });
-[].forEach.call(document.querySelectorAll('.blatt'), function (bl) { bl.addEventListener('click', function (ev) { if (ev.target === bl) bl.classList.remove('offen'); }); });
+function blattZu(bl) { if (!bl || !bl.classList.contains('offen') || bl.classList.contains('zugeht')) return; bl.classList.add('zugeht'); setTimeout(function () { bl.classList.remove('offen'); bl.classList.remove('zugeht'); }, 300); }
+[].forEach.call(document.querySelectorAll('.schliessen'), function (b) { b.onclick = function () { blattZu($(b.dataset.zu)); }; });
+[].forEach.call(document.querySelectorAll('.blatt'), function (bl) { bl.addEventListener('click', function (ev) { if (ev.target === bl) blattZu(bl); }); });
 
 // ---------- Einstellungen ----------
 $('einstknopf').onclick = function () {
@@ -773,37 +779,46 @@ function planFuellen(x) {
   return true;
 }
 $('datum').addEventListener('change', function () { if (e && e._neu) { e.feiertag = istFeiertagSN(this.value); formZeichnen(); } if (e && e._neu && !(e.laeden || []).some(function (l) { return (l.zeiten || []).some(function (z) { return z.von || z.bis; }) || l.std; })) { e.datum = this.value; if (planFuellen(e)) { formZeichnen(); toast('Aus dem Einsatzplan vorausgefüllt'); } } });
-// Monate wischen: die ganze Seite (Monat, Summe, Suche, Liste) folgt dem Finger 1:1,
-// beim Loslassen gleitet sie raus und der neue Monat schiebt sich von der anderen Seite rein
+// Monate wischen wie Seiten blättern: der Nachbarmonat liegt direkt daneben und schiebt sich mit dem Finger herein
 (function () {
-  var sx = 0, sy = 0, st = 0, lx = 0, lt = 0, v = 0, an = false, richtung = 0, laeuft = false;
-  function teile() { return [$('monat'), document.querySelector('.summe'), document.querySelector('.suche'), $('liste')]; }
-  function setze(x, dauer, kurve) {
-    var w = window.innerWidth;
-    teile().forEach(function (el, i) { if (!el) return;
-      el.style.transition = dauer ? 'transform ' + dauer + 'ms ' + kurve + ' ' + (i * 18) + 'ms,opacity ' + dauer + 'ms ease ' + (i * 18) + 'ms' : 'none';
-      el.style.transform = x ? 'translate3d(' + x + 'px,0,0) rotate(' + (x / w * 1.2) + 'deg)' : '';
-      el.style.opacity = x ? String(Math.max(.25, 1 - Math.abs(x) / w * .75)) : ''; });
+  var sx = 0, sy = 0, lx = 0, lt = 0, v = 0, an = false, richtung = 0, laeuft = false, geist = { '-1': null, '1': null };
+  function teile() { return [document.querySelector('.kopf .mitte'), document.querySelector('.summe'), document.querySelector('.suche'), $('liste')]; }
+  function baueGeist(n) {
+    var alt = { j: ansicht.j, m: ansicht.m };
+    ansicht.m += n; if (ansicht.m < 0) { ansicht.m = 11; ansicht.j--; } if (ansicht.m > 11) { ansicht.m = 0; ansicht.j++; }
+    zeichne();
+    var g = document.createElement('div'); g.className = 'geistseite';
+    var k = document.querySelector('.kopf').cloneNode(true); [].forEach.call(k.querySelectorAll('.festpfeil'), function (x) { x.remove(); });
+    g.appendChild(k); ['.summe', '.suche', '#liste'].forEach(function (s) { g.appendChild(document.querySelector(s).cloneNode(true)); });
+    [].forEach.call(g.querySelectorAll('[id]'), function (x) { x.removeAttribute('id'); });
+    g.style.top = '0px';
+    ansicht.j = alt.j; ansicht.m = alt.m; zeichne();
+    document.body.appendChild(g); return g;
   }
-  document.addEventListener('touchstart', function (ev) { if (laeuft || document.querySelector('.blatt.offen') || !$('start').classList.contains('aus') || ev.touches.length > 1 || $('suche').value || (ev.target.closest && ev.target.closest('input,textarea,select'))) { an = false; return; } an = true; richtung = 0; v = 0; sx = lx = ev.touches[0].clientX; sy = ev.touches[0].clientY; st = lt = Date.now(); }, { passive: true });
+  function weg() { ['-1', '1'].forEach(function (k) { if (geist[k]) { geist[k].remove(); geist[k] = null; } }); }
+  function setze(dx, dauer, kurve) {
+    var w = window.innerWidth, tr = dauer ? 'transform ' + dauer + 'ms ' + kurve : 'none';
+    teile().forEach(function (el) { if (!el) return; el.style.transition = tr; el.style.transform = dx ? 'translate3d(' + dx + 'px,0,0)' : ''; });
+    if (geist['1']) { geist['1'].style.transition = tr; geist['1'].style.transform = 'translate3d(' + (w + dx) + 'px,0,0)'; }
+    if (geist['-1']) { geist['-1'].style.transition = tr; geist['-1'].style.transform = 'translate3d(' + (-w + dx) + 'px,0,0)'; }
+  }
+  document.addEventListener('touchstart', function (ev) { if (laeuft || document.querySelector('.blatt.offen') || !$('start').classList.contains('aus') || ev.touches.length > 1 || $('suche').value || (ev.target.closest && ev.target.closest('input,textarea,select'))) { an = false; return; } an = true; richtung = 0; v = 0; sx = lx = ev.touches[0].clientX; sy = ev.touches[0].clientY; lt = Date.now(); }, { passive: true });
   document.addEventListener('touchmove', function (ev) {
     if (!an) return; var x = ev.touches[0].clientX, dx = x - sx, dy = ev.touches[0].clientY - sy, t = Date.now();
-    if (!richtung) { if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; richtung = Math.abs(dx) > Math.abs(dy) * 1.2 ? 1 : 2; }
+    if (!richtung) { if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; richtung = Math.abs(dx) > Math.abs(dy) * 1.2 ? 1 : 2; if (richtung === 1) { weg(); geist['1'] = baueGeist(1); geist['-1'] = baueGeist(-1); } }
     if (richtung !== 1) return; if (t > lt) v = (x - lx) / (t - lt); lx = x; lt = t;
     setze(dx, 0);
   }, { passive: true });
   document.addEventListener('touchend', function (ev) {
     if (!an) return; an = false; if (richtung !== 1) return;
-    var dx = ev.changedTouches[0].clientX - sx, w = window.innerWidth, schnell = Math.abs(v) > .45 && Math.abs(dx) > 25;
-    if (Math.abs(dx) < 80 && !schnell) { setze(0, 420, 'cubic-bezier(.34,1.56,.64,1)'); return; }
-    laeuft = true; var vor = dx < 0;
-    setze(vor ? -w * 1.05 : w * 1.05, 260, 'cubic-bezier(.4,0,1,1)');
+    var dx = ev.changedTouches[0].clientX - sx, w = window.innerWidth, schnell = Math.abs(v) > .4 && Math.abs(dx) > 25;
+    if (Math.abs(dx) < w * .25 && !schnell) { setze(0, 380, 'cubic-bezier(.16,1,.3,1)'); setTimeout(weg, 400); return; }
+    laeuft = true; var vor = dx < 0, rest = Math.max(180, Math.min(380, (w - Math.abs(dx)) / Math.max(Math.abs(v), 1) * 1.2));
+    setze(vor ? -w : w, rest, 'cubic-bezier(.2,.7,.3,1)');
     setTimeout(function () {
-      monatSchritt(vor ? 1 : -1); window.scrollTo(0, 0);
-      setze(vor ? w * .9 : -w * .9, 0); void document.body.offsetWidth;
-      setze(0, 460, 'cubic-bezier(.16,1,.3,1)');
-      setTimeout(function () { teile().forEach(function (el) { if (el) { el.style.transition = ''; el.style.transform = ''; el.style.opacity = ''; } }); laeuft = false; }, 560);
-    }, 300);
+      teile().forEach(function (el) { if (el) { el.style.transition = 'none'; el.style.transform = ''; } });
+      monatSchritt(vor ? 1 : -1); weg(); laeuft = false;
+    }, rest + 20);
   }, { passive: true });
 })();
 // Suche über alle Monate
