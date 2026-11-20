@@ -146,6 +146,7 @@ input::placeholder{color:#5c6577}
   <label class="l">Eingabe</label><div class="seg" id="modus"><button data-v="zeit">Uhrzeit von–bis</button><button data-v="std">Stunden</button></div>
   <label class="l">Läden</label><div class="seg" id="anzahl"><button data-v="1">1 Laden</button><button data-v="2">2 Läden</button></div>
   <div id="laeden"></div>
+  <div class="sw" data-k="feiertag"><div>Feiertag in Sachsen<small>+3,08 Std. bezahlt, zusätzlich zur Arbeit</small></div><div class="knopf"></div></div>
   <label class="l">Team / Einsatz</label><div class="seg" id="team"><button data-v="leipzig">Leipzig</button><button data-v="halle">Halle</button><button data-v="reise">Reise</button></div>
   <div id="reiseBox" style="display:none">
     <div class="sw" data-k="anreise"><div>Anreisetag<small>+1,5 Std. · 10 € Verpflegung</small></div><div class="knopf"></div></div>
@@ -209,7 +210,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.38';
+var VERSION = '1.39';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -375,13 +376,14 @@ function zeichne() {
     var r = R.berechne(x); sum += r.gesamt; verpf += r.verpflegung;
     var d = new Date(x.datum + 'T12:00:00');
     var ld = (x.laeden || []).map(function (l) { var s = l.ort ? esc(l.ort) + (l.fil ? ' <span style="color:var(--grau)">' + esc(l.fil) + '</span>' : '') + (l.art === 'GM' ? ' (GM)' : '') : l.art;
-      return l.ausfall ? '<s style="color:var(--grau)">' + s + '</s> <span style="color:var(--rot);font-size:12px">abgesagt</span>' : s; }).join(' + ') || (x.anreise ? 'Anreise' : x.abreise ? 'Abreise' : '–');
+      return l.ausfall ? '<s style="color:var(--grau)">' + s + '</s> <span style="color:var(--rot);font-size:12px">abgesagt</span>' : s; }).join(' + ') || (x.anreise ? 'Anreise' : x.abreise ? 'Abreise' : x.feiertag ? 'Feiertag' : '–');
     var teile = [];
     if (r.arbeit || (x.laeden || []).length) teile.push('Arbeit ' + z(r.arbeit));
     if (r.zwischen) teile.push('Zw. ' + z(r.zwischen));
     if (r.tl) teile.push('TL ' + z(r.tl));
     if (x.fahrMin) teile.push('Fahrt ' + dauer(x.fahrMin).replace(' Std.', '') + (r.fahrt ? ' (' + z(r.fahrt) + ')' : ''));
     if (r.anreise) teile.push('Anreise ' + z(r.anreise));
+    if (r.feiertag) teile.push('Feiertag ' + z(r.feiertag));
     html += '<div class="tag" data-id="' + x.id + '"><div class="d"><b>' + d.getDate() + '</b><span>' + TAGE[d.getDay()] + '</span></div>' +
       '<div class="info"><div class="z1">' + ld + (x.team === 'halle' ? ' · Halle' : '') + '</div>' + teile.join(' · ') + (r.verpflegung ? ' · ' + r.verpflegung + ' €' : '') + (x.datum === iso2(new Date()) ? fahrtLiveHtml(x.datum) : '') + '</div>' +
       '<div class="h">' + z(r.gesamt) + '</div></div>';
@@ -410,6 +412,7 @@ function neuerEintrag(datum) {
 function oeffne(eintrag, neu) {
   e = JSON.parse(JSON.stringify(eintrag)); e._neu = !!neu;
   if (neu) { var pr = profile().find(function (p) { return p.id === daten.letztesProfil; }) || profile()[0]; profilAnwenden(pr); }
+  if (neu && istFeiertagSN(e.datum)) e.feiertag = true;
   if (neu && planFuellen(e)) setTimeout(function () { toast('Aus dem Einsatzplan vorausgefüllt'); }, 300);
   if (fahrtenUebernehmen(e)) setTimeout(function () { toast('Fahrten automatisch eingetragen'); }, 900);
   profilAuswahlZeichnen();
@@ -449,12 +452,13 @@ function formZeichnen() {
 function rechnung() {
   var r = R.berechne(e), h = '';
   var am = r.arbeitMin;
-  if (r.fest) { h += '<div><span>' + esc(e.festText || 'Gesamtzeit (fest übernommen)') + '</span></div>' + (e.quelle ? '<div class="hinweis" style="display:block">Quelle: ' + esc(e.quelle) + '</div>' : '') + '<div class="hinweis" style="display:block"><button class="mini" id="festWeg">Festen Wert entfernen und selbst rechnen lassen</button></div>'; if (r.verpflegung) h += '<div><span>Verpflegung</span><b>' + r.verpflegung + ' €</b></div>'; h += '<div class="ges"><span>Gesamt</span><span>' + z(r.gesamt) + '</span></div>'; $('rechnung').innerHTML = h; $('festWeg').onclick = function () { delete e.festGesamt; formZeichnen(); }; return; }
+  if (r.fest) { h += '<div><span>' + esc(e.festText || 'Gesamtzeit (fest übernommen)') + '</span></div>' + (e.quelle ? '<div class="hinweis" style="display:block">Quelle: ' + esc(e.quelle) + '</div>' : '') + '<div class="hinweis" style="display:block"><button class="mini" id="festWeg">Festen Wert entfernen und selbst rechnen lassen</button></div>'; if (r.verpflegung) h += '<div><span>Verpflegung</span><b>' + r.verpflegung + ' €</b></div>'; h += (r.feiertag ? '<div><span>Feiertag (Sachsen)</span><b>' + z(r.feiertag) + '</b></div>' : '') + '<div class="ges"><span>Gesamt</span><span>' + z(r.gesamt) + '</span></div>'; $('rechnung').innerHTML = h; $('festWeg').onclick = function () { delete e.festGesamt; formZeichnen(); }; return; }
   h += '<div><span>Arbeitszeit' + (e.modus === 'zeit' && am ? ' (' + Math.floor(am / 60) + ' Std. ' + (am % 60) + ' Min.)' : '') + '</span><b>' + z(r.arbeit) + '</b></div>';
   if (r.zwischen) h += '<div><span>Fahrt zwischen den Läden</span><b>' + z(r.zwischen) + '</b></div>';
   if (r.tl) h += '<div><span>Teamleiter</span><b>' + z(r.tl) + '</b></div>';
   if (r.fahrGesamt) h += '<div><span>Fahrzeit ' + dauer(r.fahrGesamt) + (r.zwUeber ? ' (inkl. ' + r.zwUeber + ' Min. Zwischenfahrt)' : '') + ', bezahlt</span><b>' + z(r.fahrt) + '</b></div>';
   if (r.anreise) h += '<div><span>' + (e.team === 'halle' ? 'Anreise Halle' : 'An-/Abreise') + '</span><b>' + z(r.anreise) + '</b></div>';
+  if (r.feiertag) h += '<div><span>Feiertag (Sachsen)</span><b>' + z(r.feiertag) + '</b></div>';
   if (r.verpflegung) h += '<div><span>Verpflegung</span><b>' + r.verpflegung + ' €</b></div>';
   h += '<div class="ges"><span>Gesamt</span><span>' + z(r.gesamt) + '</span></div>';
   $('rechnung').innerHTML = h;
@@ -653,10 +657,11 @@ $('pdfknopf').onclick = function () {
     var ld = (x.laeden || []).map(function (l) {
       var s = (l.ort ? l.ort + ' ' : '') + (l.fil ? l.fil + ' ' : '') + l.art; if (l.ausfall) return s + ' – abgesagt'; if (x.modus === 'zeit') s += ' ' + (l.zeiten || []).filter(function (q) { return q.von && q.bis; }).map(function (q) { return uhr(q.von) + '–' + uhr(q.bis); }).join(', ');
       return s; });
-    if (!ld.length) ld = [x.anreise ? 'Anreise (Reisetag)' : x.abreise ? 'Abreise (Reisetag)' : '–'];
+    if (!ld.length) ld = [x.anreise ? 'Anreise (Reisetag)' : x.abreise ? 'Abreise (Reisetag)' : x.feiertag ? 'Feiertag' : '–'];
     var gemacht = (x.laeden || []).filter(function (l) { return !l.ausfall; }).length;
     if (gemacht >= 2 && (x.zwZeit || x.fahrZw)) ld.splice(1, 0, 'Zwischenfahrt ' + (x.zwZeit ? x.zwZeit + ' ' : '') + '(' + dauer(x.fahrZw || 0).replace(' Std.', '') + ')');
     var teamNotiz = x.team === 'halle' ? 'Halle' : x.team === 'reise' ? (x.anreise ? 'Anreisetag' : x.abreise ? 'Abreisetag' : '') : '';
+    if (r.feiertag) teamNotiz = (teamNotiz ? teamNotiz + ', ' : '') + 'Feiertag ' + z(r.feiertag);
     if (x.fahrHin || x.fahrZur || x.fahrMin) {
       var hin = x.fahrHin != null ? x.fahrHin : 0, zur = x.fahrZur != null ? x.fahrZur : 0;
       if (!hin && !zur && x.fahrMin) { hin = Math.ceil(x.fahrMin / 2); zur = x.fahrMin - hin; }
@@ -700,6 +705,14 @@ $('pdfknopf').onclick = function () {
 };
 
 // ---------- Komfort (20.11.) ----------
+// gesetzliche Feiertage Sachsen (Leipzig), Ostern nach Gauß
+function osterSonntag(j) { var a = j % 19, b = Math.floor(j / 100), c = j % 100, d = Math.floor(b / 4), k = b % 4, f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30, i = Math.floor(c / 4), l = c % 4, m = (32 + 2 * k + 2 * i - h - l) % 7, n = Math.floor((a + 11 * h + 22 * m) / 451), mo = Math.floor((h + m - 7 * n + 114) / 31), t = ((h + m - 7 * n + 114) % 31) + 1; return new Date(j, mo - 1, t, 12); }
+function feiertageSN(j) {
+  var o = osterSonntag(j), plus = function (n) { var d = new Date(o); d.setDate(d.getDate() + n); return iso2(d); };
+  var nov23 = new Date(j, 10, 23, 12), bb = new Date(nov23); bb.setDate(23 - ((nov23.getDay() + 4) % 7 || 7)); // Mittwoch vor dem 23.11.
+  return [j + '-01-01', plus(-2), plus(1), j + '-05-01', plus(39), plus(50), j + '-10-03', j + '-10-31', iso2(bb), j + '-12-25', j + '-12-26'];
+}
+function istFeiertagSN(datum) { return feiertageSN(+datum.slice(0, 4)).indexOf(datum) >= 0; }
 var PLAN_TEAM = { Coburg: 'reise', Dresden: 'reise', 'Osnabrück': 'reise', Leipzig: 'leipzig', Halle: 'halle' };
 function planTag(datum) { var n = daten.nachweis; return n && n.tage ? n.tage.find(function (x) { return x.datum === datum; }) : null; }
 function planFuellen(x) {
@@ -710,7 +723,7 @@ function planFuellen(x) {
   if ((p.laeden || []).length) x.laeden = p.laeden.map(function (l) { return { art: l.art || 'NMD', fil: l.fil, ort: l.ort, str: (l.str || '') + (l.plz ? ', ' + l.plz + ' ' + l.ort : ''), zeiten: [{ von: '', bis: '' }], std: '' }; });
   return true;
 }
-$('datum').addEventListener('change', function () { if (e && e._neu && !(e.laeden || []).some(function (l) { return (l.zeiten || []).some(function (z) { return z.von || z.bis; }) || l.std; })) { e.datum = this.value; if (planFuellen(e)) { formZeichnen(); toast('Aus dem Einsatzplan vorausgefüllt'); } } });
+$('datum').addEventListener('change', function () { if (e && e._neu) { e.feiertag = istFeiertagSN(this.value); formZeichnen(); } if (e && e._neu && !(e.laeden || []).some(function (l) { return (l.zeiten || []).some(function (z) { return z.von || z.bis; }) || l.std; })) { e.datum = this.value; if (planFuellen(e)) { formZeichnen(); toast('Aus dem Einsatzplan vorausgefüllt'); } } });
 // Monate wischen
 (function () {
   var sx = 0, sy = 0, an = false;
