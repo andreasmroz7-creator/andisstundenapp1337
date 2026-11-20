@@ -117,6 +117,8 @@ input::placeholder{color:#5c6577}
 #start:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(700px 480px at 0% -5%,rgba(90,200,250,.22),transparent 60%),radial-gradient(600px 460px at 105% 15%,rgba(140,100,255,.18),transparent 60%),radial-gradient(500px 400px at 50% 110%,rgba(52,199,89,.10),transparent 60%)}
 #start.weg{opacity:0;transform:scale(1.08);filter:blur(10px);pointer-events:none}
 #start.aus{display:none}
+#start.klein{opacity:0;transform:scale(.9);filter:blur(8px);transition:none}
+body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumstart #liste,body.zumstart .festpfeil,body.zumstart .plus{transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .25s ease!important;transform:scale(.92) translateY(10px)!important;opacity:0!important}
 .sgruss{font-size:13px;color:var(--grau);letter-spacing:.4px;text-transform:uppercase}
 .sname{font-size:30px;font-weight:800;letter-spacing:-.6px;margin:2px 0 16px}
 .sheute{position:relative;overflow:hidden;border-radius:24px;padding:16px 18px;margin-bottom:12px;background:linear-gradient(135deg,rgba(90,200,250,.22),rgba(120,90,250,.16));border:1px solid rgba(255,255,255,.16);box-shadow:0 10px 30px rgba(0,0,0,.35)}
@@ -255,7 +257,7 @@ h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.45';
+var VERSION = '1.46';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -771,29 +773,37 @@ function planFuellen(x) {
   return true;
 }
 $('datum').addEventListener('change', function () { if (e && e._neu) { e.feiertag = istFeiertagSN(this.value); formZeichnen(); } if (e && e._neu && !(e.laeden || []).some(function (l) { return (l.zeiten || []).some(function (z) { return z.von || z.bis; }) || l.std; })) { e.datum = this.value; if (planFuellen(e)) { formZeichnen(); toast('Aus dem Einsatzplan vorausgefüllt'); } } });
-// Monate wischen: Inhalt folgt dem Finger, beim Loslassen gleitet der neue Monat herein
+// Monate wischen: die ganze Seite (Monat, Summe, Suche, Liste) folgt dem Finger 1:1,
+// beim Loslassen gleitet sie raus und der neue Monat schiebt sich von der anderen Seite rein
 (function () {
-  var sx = 0, sy = 0, an = false, richtung = 0, laeuft = false;
-  function teile() { return [$('monat'), document.querySelector('.summe'), $('liste')]; }
-  function setze(x, o, anim) { teile().forEach(function (el, i) { if (!el) return; el.style.transition = anim ? 'transform .32s cubic-bezier(.2,.8,.2,1),opacity .32s ease' : 'none'; el.style.transform = x ? 'translateX(' + (x * (i === 0 ? .6 : 1)) + 'px)' + (anim === 'rein' ? '' : ' scale(' + (1 - Math.min(Math.abs(x) / 2400, .04)) + ')') : ''; el.style.opacity = o; }); }
-  document.addEventListener('touchstart', function (ev) { if (laeuft || document.querySelector('.blatt.offen') || !$('start').classList.contains('aus') || ev.touches.length > 1 || $('suche').value || (ev.target.closest && ev.target.closest('input,textarea,select'))) { an = false; return; } an = true; richtung = 0; sx = ev.touches[0].clientX; sy = ev.touches[0].clientY; }, { passive: true });
+  var sx = 0, sy = 0, st = 0, lx = 0, lt = 0, v = 0, an = false, richtung = 0, laeuft = false;
+  function teile() { return [$('monat'), document.querySelector('.summe'), document.querySelector('.suche'), $('liste')]; }
+  function setze(x, dauer, kurve) {
+    var w = window.innerWidth;
+    teile().forEach(function (el, i) { if (!el) return;
+      el.style.transition = dauer ? 'transform ' + dauer + 'ms ' + kurve + ' ' + (i * 18) + 'ms,opacity ' + dauer + 'ms ease ' + (i * 18) + 'ms' : 'none';
+      el.style.transform = x ? 'translate3d(' + x + 'px,0,0) rotate(' + (x / w * 1.2) + 'deg)' : '';
+      el.style.opacity = x ? String(Math.max(.25, 1 - Math.abs(x) / w * .75)) : ''; });
+  }
+  document.addEventListener('touchstart', function (ev) { if (laeuft || document.querySelector('.blatt.offen') || !$('start').classList.contains('aus') || ev.touches.length > 1 || $('suche').value || (ev.target.closest && ev.target.closest('input,textarea,select'))) { an = false; return; } an = true; richtung = 0; v = 0; sx = lx = ev.touches[0].clientX; sy = ev.touches[0].clientY; st = lt = Date.now(); }, { passive: true });
   document.addEventListener('touchmove', function (ev) {
-    if (!an) return; var dx = ev.touches[0].clientX - sx, dy = ev.touches[0].clientY - sy;
+    if (!an) return; var x = ev.touches[0].clientX, dx = x - sx, dy = ev.touches[0].clientY - sy, t = Date.now();
     if (!richtung) { if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; richtung = Math.abs(dx) > Math.abs(dy) * 1.2 ? 1 : 2; }
-    if (richtung !== 1) return; setze(dx, String(1 - Math.min(Math.abs(dx) / 500, .5)), false);
+    if (richtung !== 1) return; if (t > lt) v = (x - lx) / (t - lt); lx = x; lt = t;
+    setze(dx, 0);
   }, { passive: true });
   document.addEventListener('touchend', function (ev) {
     if (!an) return; an = false; if (richtung !== 1) return;
-    var dx = ev.changedTouches[0].clientX - sx, w = window.innerWidth;
-    if (Math.abs(dx) < 70) { setze(0, '', true); return; }
+    var dx = ev.changedTouches[0].clientX - sx, w = window.innerWidth, schnell = Math.abs(v) > .45 && Math.abs(dx) > 25;
+    if (Math.abs(dx) < 80 && !schnell) { setze(0, 420, 'cubic-bezier(.34,1.56,.64,1)'); return; }
     laeuft = true; var vor = dx < 0;
-    setze(vor ? -w : w, '0', true);
+    setze(vor ? -w * 1.05 : w * 1.05, 260, 'cubic-bezier(.4,0,1,1)');
     setTimeout(function () {
       monatSchritt(vor ? 1 : -1); window.scrollTo(0, 0);
-      setze(vor ? w * .6 : -w * .6, '0', false); void document.body.offsetWidth;
-      setze(0, '', 'rein');
-      setTimeout(function () { teile().forEach(function (el) { if (el) { el.style.transition = ''; el.style.transform = ''; } }); laeuft = false; }, 340);
-    }, 220);
+      setze(vor ? w * .9 : -w * .9, 0); void document.body.offsetWidth;
+      setze(0, 460, 'cubic-bezier(.16,1,.3,1)');
+      setTimeout(function () { teile().forEach(function (el) { if (el) { el.style.transition = ''; el.style.transform = ''; el.style.opacity = ''; } }); laeuft = false; }, 560);
+    }, 300);
   }, { passive: true });
 })();
 // Suche über alle Monate
@@ -886,7 +896,11 @@ function startWeg() {
   setTimeout(function () { document.body.classList.remove('vonstart'); }, 800);
 }
 function startZeigen() {
-  var s = $('start'); startZeichnen(); s.classList.remove('aus'); void s.offsetWidth; s.classList.remove('weg'); s.scrollTop = 0;
+  var s = $('start'); document.body.classList.add('zumstart');
+  setTimeout(function () {
+    startZeichnen(); s.classList.add('klein'); s.classList.remove('aus'); void s.offsetWidth; s.classList.remove('weg'); s.classList.remove('klein'); s.scrollTop = 0;
+    setTimeout(function () { document.body.classList.remove('zumstart'); }, 450);
+  }, 230);
 }
 function startZiel(z) {
   if (z === 'stunden') { var d = new Date(); ansicht.j = d.getFullYear(); ansicht.m = d.getMonth(); zeichne(); window.scrollTo(0, 0); startWeg(); }
