@@ -215,8 +215,8 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .jvhin i{flex:none;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#fff,#9a9a9a 60%,#444);box-shadow:0 0 10px rgba(255,255,255,.35);animation:jvatem 3.2s ease-in-out infinite}
 .jvhin span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #start{padding-bottom:calc(env(safe-area-inset-bottom) + 110px)!important}
-.jvfab{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 18px);width:66px;height:66px;margin-left:-33px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(30,30,30,.55);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:0 10px 30px rgba(0,0,0,.55);z-index:9;padding:0;cursor:pointer;transition:transform .25s cubic-bezier(.2,.8,.2,1),opacity .3s}
-.jvfab:active{transform:scale(.9)}
+.jvfab{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 10px);width:84px;height:84px;margin-left:-42px;border-radius:50%;border:0;background:radial-gradient(circle,rgba(0,0,0,.55) 30%,transparent 70%);z-index:9;padding:0;cursor:pointer;transition:transform .25s cubic-bezier(.2,.8,.2,1),opacity .3s}
+.jvfab:active{transform:scale(.9)}.jvfab canvas{width:84px;height:84px;display:block}
 .jvfab b{position:absolute;inset:15px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#fff,#bdbdbd 45%,#4a4a4a 100%);animation:jvatem 3.2s ease-in-out infinite}
 .jvfab i{position:absolute;inset:6px;border-radius:50%;border:1px solid rgba(255,255,255,.22);animation:jvring 3.2s ease-out infinite}
 @keyframes jvatem{0%,100%{transform:scale(.94);box-shadow:0 0 14px rgba(255,255,255,.15)}50%{transform:scale(1.04);box-shadow:0 0 26px rgba(255,255,255,.35)}}
@@ -418,7 +418,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.85';
+var VERSION = '1.86';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1154,10 +1154,11 @@ function startZeichnen(still) {
   var dp = daten.depot, dzu = !depotSicht;
   k('depot', IC.balken.replace('M4 20V10M10 20V4M16 20v-7M22 20H2', 'M3 17l5-5 4 3 8-8M15 7h5v5'), 'linear-gradient(135deg,#bdbdbd,#5e5e5e)', 'Depot', dp ? '<span class="dbox' + (dzu ? ' verdeckt' : '') + '"><span class="dpkt">••••••</span><span class="dw">' + euroK(dp.gesamt) + '</span></span>' : '–', dp ? '<span class="dbox' + (dzu ? ' verdeckt' : '') + '" style="display:block"><span class="dpkt">•••</span><span class="dw ' + (dp.heute_eur >= 0 ? 'dplus' : 'dminus') + '">' + (dp.heute_eur >= 0 ? '+' : '') + euroK(dp.heute_eur) + ' · ' + (dp.heute_pct >= 0 ? '+' : '') + String(dp.heute_pct).replace('.', ',') + ' % heute</span>' + depotLinie(dp, dzu, false) + '</span>' : 'kommt vom Mac, sobald er an ist', '', false);
   var kr = kachelReihe(kdef); kr.forEach(function (z, i) { h += kk[z](.12 + i * .06).replace('class="kachel rein', 'class="kachel rein' + (kr.length % 2 && i === kr.length - 1 ? ' breit' : '')); });
-  h += '</div><div class="ordtipp">Kachel ziehen zum Verschieben</div><button class="ordfertig" id="ordfertig">Fertig</button>' + '<button class="jvfab" id="jvFab" aria-label="Jarvis"><i></i><b></b></button>';
+  h += '</div><div class="ordtipp">Kachel ziehen zum Verschieben</div><button class="ordfertig" id="ordfertig">Fertig</button>' + '<button class="jvfab" id="jvFab" aria-label="Jarvis"><canvas id="jvFabC"></canvas></button>';
   $('start').innerHTML = '<div class="ptr" id="ptr"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>' + h;
   [].forEach.call($('start').querySelectorAll('[data-ziel]'), function (el) { el.onclick = function (ev) { if (window.ordnen && (ordnen.an || ordnen.klickSperre)) return; welle(el, ev); setTimeout(function () { startZiel(el.dataset.ziel); }, 160); }; });
   $('ordfertig').onclick = function () { ordnenAus(); };
+  jvMiniStart();
   $('jvFab').onclick = function () { if (window.ordnen && ordnen.an) return; jvOeffnen($('jvFab')); };
   var jh = $('jvHinweis'); if (jh) jh.onclick = function () { jvOeffnen($('jvFab')); };
   if (window.ordnen && ordnen.an) $('start').classList.add('ordnen');
@@ -1337,11 +1338,11 @@ function fixZeichnen() {
   $('fKoerper').innerHTML = h;
 }
 $('fkauf').onclick = function (ev) { ev.stopPropagation(); fixZeichnen(); $('blattF').classList.add('offen'); };
-// ---------- Jarvis-Kern (Partikelkugel aus dem Dashboard, fürs iPhone mit 5.000 statt 9.000 Punkten) ----------
+// ---------- Jarvis-Kern (Partikelkugel aus dem Dashboard, 9.000 Punkte wie am Mac) ----------
 /* JARVIS-Kern: leuchtende Partikelkugel mit feinen Fäden und hellem Kern.
    Zustände: ruhig (lockere Wolke) · zuhören (Kugel) · du sprichst (Wolke lockert sich, Kern glüht) · denken (fällt zum Lichtball zusammen) · Jarvis spricht (Kugel pulsiert, Fäden schimmern) */
 window.jvKernStart=function(){
-  const c=document.getElementById('jvCore'),x=c.getContext('2d'),N=5000,N0=1300,ORB='150,205,255'; /* N0 Punkte immer sichtbar, die übrigen kommen nur beim Denken und Reden dazu */
+  const c=document.getElementById('jvCore'),x=c.getContext('2d'),N=9000,N0=1700,ORB='150,205,255'; /* N0 Punkte immer sichtbar, die übrigen kommen nur beim Denken und Reden dazu */
   let W,H,level=0,target=0,t=0;
   window.setJarvisVoice=v=>{voxT=Math.max(0,Math.min(1,v));voxAt=performance.now()}; /* Lautstärke der Stimme: der Kern pulsiert genau mit der Sprache */
   window.setJarvisLevel=v=>{target=Math.max(0,Math.min(1,v))};
@@ -1530,6 +1531,36 @@ window.jvKernStart=function(){
   }
   frame();
 };
+// ---------- Kleine Jarvis-Kugel unten auf der Startseite (gleicher Look wie der große Kern, 1.700 Punkte wie die Mac-Kugel in Ruhe, 30 Bilder/s, ruht wenn nicht sichtbar) ----------
+var jvMini = { an: false, P: null, t: 0, c: null, n: 0 };
+function jvMiniStart() {
+  if (jvMini.an) return; jvMini.an = true;
+  var seed = 7, rnd = function () { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }, P = [];
+  for (var i = 0; i < 1700; i++) { var a, b, zz, q; do { a = rnd() * 2 - 1; b = rnd() * 2 - 1; zz = rnd() * 2 - 1; q = a * a + b * b + zz * zz; } while (q > 1 || q < .01); var l = Math.sqrt(q); P.push({ x: a / l, y: b / l, z: zz / l, r: .82 + .25 * Math.cbrt(rnd()), k: .6 + .8 * rnd(), s: rnd() * 6.28 }); }
+  jvMini.P = P;
+  (function frame() {
+    requestAnimationFrame(frame);
+    var c = document.getElementById('jvFabC'), st = $('start');
+    if (!c || document.hidden || st.classList.contains('aus') || st.classList.contains('weg') || $('blattJv').classList.contains('offen')) return;
+    if ((jvMini.n = (jvMini.n + 1) % 2)) return; // 30 Bilder pro Sekunde reichen
+    var d = Math.min(devicePixelRatio || 1, 2), S = 84;
+    if (c !== jvMini.c) { jvMini.c = c; c.width = S * d; c.height = S * d; }
+    var x = c.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0); x.clearRect(0, 0, S, S);
+    var t = jvMini.t += .016, cx = S / 2, cy = S / 2, br = 1 + .045 * Math.sin(t * 1.9), R = S * .3 * br;
+    x.globalCompositeOperation = 'lighter';
+    var g = x.createRadialGradient(cx, cy, 0, cx, cy, R * .9); g.addColorStop(0, 'rgba(150,205,255,' + (.28 + .08 * Math.sin(t * 1.9)) + ')'); g.addColorStop(1, 'rgba(150,205,255,0)'); x.fillStyle = g; x.fillRect(0, 0, S, S);
+    var g2 = x.createRadialGradient(cx, cy, 0, cx, cy, R * .28); g2.addColorStop(0, 'rgba(255,255,255,.55)'); g2.addColorStop(1, 'rgba(150,205,255,0)'); x.fillStyle = g2; x.fillRect(0, 0, S, S);
+    var a = t * .5, ca = Math.cos(a), sa = Math.sin(a), tl = .35, cT = Math.cos(tl), sT = Math.sin(tl);
+    var stufen = [[], [], [], []];
+    for (var i = 0; i < P.length; i++) {
+      var p = P[i], rr = p.r * (1 + .03 * Math.sin(t * 1.6 + p.s)), X = p.x * rr, Y = p.y * rr, Z = p.z * rr,
+        x1 = X * ca + Z * sa, z1 = -X * sa + Z * ca, y2 = Y * cT - z1 * sT, z2 = Y * sT + z1 * cT, f = 1.9 / (1.9 - z2 * .5), dd = (z2 + 1) / 2;
+      stufen[Math.max(0, Math.min(3, Math.floor(dd * 4)))].push(cx + x1 * R * f, cy + y2 * R * f, (.25 + .45 * dd) * p.k * .75);
+    }
+    for (var k = 0; k < 4; k++) { var L = stufen[k]; if (!L.length) continue; x.beginPath(); for (var n = 0; n < L.length; n += 3) { var r = L[n + 2]; x.moveTo(L[n] + r, L[n + 1]); x.arc(L[n], L[n + 1], r, 0, 6.283); } x.fillStyle = 'rgba(' + (k > 2 ? '214,238,255' : '150,205,255') + ',' + (.25 + .22 * k) + ')'; x.fill(); }
+    x.globalCompositeOperation = 'source-over';
+  })();
+}
 // ---------- Jarvis im Cockpit: Frage über das Daten-Repo (jarvis/f_<id>.json) an den Mac, Antwort kommt als jarvis/a_<id>.json ----------
 var GHJ = GH.replace('daten.json', 'jarvis/'), jv = { laeuft: false, erk: null, ctx: null, quelle: null, stumm: false };
 try { jv.stumm = localStorage.getItem('cockpit_jvstumm') === '1'; } catch (x) {}
