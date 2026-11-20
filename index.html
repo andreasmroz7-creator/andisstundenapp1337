@@ -99,7 +99,18 @@ input::placeholder{color:#5c6577}
 .jb.top .s i{background:linear-gradient(90deg,#2ecc71,#5ac8fa)}
 .nwst{margin-top:16px;background:rgba(255,255,255,.05);border:1px solid var(--rand);border-radius:14px;padding:12px 14px;font-size:14px}
 .nwst h3{font-size:15px;margin:0 0 8px}.nwst div{display:flex;justify-content:space-between;gap:10px;padding:4px 0}.nwst span{color:var(--grau)}.nwst .sum{border-top:1px solid var(--rand);margin-top:6px;padding-top:8px;font-weight:600}
-.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translateX(-50%);background:rgba(30,38,54,.95);border:1px solid var(--rand);padding:10px 16px;border-radius:14px;z-index:20;font-size:14px;display:none}
+.suche{display:flex;align-items:center;gap:8px;margin:0 0 12px;padding:10px 14px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid var(--rand)}
+.suche input{flex:1;background:none;border:0;color:inherit;font:inherit;font-size:16px;outline:none;min-width:0;padding:0}
+.suche svg{width:18px;height:18px;stroke:var(--grau);fill:none;stroke-width:2;flex:none}
+.suche .weg{background:none;border:0;color:var(--grau);font-size:18px;padding:0 2px;display:none}
+.tag.live{border-style:dashed;opacity:.92}.livepunkt{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gruen);margin-right:6px;animation:puls 1.4s infinite}
+@keyframes puls{0%,100%{opacity:1}50%{opacity:.3}}
+.fahrtzeile{font-size:12px;color:var(--gruen);margin-top:3px}
+#liste.wisch{transition:transform .22s ease,opacity .22s ease}
+.toast .rk{margin-left:12px;background:none;border:0;color:#5ac8fa;font:inherit;font-weight:700;padding:0}
+#sperre{position:fixed;inset:0;z-index:99999;background:#0b111c;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:30px;text-align:center}
+#sperre.an{display:flex}#sperre svg{width:64px;height:64px;stroke:#5ac8fa;fill:none;stroke-width:1.5}
+.toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translateX(-50%);background:rgba(30,38,54,.95);border:1px solid var(--rand);padding:10px 16px;border-radius:14px;z-index:20;font-size:14px;display:none;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -116,7 +127,9 @@ input::placeholder{color:#5c6577}
     <button class="kugel" id="einstknopf" aria-label="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </div>
 </div>
+<div class="suche"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="suche" placeholder="Ort oder Filiale suchen" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="weg" id="sucheWeg" aria-label="Suche leeren">×</button></div>
 <div id="liste"></div>
+<div id="sperre"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><div style="font-size:20px;font-weight:700">Stunden gesperrt</div><button class="btn" id="entsperren" style="max-width:280px">Mit Face ID entsperren</button><div class="hinweis" id="sperreInfo"></div></div>
 <button class="kugel plus" id="plus" aria-label="Stunden hinzufügen"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
 
 <!-- Eintrag -->
@@ -175,6 +188,8 @@ input::placeholder{color:#5c6577}
   <label class="l">Standard für neue Einträge</label>
   <div class="sw" data-s="tl"><div>Teamleiter-Stunde</div><div class="knopf"></div></div>
   <div class="sw" data-s="fahrer"><div>Ich bin Fahrer<small>in der Probezeit: aus</small></div><div class="knopf"></div></div>
+  <label class="l">Sicherheit</label>
+  <div class="sw" id="swSperre"><div>App-Sperre mit Face ID<small>beim Öffnen und nach 1 Min. im Hintergrund</small></div><div class="knopf"></div></div>
   <label class="l">Abgleich mit GitHub (stunden-raten)</label>
   <input type="password" id="sToken" placeholder="Schlüssel github_pat_…" autocomplete="off" autocapitalize="off" spellcheck="false">
   <div class="knopfzeile" style="margin-top:10px"><button class="btn zweit" id="syncJetzt">Jetzt abgleichen</button></div>
@@ -193,7 +208,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.35';
+var VERSION = '1.36';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -338,6 +353,11 @@ function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').
 function $(id) { return document.getElementById(id); }
 function z(n) { return (Math.round(n * 100) / 100).toFixed(2).replace('.', ','); }
 function iso(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+function toastAktion(t, label, fn) {
+  var el = $('toast'); el.innerHTML = esc(t) + '<button class="rk">' + esc(label) + '</button>'; el.style.display = 'block';
+  el.querySelector('.rk').onclick = function () { el.style.display = 'none'; fn(); };
+  clearTimeout(toast.t); toast.t = setTimeout(function () { el.style.display = 'none'; }, 6000);
+}
 function toast(t) { var el = $('toast'); el.textContent = t; el.style.display = 'block'; clearTimeout(toast.t); toast.t = setTimeout(function () { el.style.display = 'none'; }, 2200); }
 
 function monatsEintraege(j, m) {
@@ -360,10 +380,17 @@ function zeichne() {
     if (x.fahrMin) teile.push('Fahrt ' + dauer(x.fahrMin).replace(' Std.', '') + (r.fahrt ? ' (' + z(r.fahrt) + ')' : ''));
     if (r.anreise) teile.push('Anreise ' + z(r.anreise));
     html += '<div class="tag" data-id="' + x.id + '"><div class="d"><b>' + d.getDate() + '</b><span>' + TAGE[d.getDay()] + '</span></div>' +
-      '<div class="info"><div class="z1">' + ld + (x.team === 'halle' ? ' · Halle' : '') + '</div>' + teile.join(' · ') + (r.verpflegung ? ' · ' + r.verpflegung + ' €' : '') + '</div>' +
+      '<div class="info"><div class="z1">' + ld + (x.team === 'halle' ? ' · Halle' : '') + '</div>' + teile.join(' · ') + (r.verpflegung ? ' · ' + r.verpflegung + ' €' : '') + (x.datum === iso2(new Date()) ? fahrtLiveHtml(x.datum) : '') + '</div>' +
       '<div class="h">' + z(r.gesamt) + '</div></div>';
   });
+  var hi = iso2(new Date());
+  if (hi.slice(0, 7) === ansicht.j + '-' + String(ansicht.m + 1).padStart(2, '0') && !ls.some(function (x) { return x.datum === hi; })) {
+    var fl = fahrtLiveHtml(hi), pt = planTag(hi);
+    if (fl || (pt && (pt.laeden || []).length)) { var dh = new Date(); html = '<div class="tag live" id="heuteNeu"><div class="d"><b>' + dh.getDate() + '</b><span>' + TAGE[dh.getDay()] + '</span></div><div class="info"><div class="z1">' + (pt && pt.laeden ? pt.laeden.map(function (l) { return esc(l.ort) + ' <span style="color:var(--grau)">' + esc(l.fil) + '</span>'; }).join(' + ') : 'Heute') + '</div>Noch keine Zeiten · tippen zum Eintragen' + fl + '</div><div class="h">–</div></div>' + html; }
+  }
   $('liste').innerHTML = html || '<div class="leer">Noch keine Stunden in diesem Monat.<br>Tippe auf +</div>';
+  if ($('heuteNeu')) $('heuteNeu').onclick = function (ev) { ev.stopPropagation(); oeffne(neuerEintrag(hi), true); };
+  if ($('suche') && $('suche').value) sucheZeichnen();
   $('msumme').textContent = z(sum);
   var lohn = daten.einst.lohn != null && daten.einst.lohn !== '' ? +daten.einst.lohn : 16;
   $('mlohn').textContent = sum ? '≈ ' + euro(sum * lohn) + ' brutto' + (verpf ? ' + ' + euro(verpf) + ' Verpflegung' : '') : '';
@@ -380,7 +407,8 @@ function neuerEintrag(datum) {
 function oeffne(eintrag, neu) {
   e = JSON.parse(JSON.stringify(eintrag)); e._neu = !!neu;
   if (neu) { var pr = profile().find(function (p) { return p.id === daten.letztesProfil; }) || profile()[0]; profilAnwenden(pr); }
-  if (fahrtenUebernehmen(e)) setTimeout(function () { toast('Fahrten automatisch eingetragen'); }, 300);
+  if (neu && planFuellen(e)) setTimeout(function () { toast('Aus dem Einsatzplan vorausgefüllt'); }, 300);
+  if (fahrtenUebernehmen(e)) setTimeout(function () { toast('Fahrten automatisch eingetragen'); }, 900);
   profilAuswahlZeichnen();
   $('eTitel').textContent = neu ? 'Stunden hinzufügen' : 'Eintrag ändern';
   $('loeschen').style.display = neu ? 'none' : '';
@@ -540,10 +568,14 @@ $('speichern').onclick = function () {
   toast((neu ? 'Gespeichert: ' : 'Geändert: ') + z(R.berechne(e).gesamt) + ' Std.');
 };
 $('loeschen').onclick = function () {
-  if (!confirm('Diesen Tag löschen?')) return;
+  var alt = daten.eintraege.find(function (x) { return x.id === e.id; });
   daten.eintraege = daten.eintraege.filter(function (x) { return x.id !== e.id; });
   (daten.geloescht = daten.geloescht || {})[e.id] = Date.now();
-  sichern(); $('blattE').classList.remove('offen'); zeichne(); toast('Gelöscht');
+  sichern(); $('blattE').classList.remove('offen'); zeichne();
+  toastAktion('Tag gelöscht', 'Rückgängig', function () {
+    if (!alt) return; alt.geaendert = Date.now() + 1; delete daten.geloescht[alt.id];
+    daten.eintraege.push(alt); sichern(); zeichne(); toast('Wiederhergestellt');
+  });
 };
 
 // ---------- Liste / Kopf ----------
@@ -562,7 +594,7 @@ $('vor').onclick = function () { ansicht.m++; if (ansicht.m > 11) { ansicht.m = 
 
 // ---------- Einstellungen ----------
 $('einstknopf').onclick = function () {
-  $('sToken').value = daten.einst.token || '';
+  $('sToken').value = daten.einst.token || ''; try { swSperreZeichnen(); } catch (x) {}
   $('sName').value = daten.einst.name || '';
   $('sLohn').value = daten.einst.lohn != null && daten.einst.lohn !== '' ? String(daten.einst.lohn).replace('.', ',') : ''; $('sPers').value = daten.einst.pers || '';
   [].forEach.call(document.querySelectorAll('.sw[data-s]'), function (s) { s.classList.toggle('an', !!daten.einst[s.dataset.s]); });
@@ -663,6 +695,77 @@ $('pdfknopf').onclick = function () {
   var name = 'Stundennachweis-' + ansicht.j + '-' + ('0' + (ansicht.m + 1)).slice(-2) + '.pdf';
   teile(name, new Blob([doc.bytes()], { type: 'application/pdf' }));
 };
+
+// ---------- Komfort (20.11.) ----------
+var PLAN_TEAM = { Coburg: 'reise', Dresden: 'reise', 'Osnabrück': 'reise', Leipzig: 'leipzig', Halle: 'halle' };
+function planTag(datum) { var n = daten.nachweis; return n && n.tage ? n.tage.find(function (x) { return x.datum === datum; }) : null; }
+function planFuellen(x) {
+  var p = planTag(x.datum); if (!p) return false;
+  x.team = PLAN_TEAM[p.team] || x.team;
+  x.anreise = !!p.an; x.abreise = !!p.ab; x.uebernachtung = !!(p.reise && !p.an && !p.ab);
+  if (p.nurReise) { x.laeden = []; x.notiz = x.notiz || 'Anreise laut Einsatzplan'; return true; }
+  if ((p.laeden || []).length) x.laeden = p.laeden.map(function (l) { return { art: l.art || 'NMD', fil: l.fil, ort: l.ort, str: (l.str || '') + (l.plz ? ', ' + l.plz + ' ' + l.ort : ''), zeiten: [{ von: '', bis: '' }], std: '' }; });
+  return true;
+}
+$('datum').addEventListener('change', function () { if (e && e._neu && !(e.laeden || []).some(function (l) { return (l.zeiten || []).some(function (z) { return z.von || z.bis; }) || l.std; })) { e.datum = this.value; if (planFuellen(e)) { formZeichnen(); toast('Aus dem Einsatzplan vorausgefüllt'); } } });
+// Monate wischen
+(function () {
+  var sx = 0, sy = 0, an = false;
+  document.addEventListener('touchstart', function (ev) { if (document.querySelector('.blatt.offen') || ev.touches.length > 1) { an = false; return; } an = true; sx = ev.touches[0].clientX; sy = ev.touches[0].clientY; }, { passive: true });
+  document.addEventListener('touchend', function (ev) {
+    if (!an) return; an = false; var t = ev.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6 || $('suche').value) return;
+    var L = $('liste'); L.classList.add('wisch'); L.style.transform = 'translateX(' + (dx < 0 ? -40 : 40) + 'px)'; L.style.opacity = '0';
+    setTimeout(function () { (dx < 0 ? $('vor') : $('zurueck')).onclick(); L.style.transition = 'none'; L.style.transform = 'translateX(' + (dx < 0 ? 40 : -40) + 'px)'; void L.offsetWidth; L.style.transition = ''; L.style.transform = ''; L.style.opacity = ''; setTimeout(function () { L.classList.remove('wisch'); }, 250); }, 200);
+  }, { passive: true });
+})();
+// Suche über alle Monate
+function sucheZeichnen() {
+  var q = $('suche').value.trim().toLowerCase(); $('sucheWeg').style.display = q ? 'block' : 'none';
+  if (!q) { zeichne(); return; }
+  var tr = daten.eintraege.filter(function (x) { return (x.laeden || []).some(function (l) { return (l.ort || '').toLowerCase().indexOf(q) >= 0 || String(l.fil || '').indexOf(q) === 0; }); }).sort(function (a, b) { return a.datum < b.datum ? 1 : -1; });
+  var sum = 0, html = '<div class="hinweis" style="margin:0 0 10px">' + tr.length + (tr.length === 1 ? ' Tag' : ' Tage') + ' mit „' + esc($('suche').value.trim()) + '“</div>';
+  tr.forEach(function (x) { var r = R.berechne(x), d = new Date(x.datum + 'T12:00:00'); sum += r.gesamt;
+    html += '<div class="tag" data-id="' + x.id + '"><div class="d"><b>' + d.getDate() + '.' + (d.getMonth() + 1) + '.</b><span>' + TAGE[d.getDay()] + '</span></div><div class="info"><div class="z1">' + (x.laeden || []).map(function (l) { return esc(l.ort || '') + ' <span style="color:var(--grau)">' + esc(l.fil || '') + '</span>'; }).join(' + ') + '</div>' + d.getFullYear() + '</div><div class="h">' + z(r.gesamt) + '</div></div>'; });
+  if (tr.length) html += '<div class="hinweis" style="text-align:right">zusammen ' + z(sum) + ' Std.</div>';
+  $('liste').innerHTML = html;
+}
+$('suche').oninput = sucheZeichnen;
+$('sucheWeg').onclick = function () { $('suche').value = ''; sucheZeichnen(); };
+// Fahrt live: heutige Bluetooth-Signale in der Tageskarte
+function fahrtLiveHtml(datum) {
+  var ev = (daten.fahrtEvents || []).filter(function (x) { return x.datum === datum; }).sort(function (a, b) { return a.min - b.min; });
+  if (!ev.length) return '';
+  var fa = fahrtenTag(datum), letzt = ev[ev.length - 1], txt = fa.map(function (f) { return mz(f.von) + '–' + mz(f.bis); }).join(', ');
+  if (letzt.art === 'an') txt = (txt ? txt + ' · ' : '') + '<span class="livepunkt"></span>unterwegs seit ' + mz(letzt.min);
+  return '<div class="fahrtzeile">🚗 ' + txt + '</div>';
+}
+function iso2(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+// App-Sperre (Face ID über WebAuthn, Gerätecode als Ausweichweg)
+var SPK = 'stunden_sperre';
+function sperreId() { try { return localStorage.getItem(SPK); } catch (x) { return null; } }
+function b64u(buf) { return btoa(String.fromCharCode.apply(null, new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+function ub64(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; var b = atob(s), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
+function zufall(n) { var a = new Uint8Array(n); crypto.getRandomValues(a); return a; }
+function sperreZeigen() { if (sperreId()) { $('sperre').classList.add('an'); $('sperreInfo').textContent = ''; } }
+$('entsperren').onclick = function () {
+  if (!window.PublicKeyCredential) { $('sperreInfo').textContent = 'Face ID wird hier nicht unterstützt.'; return; }
+  navigator.credentials.get({ publicKey: { challenge: zufall(32), allowCredentials: [{ type: 'public-key', id: ub64(sperreId()) }], userVerification: 'required', timeout: 60000 } })
+    .then(function () { $('sperre').classList.remove('an'); })
+    .catch(function () { $('sperreInfo').textContent = 'Nicht erkannt. Noch mal tippen (geht auch mit dem Gerätecode).'; });
+};
+function swSperreZeichnen() { $('swSperre').classList.toggle('an', !!sperreId()); }
+$('swSperre').onclick = function () {
+  if (sperreId()) { if (confirm('App-Sperre ausschalten?')) { localStorage.removeItem(SPK); swSperreZeichnen(); toast('App-Sperre aus'); } return; }
+  if (!window.PublicKeyCredential) { toast('Face ID wird hier nicht unterstützt'); return; }
+  navigator.credentials.create({ publicKey: { challenge: zufall(32), rp: { name: 'Stunden' }, user: { id: zufall(16), name: 'andi', displayName: daten.einst.name || 'Andi' },
+    pubKeyCredParams: [{ type: 'public-key', alg: -7 }, { type: 'public-key', alg: -257 }],
+    authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required', residentKey: 'discouraged' }, timeout: 60000 } })
+    .then(function (c) { localStorage.setItem(SPK, b64u(c.rawId)); swSperreZeichnen(); toast('App-Sperre an'); })
+    .catch(function () { toast('Face ID abgebrochen'); });
+};
+var weg = 0;
+document.addEventListener('visibilitychange', function () { if (document.hidden) weg = Date.now(); else if (weg && Date.now() - weg > 60000) sperreZeigen(); });
 
 // ---------- Jahresübersicht (Andi: gerechnet wird erst ab September 2026) ----------
 var JAHR_AB = '2026-09';
@@ -791,7 +894,7 @@ $('nwpdf').onclick = function () {
 new MutationObserver(function () {
   document.documentElement.classList.toggle('blattoffen', !!document.querySelector('.blatt.offen'));
 }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
-zeichne(); sync();
+sperreZeigen(); zeichne(); sync();
 document.addEventListener('visibilitychange', function () { if (!document.hidden) sync(); });
 setInterval(function () { if (!document.hidden) sync(); }, 60000);
 if ('serviceWorker' in navigator) {
