@@ -209,7 +209,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.37';
+var VERSION = '1.38';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -272,7 +272,9 @@ function fahrtenHolen(kopf) {
       var m = /^(\d{4}-\d{2}-\d{2})_(\d{2})-(\d{2})(?:-\d{2})?_(an|aus)\.json$/.exec(f.name || '');
       if (m) ev.push({ datum: m[1], min: +m[2] * 60 + +m[3], art: m[4] });
     });
+    var vorher = JSON.stringify(daten.fahrtEvents || []);
     daten.fahrtEvents = ev; sichern(true);
+    if (JSON.stringify(ev) !== vorher && !$('suche').value) zeichne();
   }).catch(function () {});
 }
 // Fahrten eines Tages: an/aus paaren, kurze Unterbrechungen (bis 5 Min.) zusammenfassen, Fahrten unter 3 Min. weglassen
