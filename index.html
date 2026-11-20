@@ -139,8 +139,8 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .kachel .glanz{position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;opacity:.35;filter:blur(18px);pointer-events:none}
 .kachel .pfeil{position:absolute;right:14px;top:16px;color:var(--grau);font-size:18px}
 .kachel.sheute{background:linear-gradient(135deg,rgba(90,200,250,.30),rgba(120,90,250,.22));border-color:rgba(255,255,255,.18);padding:16px 18px;justify-content:flex-start}
-.rein{opacity:0;transform:translateY(18px) scale(.97);animation:rein .55s cubic-bezier(.2,.8,.2,1) forwards}
-@keyframes rein{to{opacity:1;transform:none}}
+.rein{animation:rein .55s cubic-bezier(.2,.8,.2,1) backwards}
+@keyframes rein{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
 .welle{position:absolute;border-radius:50%;background:rgba(255,255,255,.25);transform:scale(0);animation:welle .55s ease-out forwards;pointer-events:none}
 @keyframes welle{to{transform:scale(4);opacity:0}}
 body.vonstart .kopf .mitte,body.vonstart .summe,body.vonstart .suche,body.vonstart #liste{animation:auftauchen .5s cubic-bezier(.2,.8,.2,1) backwards}
@@ -156,6 +156,12 @@ body.vonstart .summe{animation-delay:.05s}body.vonstart .suche{animation-delay:.
 h1 .heim{display:inline-flex;align-items:center;gap:5px;color:var(--akz);cursor:pointer}
 h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .geistseite{position:fixed;left:0;top:0;visibility:hidden;width:100%;padding:calc(env(safe-area-inset-top) + 10px) 16px 0;pointer-events:none;z-index:1;will-change:transform}
+.kwzeile{display:flex;justify-content:space-between;align-items:baseline;margin:16px 6px 8px;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--grau)}
+.kwzeile:first-child{margin-top:4px}.kwzeile b{font-size:13px;color:var(--txt);letter-spacing:0;text-transform:none;font-weight:650}
+.ptr{position:absolute;left:50%;top:calc(env(safe-area-inset-top) - 30px);width:38px;height:38px;border-radius:50%;opacity:0;transform:translate(-50%,0);display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);border:1px solid var(--rand);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);z-index:3}
+.ptr svg{width:20px;height:20px;stroke:var(--grau);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ptr.bereit svg{stroke:var(--akz)}.ptr.dreht svg{stroke:var(--akz);animation:ptrdreh .8s linear infinite}
+@keyframes ptrdreh{to{transform:rotate(360deg)}}
 .tlinks{display:flex;align-items:center;gap:12px;min-width:0}
 .monatzeile{display:flex;align-items:center;justify-content:center;gap:10px}
 .monatzeile .wh{color:var(--grau);opacity:.45;font-size:20px;line-height:1}
@@ -265,7 +271,7 @@ h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.50';
+var VERSION = '1.51';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -425,10 +431,19 @@ function monatsEintraege(j, m) {
 }
 
 function zeichne() { zeichneEcht(); if (!geistBau && typeof geisterSpaeter === 'function') { geistFuer = ''; geisterSpaeter(); } }
+function kwVon(datum) { var d = new Date(datum + 'T12:00:00'), t = (d.getDay() + 6) % 7; d.setDate(d.getDate() - t + 3); var j = d.getFullYear(), e = new Date(j, 0, 4, 12); return j + '-' + (1 + Math.round(((d - e) / 864e5 - 3 + ((e.getDay() + 6) % 7)) / 7)); }
+function kwOrt(datum, ls) {
+  var kw = kwVon(datum), z = {}, n = daten.nachweis;
+  if (n && n.tage) n.tage.forEach(function (t) { if (kwVon(t.datum) === kw && t.team) z[t.team] = (z[t.team] || 0) + 1; });
+  if (!Object.keys(z).length) ls.forEach(function (x) { if (kwVon(x.datum) === kw) { var t = x.team === 'halle' ? 'Halle' : x.team === 'leipzig' ? 'Leipzig' : x.team === 'reise' ? 'Reise' : ''; if (t) z[t] = (z[t] || 0) + 1; } });
+  return Object.keys(z).sort(function (a, b) { return z[b] - z[a]; })[0] || '';
+}
 function zeichneEcht() {
   $('monat').textContent = MONATE[ansicht.m] + ' ' + ansicht.j;
-  var ls = monatsEintraege(ansicht.j, ansicht.m), sum = 0, verpf = 0, html = '';
+  var ls = monatsEintraege(ansicht.j, ansicht.m), sum = 0, verpf = 0, html = '', kwVor = null, kwSum = {};
+  ls.forEach(function (x) { var k = kwVon(x.datum); kwSum[k] = (kwSum[k] || 0) + R.berechne(x).gesamt; });
   ls.forEach(function (x) {
+    var kw = kwVon(x.datum); if (kw !== kwVor) { kwVor = kw; html += '<div class="kwzeile"><span>KW ' + kw.split('-')[1] + (kwOrt(x.datum, ls) ? ' · ' + esc(kwOrt(x.datum, ls)) : '') + '</span><b>' + z(kwSum[kw]) + ' Std.</b></div>'; }
     var r = R.berechne(x); sum += r.gesamt; verpf += r.verpflegung;
     var d = new Date(x.datum + 'T12:00:00');
     var ld = (x.laeden || []).map(function (l) { var s = l.ort ? esc(l.ort) + (l.fil ? ' <span style="color:var(--grau)">' + esc(l.fil) + '</span>' : '') + (l.art === 'GM' ? ' (GM)' : '') : l.art;
@@ -936,7 +951,7 @@ function startZeichnen() {
   h += k('nachweis', IC.koffer, 'linear-gradient(135deg,#30d158,#0fb5a0)', 'Arbeitsnachweis ' + hi.slice(0, 4), nt + ' Tage', 'Verpflegung erhalten ' + euro(vp) + (nx ? '<br>nächster Einsatz: ' + WT[new Date(nx.datum + 'T12:00').getDay()] + ' ' + +nx.datum.slice(8) + '.' + +nx.datum.slice(5, 7) + '. ' + esc(nx.laeden[0].ort) : ''), '', false, .24);
   h += k('jahr', IC.balken, 'linear-gradient(135deg,#bf5af2,#5e5ce6)', 'Jahresübersicht', 'Jahr ›', 'Stunden, Brutto und Verpflegung pro Monat', '', false, .30);
   h += '</div>';
-  $('start').innerHTML = h;
+  $('start').innerHTML = '<div class="ptr" id="ptr"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>' + h;
   [].forEach.call($('start').querySelectorAll('[data-ziel]'), function (el) { el.onclick = function (ev) { welle(el, ev); setTimeout(function () { startZiel(el.dataset.ziel); }, 160); }; });
 }
 function welle(el, ev) { var r = el.getBoundingClientRect(), s = Math.max(r.width, r.height), w = document.createElement('span'); w.className = 'welle'; w.style.width = w.style.height = s + 'px'; w.style.left = ((ev.clientX || r.left + r.width / 2) - r.left - s / 2) + 'px'; w.style.top = ((ev.clientY || r.top + r.height / 2) - r.top - s / 2) + 'px'; el.appendChild(w); setTimeout(function () { w.remove(); }, 600); }
@@ -966,6 +981,26 @@ function startZiel(z) {
 }
 $('zurStart').onclick = function () { startZeigen(); };
 
+// Startseite: runterziehen zum Aktualisieren
+(function () {
+  var s = $('start'), y0 = 0, zug = 0, an = false, laedt = false;
+  function inhalt(y, anim) { [].forEach.call(s.children, function (c) { if (c.id === 'ptr') return; c.style.transition = anim ? 'transform .45s cubic-bezier(.16,1,.3,1)' : 'none'; c.style.transform = y ? 'translateY(' + y + 'px)' : ''; }); }
+  s.addEventListener('touchstart', function (ev) { if (laedt || s.scrollTop > 0) { an = false; return; } an = true; zug = 0; y0 = ev.touches[0].clientY; }, { passive: true });
+  s.addEventListener('touchmove', function (ev) {
+    if (!an) return; var dy = ev.touches[0].clientY - y0; if (dy <= 0 || s.scrollTop > 0) { zug = 0; return; }
+    zug = Math.min(110, dy * .5); var p = $('ptr'); if (!p) return;
+    p.style.transition = 'none'; p.style.opacity = Math.min(1, zug / 60); p.style.transform = 'translate(-50%,' + zug + 'px) rotate(' + zug * 3 + 'deg)';
+    p.classList.toggle('bereit', zug >= 70); inhalt(zug * .8);
+  }, { passive: true });
+  s.addEventListener('touchend', function () {
+    if (!an) return; an = false; var p = $('ptr'); if (!p) return;
+    if (zug < 70) { p.style.transition = 'transform .3s,opacity .3s'; p.style.transform = 'translate(-50%,0)'; p.style.opacity = 0; inhalt(0, true); return; }
+    inhalt(52, true);
+    laedt = true; p.style.transition = 'transform .3s'; p.style.transform = 'translate(-50%,56px)'; p.classList.add('dreht');
+    var fertig = function () { laedt = false; inhalt(0, true); setTimeout(startZeichnen, 350); if (!daten.einst.token) toast('Kein GitHub-Schlüssel in den Einstellungen'); else toast('Aktualisiert'); };
+    Promise.race([sync(), new Promise(function (r) { setTimeout(r, 8000); })]).then(fertig, fertig);
+  }, { passive: true });
+})();
 // ---------- Jahresübersicht (Andi: gerechnet wird erst ab September 2026) ----------
 var JAHR_AB = '2026-09';
 function jahrZeichnen() {
