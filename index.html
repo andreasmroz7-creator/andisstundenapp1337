@@ -187,6 +187,10 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .jvk{display:flex;flex-direction:column;align-items:center;padding-bottom:110px!important}
 .jvplatz{width:100%;height:300px;margin:max(0px,calc(53vh - 270px)) auto -10px;flex:none}
 .jvkern{position:fixed;left:0;top:0;width:calc(100vw - 32px);height:300px;z-index:11;pointer-events:none;transform-origin:50% 50%;will-change:transform;transition:opacity .3s ease}.jvkern canvas{width:100%;height:100%;display:block;transition:filter .7s ease}.jvkern.klein canvas{filter:brightness(1.45)}.jvkern.weg{opacity:0}
+#jvFang{position:fixed;inset:0;z-index:10;display:none;-webkit-tap-highlight-color:transparent}body.jvgross #jvFang{display:block}
+.jvunter{position:fixed;left:28px;right:28px;z-index:12;text-align:center;font-size:16px;line-height:1.4;color:#eaeaea;text-shadow:0 1px 10px #000,0 0 3px #000;opacity:0;transform:translateY(6px);transition:opacity .45s ease,transform .45s ease;pointer-events:none}
+.jvunter.an{opacity:1;transform:none}.jvunter small{display:block;color:#9a9a9a;font-size:13px;margin-bottom:4px}
+#jvTipp{position:fixed;left:24px;right:24px;z-index:12;display:none;border-radius:999px!important;padding:12px 16px!important;background:rgba(20,20,22,.7);border:1px solid rgba(255,255,255,.18);color:var(--txt);font-size:16px;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}body.jvgross #jvTipp.an{display:block}
 .jvorb{position:relative;width:150px;height:150px;margin:26px auto 10px;flex:none}
 .jvorb b{position:absolute;inset:38px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#fff,#bdbdbd 45%,#4a4a4a 100%);box-shadow:0 0 40px rgba(255,255,255,.18);transition:transform .5s cubic-bezier(.2,.8,.2,1),filter .5s}
 .jvorb i{position:absolute;inset:20px;border-radius:50%;border:1px solid rgba(255,255,255,.18);transition:opacity .5s}
@@ -313,7 +317,7 @@ body.istoffline .sstand{color:#ff6b61}
 </div>
 <div class="suche"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="suche" placeholder="Ort oder Filiale suchen" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="weg" id="sucheWeg" aria-label="Suche leeren">×</button></div>
 <div id="liste"></div>
-<div id="start"></div><button class="jvfab weg" id="jvFab" aria-label="Jarvis"></button><div class="jvkern weg" id="jvOrb"><canvas id="jvCore" aria-hidden="true"></canvas></div>
+<div id="start"></div><button class="jvfab weg" id="jvFab" aria-label="Jarvis"></button><div id="jvFang"></div><div class="jvunter" id="jvUnter"></div><input type="text" id="jvTipp" placeholder="Frag Jarvis …" autocomplete="off" enterkeyhint="send"><div class="jvkern weg" id="jvOrb"><canvas id="jvCore" aria-hidden="true"></canvas></div>
 <div id="sperre"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><div style="font-size:20px;font-weight:700">Stunden gesperrt</div><button class="btn" id="entsperren" style="max-width:280px">Mit Face ID entsperren</button><div class="hinweis" id="sperreInfo"></div></div>
 <button class="kugel plus" id="plus" aria-label="Stunden hinzufügen"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
 
@@ -425,7 +429,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.93';
+var VERSION = '1.94';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1349,7 +1353,7 @@ $('fkauf').onclick = function (ev) { ev.stopPropagation(); fixZeichnen(); $('bla
 /* JARVIS-Kern: leuchtende Partikelkugel mit feinen Fäden und hellem Kern.
    Zustände: ruhig (lockere Wolke) · zuhören (Kugel) · du sprichst (Wolke lockert sich, Kern glüht) · denken (fällt zum Lichtball zusammen) · Jarvis spricht (Kugel pulsiert, Fäden schimmern) */
 window.jvKernStart=function(){
-  const c=document.getElementById('jvCore'),x=c.getContext('2d'),N=4500,N0=900,ORB='150,205,255'; /* N0 Punkte immer sichtbar, die übrigen kommen nur beim Denken und Reden dazu */
+  const c=document.getElementById('jvCore'),x=c.getContext('2d'),N=9000,N0=1700,ORB='150,205,255'; /* N0 Punkte immer sichtbar, die übrigen kommen nur beim Denken und Reden dazu */
   let W,H,level=0,target=0,t=0;
   window.setJarvisVoice=v=>{voxT=Math.max(0,Math.min(1,v));voxAt=performance.now()}; /* Lautstärke der Stimme: der Kern pulsiert genau mit der Sprache */
   window.setJarvisLevel=v=>{target=Math.max(0,Math.min(1,v))};
@@ -1401,7 +1405,7 @@ window.jvKernStart=function(){
   window.__orbWake=()=>{redraw=Math.max(redraw,3);if(restT){clearTimeout(restT);restT=0;requestAnimationFrame(frame)}};
   /* Kugel sicher neu zeichnen, wenn die Seite wieder sichtbar wird, das Fenster den Fokus bekommt oder die Seite aus dem Zwischenspeicher zurückkommt */
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)try{window.__orbWake()}catch(_){}});addEventListener('focus',()=>{try{window.__orbWake()}catch(_){}});addEventListener('pageshow',()=>{try{window.__orbWake()}catch(_){}});[700,1800,4000,9000,16000].forEach(t=>setTimeout(()=>{try{window.__orbWake()}catch(_){}},t)); /* nach dem Laden ein paarmal sicher neu zeichnen (je drei Bilder), falls das erste Bild in die Einblendung der Seite gefallen ist */
-  let bx0=0,skipC=0,vis=true,awV=-1,ax0=0,hvN=0,lpX=-1,lpY=-1,hv=0,hvT=0,at=0,atT=0,mxA=0,myA=0;
+  let gv=0,bx0=0,skipC=0,vis=true,awV=-1,ax0=0,hvN=0,lpX=-1,lpY=-1,hv=0,hvT=0,at=0,atT=0,mxA=0,myA=0;
   /* Maus über der Kugel: Helligkeit gleitet; Maus in der Nähe (im Schlafmodus): einige Punkte werden zur Maus gezogen */
   c.parentNode.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse'){hvT=1;window.__orbWake()}});c.parentNode.addEventListener('pointerleave',()=>{hvT=0});
   document.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;lpX=e.clientX;lpY=e.clientY;const r=c.getBoundingClientRect();mxA=e.clientX-r.left;myA=e.clientY-r.top;atT=Math.hypot(mxA-W/2,myA-H/2)<Math.min(W,H)*.32*2.4?1:0},{passive:true});
@@ -1420,7 +1424,7 @@ window.jvKernStart=function(){
     const DT=SK;
     {const st0=mode==='idle'&&act<.02&&th<.02&&sp<.02&&ls<.02&&cqS<.02&&hr<.02&&kick<.01&&!ax0;if(!st0)spin=1;else{const k=hvT>spin?.035:.07;spin+=(hvT-spin)*(1-Math.pow(1-k,DT));if(spin<.0015&&!hvT)spin=0}} /* nur im Ruhezustand: mit der Maus über dem Jarvis-Fenster läuft die Drehung weich an, sonst gleitet sie aus; bei Denken, Reden, Zuhören usw. unverändert */
     if(noX&&mode!=='think'&&mode!=='speak'&&th<.03&&sp<.03)noX=false; /* die Zusatzpunkte kommen erst wieder, wenn Denken und Reden ganz ausgeklungen sind (sonst poppen sie beim Beenden plötzlich auf) */
-    t+=(calm?.003:.012)*DT*spin;level+=(target-level)*.15;
+    t+=(calm?.003:.012)*DT*spin;gv+=((window.__jvGross?1:0)-gv)*.045;level+=(target-level)*.15;
     const nowMs=performance.now();
     if(pend&&nowMs>=pend){pend=0;mode='speak'}
     const fk=nowMs<fastUntil?1.5:1; /* weicher Start vom Wochenüberblick: Kugel geht 0,5 Sekunden früher auf */
@@ -1493,7 +1497,7 @@ window.jvKernStart=function(){
     if(w>.01){const maxL=R*.5,m2=maxL*maxL,aF=.2*w*(.6+.4*act)*(1+env*.9+hr*.3),aB=.06*w,fs=.5+live*.8;
       for(let pass=0;pass<5;pass++){x.beginPath();
         for(let e=0;e<E.length;e+=2){const i=E[e],j=E[e+1],front=PZ[i]+PZ[j]>0;if(pass===0?front:(!front||((e>>1)&3)!==pass-1))continue;
-          if(GP[i]>.12||GP[j]>.12)continue;const dx=PX[i]-PX[j],dy=PY[i]-PY[j];if(dx*dx+dy*dy>m2)continue;x.moveTo(PX[i],PY[i]);x.lineTo(PX[j],PY[j])}
+          if(GP[i]>.12||GP[j]>.12)continue;if(gv<.5&&(i>=900||j>=900))continue;const dx=PX[i]-PX[j],dy=PY[i]-PY[j];if(dx*dx+dy*dy>m2)continue;x.moveTo(PX[i],PY[i]);x.lineTo(PX[j],PY[j])}
         const fl=pass?1-.3*live+.3*live*(.5+.5*Math.sin(t*fs+pass*1.9)):1;
         x.strokeStyle=`rgba(${ORB},${pass?aF*fl*(1+.5*live):aB})`;x.lineWidth=pass?.95:.8;x.stroke()}} /* Testweise etwas fetter (vorher .5 / .42) */
     const thL=cqS;if(thL>.04&&EO.length){x.beginPath();const mm=R0*R0*.3;for(let e=0;e<EO.length;e+=2){const i=EO[e],j=EO[e+1],dx=PX[i]-PX[j],dy=PY[i]-PY[j];if(dx*dx+dy*dy>mm)continue;x.moveTo(PX[i],PY[i]);x.lineTo(PX[j],PY[j])}
@@ -1502,7 +1506,7 @@ window.jvKernStart=function(){
     /* Punkte, nach Helligkeit gebündelt (wenige Zeichenaufrufe statt tausender) */
     const base=(1.12-.12*act)*(1+hr*.2),NB=8,NC=7,bk=Array.from({length:NB*NC},()=>[]); /* Farbstufen von Blau bis Weiß: kein Umspringen mehr zwischen drei Farben */
     const xt=noX?0:Math.max(Math.min(1,Math.max(0,(th-.15)/.6)),Math.min(1,Math.max(0,(sp-.15)/.6)));
-    for(let i=0;i<N;i++){if(i>=N0&&xt<.02)continue;const p=P[i],wh=WHS[i]+=(WH[i]-WHS[i])*.045*Math.min(3,DT), /* Weiß-Anteil gleitet je Punkt weich (Nachdenken <-> Zuhören) */d=Math.max(0,Math.min(1,(PZ[i]+1)/2)),al=(i>=N0?xt:1)*(.1+.6*d)*base*(1+.3*Math.sin(t*1.4+p.s*5)+live*.2*Math.sin(t*1.1+p.s*9))*(1+((P[i].q||P[i].o)?Math.min(1,cqS*1.15):th)*(.9*wh+(p.o?0:.55)))*(p.o?1+.75*Math.min(1,cqS*1.15):1)+WV[i]*.5+GP[i]*1.1+wh*.35;
+    for(let i=0;i<N;i++){if((i>=N0&&xt*gv<.02)||(i>=900&&i<N0&&gv<.02))continue;const p=P[i],wh=WHS[i]+=(WH[i]-WHS[i])*.045*Math.min(3,DT), /* Weiß-Anteil gleitet je Punkt weich (Nachdenken <-> Zuhören) */d=Math.max(0,Math.min(1,(PZ[i]+1)/2)),al=(i>=N0?xt*gv:(i>=900?gv:1))*(.1+.6*d)*base*(1+.3*Math.sin(t*1.4+p.s*5)+live*.2*Math.sin(t*1.1+p.s*9))*(1+((P[i].q||P[i].o)?Math.min(1,cqS*1.15):th)*(.9*wh+(p.o?0:.55)))*(p.o?1+.75*Math.min(1,cqS*1.15):1)+WV[i]*.5+GP[i]*1.1+wh*.35;
       bk[Math.min(NC-1,Math.round(Math.min(1,wh/.8)*(NC-1)))*NB+Math.min(NB-1,Math.max(0,Math.floor(al*NB*.95)))].push(i)}
     for(let qq=0;qq<NB*NC;qq++){const q=qq%NB,L=bk[qq];if(!L.length)continue;x.beginPath();
       for(let n=0;n<L.length;n++){const i=L[n],d=Math.max(0,Math.min(1,(PZ[i]+1)/2)),r=(.38+.62*d)*P[i].k*(1+env*.1*(P[i].q?1:1-sp)+WV[i]*.15+GP[i]*.4)*(P[i].o?1-.12*Math.min(1,cqS*1.15):1);if(r<1)x.rect(PX[i]-r,PY[i]-r,r*2,r*2);else{x.moveTo(PX[i]+r,PY[i]);x.arc(PX[i],PY[i],r,0,6.283)}}
@@ -1544,7 +1548,7 @@ var jvMini = { an: false, gross: false, flug: false };
 $('jvFab').onclick = function () { if (window.ordnen && ordnen.an) return; jvOeffnen(); };
 function jvZiel(gross) {
   var o = $('jvOrb'), w = o.offsetWidth, h = o.offsetHeight, r, cx, cy, sk;
-  if (gross) { r = $('jvPlatz').getBoundingClientRect(); cx = r.left + r.width / 2; cy = r.top + r.height / 2; sk = 1; }
+  if (gross) { cx = innerWidth / 2; cy = innerHeight * .56; sk = 1.12; }
   else { r = $('jvFab').getBoundingClientRect(); cx = r.left + r.width / 2; cy = r.top + r.height / 2; sk = 78 / (Math.min(w, h) * .64); }
   return 'translate(' + (cx - w / 2).toFixed(1) + 'px,' + (cy - h / 2).toFixed(1) + 'px) scale(' + sk.toFixed(4) + ')';
 }
@@ -1562,7 +1566,7 @@ function jvMiniStart() {
   (function wache() {
     requestAnimationFrame(wache);
     var st = $('start'), o = $('jvOrb'), fab = $('jvFab'), jvAuf = $('blattJv').classList.contains('offen');
-    var versteckt = !jvAuf && !jvMini.flug && (st.classList.contains('aus') || st.classList.contains('weg') || st.classList.contains('ordnen') || !!document.querySelector('.blatt.offen'));
+    var versteckt = !jvMini.gross && !jvAuf && !jvMini.flug && (st.classList.contains('aus') || st.classList.contains('weg') || st.classList.contains('ordnen') || !!document.querySelector('.blatt.offen'));
     if (o.classList.contains('weg') !== versteckt) { o.classList.toggle('weg', versteckt); fab.classList.toggle('weg', versteckt); }
     if (!jvMini.flug && !versteckt && (jvMini.k = (jvMini.k || 0) + 1) % 10 === 0) { var zt = jvZiel(jvMini.gross); if (zt !== jvMini.letzt) { jvMini.letzt = zt; o.style.transition = 'opacity .3s ease'; o.style.transform = zt; } } // (iPhone) Bildschirmhöhe ändert sich nach dem Start: Kugel bleibt am richtigen Platz
   })();
@@ -1573,29 +1577,48 @@ try { jv.stumm = localStorage.getItem('cockpit_jvstumm') === '1'; } catch (x) {}
 function jvKopf() { return { Authorization: 'Bearer ' + daten.einst.token, Accept: 'application/vnd.github+json' }; }
 function jvZustand(z, t) { jv.z = z; try { if (window.setJarvisHear) setJarvisHear(z === 'hoert'); if (window.setJarvisMode) setJarvisMode({ schlaf: 'idle', hoert: 'listen', denkt: 'think', spricht: 'speak' }[z] || 'idle'); } catch (x) {} if (t != null) $('jvStatus').textContent = t; }
 function jvZeile(wer, t, fehler) {
+  if (jvMini.gross) jvUnter(t, wer === 'ich' ? '' : 'Jarvis');
   var v = daten.jarvisVerlauf = (daten.jarvisVerlauf || []); v.push({ wer: wer, t: t, f: !!fehler, z: Date.now() }); if (v.length > 40) v.splice(0, v.length - 40); sichern(true); jvVerlaufZeichnen();
 }
 function jvVerlaufZeichnen() {
   $('jvVerlauf').innerHTML = (daten.jarvisVerlauf || []).slice(-20).map(function (m) { return '<div class="jvm ' + m.wer + (m.f ? ' fehler' : '') + '">' + esc(m.t) + '</div>'; }).join('');
   var k = document.querySelector('#blattJv .koerper'); setTimeout(function () { k.scrollTop = k.scrollHeight; }, 30);
 }
+function jvUnter(t, klein) {
+  var u = $('jvUnter'); clearTimeout(jv.unterT);
+  if (!t) { u.classList.remove('an'); return; }
+  u.innerHTML = (klein ? '<small>' + esc(klein) + '</small>' : '') + esc(t);
+  u.style.top = (innerHeight * .56 + 125) + 'px'; $('jvTipp').style.top = (innerHeight * .56 + 210) + 'px';
+  u.classList.add('an');
+}
 function jvOeffnen() {
-  var bl = $('blattJv');
-  if (bl.classList.contains('offen')) return;
-  jvMiniStart();
-  jvVerlaufZeichnen(); $('jvLeise').classList.toggle('stumm', jv.stumm);
-  jvZustand(jv.z || 'schlaf', (daten.jarvisVerlauf || []).length ? '' : 'Was kann ich für dich tun, Meister?');
-  bl.classList.remove('auf'); bl.classList.add('offen'); try { window.__orbWake && __orbWake(); } catch (x) {}
-  jvMini.flug = true; clearTimeout(jv.flugT1);
-  requestAnimationFrame(function () { bl.classList.add('auf'); jvKugel(true, true); });
-  jv.flugT1 = setTimeout(function () { jvMini.flug = false; jvKugel(true, false); }, 760);
+  if (jvMini.gross) { jvSchliessen(); return; }
+  jvMiniStart(); jvEntsperren();
+  window.__jvGross = 1; document.body.classList.add('jvgross'); jvMini.flug = true; clearTimeout(jv.flugT1);
+  jvKugel(true, true); try { window.__orbWake && __orbWake(); } catch (x) {}
+  jv.flugT1 = setTimeout(function () { jvMini.flug = false; }, 760);
+  jvHoeren(); // direkt zuhören (muss im selben Tipp passieren, sonst blockt das iPhone das Mikrofon)
 }
 function jvSchliessen() {
-  var bl = $('blattJv'); if (!bl.classList.contains('offen') || jv.zu) return; jv.zu = true;
-  clearTimeout(jv.flugT1); try { $('jvText').blur(); if (jv.erk) jv.erk.stop(); } catch (x) {}
-  jvMini.flug = true; jvKugel(false, true); bl.classList.remove('auf');
-  setTimeout(function () { bl.classList.remove('offen'); jvMini.flug = false; jv.zu = false; jvKugel(false, false); }, 740);
+  if (!jvMini.gross) return;
+  clearTimeout(jv.flugT1); jvStopp(); try { if (jv.erk) { jv.erk.onend = null; jv.erk.abort(); jv.erk = null; } $('jvTipp').blur(); } catch (x) {}
+  $('jvTipp').classList.remove('an'); jvUnter(''); window.__jvGross = 0; document.body.classList.remove('jvgross');
+  jvMini.flug = true; jvKugel(false, true); jvZustand('schlaf');
+  jv.flugT1 = setTimeout(function () { jvMini.flug = false; }, 760);
 }
+function jvHoeren() {
+  jvStopp(); var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  var tippen = function () { var t = $('jvTipp'); t.value = ''; t.classList.add('an'); jvUnter(' ', ''); jvZustand('hoert'); try { t.focus(); } catch (x) {} };
+  if (!SR) { tippen(); return; }
+  var e = new SR(), letzt = ''; e.lang = 'de-DE'; e.interimResults = true; e.continuous = false; jv.erk = e;
+  jvZustand('hoert'); jvUnter('Ich höre …');
+  e.onresult = function (ev) { letzt = [].map.call(ev.results, function (r) { return r[0].transcript; }).join(''); jvUnter(letzt); };
+  e.onerror = function (ev) { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { letzt = ''; jv.erk = null; tippen(); } };
+  e.onend = function () { if (jv.erk !== e) return; jv.erk = null; if (letzt.trim()) jvSenden(letzt); else if (!jv.laeuft && jvMini.gross) { jvZustand('schlaf'); jvUnter('Nichts gehört. Tippen zum Schließen.'); } };
+  try { e.start(); } catch (x) { jv.erk = null; tippen(); }
+}
+$('jvFang').onclick = function () { jvSchliessen(); };
+$('jvTipp').onkeydown = function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); var t = this.value; this.value = ''; this.classList.remove('an'); this.blur(); jvSenden(t); } };
 
 function jvChipsZeichnen() {
   var c = ['Wie läuft mein Depot?', 'Wo arbeite ich morgen?', 'Stunden diesen Monat', 'Nächster Geburtstag', 'Resturlaub', 'Meine Notizen', 'Laufende Kosten'];
@@ -1645,7 +1668,7 @@ function jvEntsperren() { try { var AC = window.AudioContext || window.webkitAud
 function jvStopp() { try { speechSynthesis.cancel(); } catch (x) {} try { if (jv.quelle) { jv.quelle.onended = null; jv.quelle.stop(); } } catch (x) {} jv.quelle = null; }
 function jvSprechen(text, audioB64) {
   if (jv.stumm) { jvZustand('schlaf', ''); return; }
-  var fertig = function () { jvZustand('schlaf', ''); };
+  var fertig = function () { jvZustand('schlaf', ''); clearTimeout(jv.unterT); jv.unterT = setTimeout(function () { if (!jv.laeuft) jvUnter(''); }, 4000); };
   if (audioB64 && jv.ctx) {
     try {
       var bin = atob(audioB64), buf = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
