@@ -31,11 +31,12 @@ h1{font-size:15px;font-weight:600;color:var(--grau);margin:0;letter-spacing:.3px
 .plus{position:fixed;right:20px;bottom:calc(env(safe-area-inset-bottom) + 22px);width:62px;height:62px;z-index:5}
 .plus svg{width:28px;height:28px}
 .festpfeil{position:fixed;top:calc(env(safe-area-inset-top) + 10px);z-index:5;transition:opacity .25s ease,transform .25s ease}
-body.runter .festpfeil{opacity:0;transform:translateY(-14px) scale(.85);pointer-events:none}
+body.runter .festpfeil:not(#zurStart){opacity:0;transform:translateY(-14px) scale(.85);pointer-events:none}
+#zurStart{z-index:30;box-shadow:0 6px 20px rgba(0,0,0,.45);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);background:radial-gradient(circle at 35% 30%,#4a5468,#262d3b 60%,#1a1f2a)}
 #zurueck{left:16px}#vor{right:16px}
 .kopf .platz{width:42px;height:42px;flex:none}
 .plus,.festpfeil{background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.22),rgba(60,70,92,.22) 60%,rgba(20,26,38,.28));-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);border-color:rgba(255,255,255,.25);box-shadow:inset 0 1px 1px rgba(255,255,255,.3),0 6px 20px rgba(0,0,0,.5)}
-.summe{background:var(--karte);border:1px solid var(--rand);border-radius:20px;padding:16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:flex-end;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.summe{background:var(--karte);border:1px solid var(--rand);border-radius:20px;padding:16px;margin-bottom:14px;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
 .summe .gross{font-size:34px;font-weight:700;letter-spacing:-.5px}
 .summe .klein{color:var(--grau);font-size:13px}
 .tag{background:var(--karte);border:1px solid var(--rand);border-radius:16px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer}
@@ -158,6 +159,8 @@ h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2
 .geistseite{position:fixed;left:0;top:0;visibility:hidden;width:100%;padding:calc(env(safe-area-inset-top) + 10px) 16px 0;pointer-events:none;z-index:1;will-change:transform}
 .sstand{float:right;text-transform:none;letter-spacing:0;font-size:12px;opacity:.85}
 .sstand:before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gruen);margin-right:6px;vertical-align:middle}
+.mitfahrt{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:8px;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--rand);color:var(--txt);font-size:13px}
+.mitfahrt{margin-top:12px}.mitfahrt span small{display:block;color:var(--grau);font-size:11px;margin-top:2px}.mitfahrt b{font-size:19px;white-space:nowrap}
 .kwzeile{display:flex;justify-content:space-between;align-items:baseline;margin:16px 6px 8px;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--grau)}
 .kwzeile:first-child{margin-top:4px}.kwzeile b{font-size:13px;color:var(--txt);letter-spacing:0;text-transform:none;font-weight:650}
 .ptr{position:absolute;left:50%;top:calc(env(safe-area-inset-top) - 30px);width:38px;height:38px;border-radius:50%;opacity:0;transform:translate(-50%,0);display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);border:1px solid var(--rand);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);z-index:3}
@@ -184,6 +187,7 @@ h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2
     <button class="kugel" id="pdfknopf" aria-label="PDF"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button>
     <button class="kugel" id="einstknopf" aria-label="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </div>
+  <div id="mgesamt" style="flex-basis:100%"></div>
 </div>
 <div class="suche"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="suche" placeholder="Ort oder Filiale suchen" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="weg" id="sucheWeg" aria-label="Suche leeren">×</button></div>
 <div id="liste"></div>
@@ -278,7 +282,7 @@ h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.52';
+var VERSION = '1.53';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -492,7 +496,9 @@ function zeichneEcht() {
   $('msumme').textContent = z(sum);
   var lohn = daten.einst.lohn != null && daten.einst.lohn !== '' ? +daten.einst.lohn : 16;
   $('mlohn').innerHTML = sum ? '≈ ' + euro(sum * lohn) + ' brutto' + (verpf ? ' + ' + euro(verpf) + ' Verpfl.' : '') + '<br><b>≈ ' + euro(netto(sum * lohn)) + ' netto</b>' : '';
-  var fm = fahrtMonat(ansicht.j, ansicht.m); $('mfahrt').textContent = fm.min ? '🚗 ' + hm(fm.min) + ' Std. im Auto · ' + z(fm.bez) + ' bezahlt' : '';
+  var fm = fahrtMonat(ansicht.j, ansicht.m);
+  $('mfahrt').textContent = fm.min ? '🚗 ' + hm(fm.min) + ' Std. im Auto · ' + z(fm.bez) + ' bezahlt' : '';
+  $('mgesamt').innerHTML = fm.min ? '<div class="mitfahrt"><span>Stunden + ganze Fahrzeit<small>' + z(sum) + ' − ' + z(fm.bez) + ' bezahlte Fahrt + ' + hm(fm.min) + ' im Auto</small></span><b>' + z(sum - fm.bez + fm.min / 60) + ' Std.</b></div>' : '';
   $('mdetail').textContent = ls.length + (ls.length === 1 ? ' Tag' : ' Tage');
 }
 
