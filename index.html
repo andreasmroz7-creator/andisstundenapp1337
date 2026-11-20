@@ -94,6 +94,11 @@ input::placeholder{color:#5c6577}
 .nwt .m{flex:1;min-width:0}.nwt .m .l{color:var(--txt);font-size:14px}.nwt .m .x{color:var(--grau);font-size:12px;margin-top:2px}
 .nwt .v{text-align:right;flex:none;font-size:12px;color:var(--grau);white-space:nowrap}.nwt .v b{color:var(--txt);font-size:14px}
 .nwt .v .p{color:var(--gruen)}
+.jb{margin:14px 0}.jb .k{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px}.jb .k span{color:var(--grau);font-size:13px}
+.jb .s{height:12px;border-radius:7px;background:rgba(255,255,255,.06);overflow:hidden}.jb .s i{display:block;height:100%;border-radius:7px;background:linear-gradient(90deg,#3a7bd5,#5ac8fa)}
+.jb.top .s i{background:linear-gradient(90deg,#2ecc71,#5ac8fa)}
+.nwst{margin-top:16px;background:rgba(255,255,255,.05);border:1px solid var(--rand);border-radius:14px;padding:12px 14px;font-size:14px}
+.nwst h3{font-size:15px;margin:0 0 8px}.nwst div{display:flex;justify-content:space-between;gap:10px;padding:4px 0}.nwst span{color:var(--grau)}.nwst .sum{border-top:1px solid var(--rand);margin-top:6px;padding-top:8px;font-weight:600}
 .toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translateX(-50%);background:rgba(30,38,54,.95);border:1px solid var(--rand);padding:10px 16px;border-radius:14px;z-index:20;font-size:14px;display:none}
 </style>
 </head>
@@ -104,7 +109,7 @@ input::placeholder{color:#5c6577}
   <span class="platz"></span><button class="kugel festpfeil" id="vor" aria-label="Nächster Monat"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
 </div>
 <div class="summe">
-  <div><div class="klein">Gesamt diesen Monat</div><div class="gross" id="msumme">0,00</div><div class="klein" id="mdetail"></div><div class="klein" id="mlohn" style="color:var(--gruen);margin-top:2px"></div><div class="klein" id="sync" style="margin-top:4px"></div></div>
+  <div id="jahrauf" style="cursor:pointer"><div class="klein">Gesamt diesen Monat <span style="color:var(--akzent,#5ac8fa)">· Jahr ›</span></div><div class="gross" id="msumme">0,00</div><div class="klein" id="mdetail"></div><div class="klein" id="mlohn" style="color:var(--gruen);margin-top:2px"></div><div class="klein" id="sync" style="margin-top:4px"></div></div>
   <div style="display:flex;gap:8px">
     <button class="kugel" id="nwknopf" aria-label="Arbeitsnachweis"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></svg></button>
     <button class="kugel" id="pdfknopf" aria-label="PDF"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button>
@@ -153,6 +158,10 @@ input::placeholder{color:#5c6577}
 </div></div></div>
 
 <!-- Einstellungen -->
+<div class="blatt" id="blattJ"><div class="innen">
+  <div class="titel"><b>Jahresübersicht</b><button class="kugel schliessen" data-zu="blattJ" aria-label="Schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="koerper" id="jKoerper"></div>
+</div></div>
 <div class="blatt" id="blattN"><div class="innen">
   <div class="titel"><b id="nwTitel">Arbeitsnachweis</b><div style="display:flex;gap:8px"><button class="kugel" id="nwpdf" aria-label="PDF erstellen"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button><button class="kugel schliessen" data-zu="blattN" aria-label="Schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>
   <div class="koerper" id="nwKoerper"></div>
@@ -184,7 +193,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.34';
+var VERSION = '1.35';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -655,6 +664,28 @@ $('pdfknopf').onclick = function () {
   teile(name, new Blob([doc.bytes()], { type: 'application/pdf' }));
 };
 
+// ---------- Jahresübersicht (Andi: gerechnet wird erst ab September 2026) ----------
+var JAHR_AB = '2026-09';
+function jahrZeichnen() {
+  var mon = {}, heute = new Date(), bis = heute.getFullYear() + '-' + String(heute.getMonth() + 1).padStart(2, '0');
+  daten.eintraege.forEach(function (x) { var m = x.datum.slice(0, 7); if (m < JAHR_AB || m > bis) return; var r = R.berechne(x); mon[m] = mon[m] || { std: 0, vp: 0, tage: 0 }; mon[m].std += r.gesamt; mon[m].vp += r.verpflegung; if ((x.laeden || []).length) mon[m].tage++; });
+  var keys = [], d = new Date(+JAHR_AB.slice(0, 4), +JAHR_AB.slice(5) - 1, 1);
+  while (true) { var k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); if (k > bis) break; keys.push(k); d.setMonth(d.getMonth() + 1); }
+  var lohn = +(daten.einst.lohn || 16), max = 0, top = null, sStd = 0, sVp = 0;
+  keys.forEach(function (k) { var m = mon[k] || { std: 0, vp: 0, tage: 0 }; mon[k] = m; sStd += m.std; sVp += m.vp; if (m.std > max) { max = m.std; top = k; } });
+  var mn = function (k) { return MONATE[+k.slice(5) - 1] + ' ' + k.slice(0, 4); };
+  var h = '<div class="nwk"><div><small>Stunden seit ' + MONATE[+JAHR_AB.slice(5) - 1] + '</small><b>' + z(sStd) + '</b></div><div><small>≈ Brutto</small><b>' + euro(sStd * lohn) + '</b></div>' +
+    '<div><small>Verpflegung</small><b>' + euro(sVp) + '</b></div><div><small>Ø pro Monat</small><b>' + z(keys.length ? sStd / keys.length : 0) + '</b></div></div>';
+  if (top) h += '<div class="hinweis">Stärkster Monat: <b>' + mn(top) + '</b> mit ' + z(max) + ' Std.</div>';
+  keys.slice().reverse().forEach(function (k) {
+    var m = mon[k], w = max ? Math.round(m.std / max * 100) : 0;
+    h += '<div class="jb' + (k === top ? ' top' : '') + '"><div class="k"><b>' + mn(k) + '</b><span>' + z(m.std) + ' Std. · ' + euro(m.std * lohn) + (m.vp ? ' + ' + euro(m.vp) : '') + '</span></div><div class="s"><i style="width:' + w + '%"></i></div></div>';
+  });
+  h += '<p class="hinweis">Brutto = Stunden × ' + euro(lohn) + ' (Einstellungen). Verpflegung steuerfrei. Gezählt wird ab ' + mn(JAHR_AB) + '.</p>';
+  $('jKoerper').innerHTML = h;
+}
+$('jahrauf').onclick = function () { jahrZeichnen(); $('blattJ').classList.add('offen'); };
+
 // ---------- Arbeitsnachweis (Jahr): Einsatzpläne + Reiseinfos aus Gmail, liegt als nachweis.json im Daten-Repo ----------
 var GHN = GH.replace('daten.json', 'nachweis.json');
 function nachweisHolen(kopf) {
@@ -664,9 +695,20 @@ function nachweisHolen(kopf) {
   }).catch(function () {});
 }
 var WT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-function nwSumme(L) { var s = { tage: 0, reise: 0, naechte: 0, erh: 0, ges: 0, bed: 0 }; L.forEach(function (x) { if (!x.nurReise) s.tage++; if (x.reise) s.reise++; if (x.reise && !x.ab) s.naechte++; s.erh += x.vpErhalten || 0; if (x.vpBedingt) s.bed += x.vpGesetz || 0; else s.ges += x.vpGesetz || 0; }); return s; }
+function nwSumme(L) { var s = { tage: 0, reise: 0, naechte: 0, erh: 0, ges: 0, bed: 0, t24: 0, tAn: 0, t8: 0 }; L.forEach(function (x) { if (x.vpBedingt) s.t8++; else if (x.vpGesetz === 28) s.t24++; else if (x.vpGesetz === 14) s.tAn++; }); L.forEach(function (x) { if (!x.nurReise) s.tage++; if (x.reise) s.reise++; if (x.reise && !x.ab) s.naechte++; s.erh += x.vpErhalten || 0; if (x.vpBedingt) s.bed += x.vpGesetz || 0; else s.ges += x.vpGesetz || 0; }); return s; }
 function nwLaeden(x) { return (x.laeden || []).map(function (l) { return l.fil + ' ' + l.ort; }).join(' + '); }
 function nwHotelKurz(h) { var t = String(h || '').split(', '); return t.length > 2 ? t[0] + ', ' + t[t.length - 1].replace(/^\d{5} /, '') : t.join(', '); }
+function nwSteuerHtml(s, jahr) {
+  return '<div class="nwst"><h3>Für die Steuererklärung ' + jahr + ' (Anlage N, Verpflegungsmehraufwand)</h3>' +
+    '<div><span>Tage mit 24 Std. Abwesenheit</span><b>' + s.t24 + ' × 28 € = ' + euro(s.t24 * 28) + '</b></div>' +
+    '<div><span>An- und Abreisetage</span><b>' + s.tAn + ' × 14 € = ' + euro(s.tAn * 14) + '</b></div>' +
+    '<div><span>Eintägig über 8 Std. (nur wenn zutreffend)</span><b>' + s.t8 + ' × 14 € = ' + euro(s.t8 * 14) + '</b></div>' +
+    '<div><span>Vom Arbeitgeber steuerfrei erstattet</span><b>' + euro(s.erh) + '</b></div>' +
+    '<div class="sum"><span>Absetzbar (ohne eintägige)</span><b style="color:var(--gruen)">' + euro(s.ges - s.erh) + '</b></div>' +
+    '<div class="sum"><span>Absetzbar (mit eintägigen)</span><b>' + euro(s.ges + s.bed - s.erh) + '</b></div>' +
+    '<p class="hinweis" style="margin:8px 0 0">Unterkunft hat die Firma gebucht und bezahlt, dafür gibt es nichts einzutragen. Pauschalen gelten pro Einsatzort nur für die ersten 3 Monate am selben Ort; bei dir wechseln die Filialen ständig. Keine Steuerberatung.</p></div>';
+}
+
 function nachweisZeichnen() {
   var n = daten.nachweis, k = $('nwKoerper');
   if (!n || !n.tage) { k.innerHTML = '<p class="leer">' + (daten.einst.token ? 'Wird geladen …' : 'Für den Arbeitsnachweis braucht die App den GitHub-Schlüssel (Einstellungen).') + '</p>'; return; }
@@ -675,7 +717,7 @@ function nachweisZeichnen() {
     '<div><small>Arbeitstage</small><b>' + s.tage + '</b></div><div><small>Übernachtungen</small><b>' + s.naechte + '</b></div>' +
     '<div><small>Verpflegung erhalten</small><b>' + euro(s.erh) + '</b></div><div><small>Gesetzlich (Reise)</small><b>' + euro(s.ges) + '</b></div>' +
     '<div style="grid-column:1/3"><small>Differenz: kannst du als Werbungskosten angeben</small><b class="gr">' + euro(s.ges - (s.erh)) + '</b>' + (s.bed ? '<small>dazu bis zu ' + euro(s.bed) + ' für eintägige Einsätze (nur bei über 8 Std. Abwesenheit)</small>' : '') + '</div></div>' +
-    '<div class="hinweis">Aus den Einsatzplänen und Reiseinfos in deinen E-Mails · Stand ' + new Date(n.stand).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + '. ' + esc(n.regel || '') + '</div>';
+    nwSteuerHtml(s, n.jahr) + '<div class="hinweis">Aus den Einsatzplänen und Reiseinfos in deinen E-Mails · Stand ' + new Date(n.stand).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + '. ' + esc(n.regel || '') + '</div>';
   var mon = {};
   n.tage.forEach(function (x) { (mon[x.datum.slice(0, 7)] = mon[x.datum.slice(0, 7)] || []).push(x); });
   Object.keys(mon).sort().reverse().forEach(function (mk) {
@@ -739,6 +781,8 @@ $('nwpdf').onclick = function () {
    ['Gesetzliche Pauschalen Reisetage (14 € / 28 €)', euro(s.ges)], ['Differenz Reisetage (Werbungskosten)', euro(s.ges - s.erh)], ['Eintägige Einsätze, nur bei über 8 Std. Abwesenheit (je 14 €)', 'bis zu ' + euro(s.bed)]].forEach(function (r, i) {
     doc.text(40, y, r[0], 9, i === 4); doc.text(470, y, r[1], 9, i === 4, 'r'); y += 13;
   });
+  y += 6; doc.text(40, y, 'Für die Steuererklärung (Anlage N, Verpflegungsmehraufwand)', 10, true); y += 14;
+  [['Tage mit 24 Std. Abwesenheit', s.t24 + ' × 28 € = ' + euro(s.t24 * 28)], ['An- und Abreisetage', s.tAn + ' × 14 € = ' + euro(s.tAn * 14)], ['Eintägig über 8 Std. (nur wenn zutreffend)', s.t8 + ' × 14 € = ' + euro(s.t8 * 14)], ['Vom Arbeitgeber steuerfrei erstattet', euro(s.erh)]].forEach(function (r) { doc.text(40, y, r[0], 9); doc.text(470, y, r[1], 9, false, 'r'); y += 13; });
   y += 8; doc.text(40, y, 'Pauschalen nach § 9 Abs. 4a EStG (2026): 14 € für An- und Abreisetag sowie bei über 8 Std. Abwesenheit, 28 € für Tage mit 24 Std. Abwesenheit. Erhalten: 10 € An-/Abreisetag, 20 € voller Tag.', 7.5);
   y += 11; doc.text(40, y, 'Die Differenz zwischen gesetzlicher Pauschale und steuerfreier Erstattung kann als Werbungskosten angegeben werden. Keine Steuerberatung.', 7.5);
   teile('Arbeitsnachweis-' + n.jahr + '.pdf', new Blob([doc.bytes()], { type: 'application/pdf' }));
