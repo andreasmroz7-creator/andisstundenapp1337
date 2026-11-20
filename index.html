@@ -429,7 +429,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.98';
+var VERSION = '1.99';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1665,9 +1665,15 @@ function jvLokal(t) {
   }
   return null;
 }
-function jvEntsperren() { try { var AC = window.AudioContext || window.webkitAudioContext; if (!jv.ctx && AC) jv.ctx = new AC(); if (jv.ctx && jv.ctx.state !== 'running') jv.ctx.resume(); } catch (x) {} }
+function jvWiedergabe() { try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (x) {} } // iPhone: Ton auch, wenn der Lautlos-Schalter an ist, und über den Lautsprecher statt die Ohrmuschel
+function jvEntsperren() {
+  jvWiedergabe();
+  try { var AC = window.AudioContext || window.webkitAudioContext; if (!jv.ctx && AC) jv.ctx = new AC(); if (jv.ctx) { if (jv.ctx.state !== 'running') jv.ctx.resume(); var b = jv.ctx.createBuffer(1, 1, 22050), q = jv.ctx.createBufferSource(); q.buffer = b; q.connect(jv.ctx.destination); q.start(0); } } catch (x) {}
+  try { if (!jv.ttsFrei && window.speechSynthesis) { var u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); jv.ttsFrei = true; } } catch (x) {} // Sprachausgabe im Tipp freischalten (sonst blockt das iPhone die spätere Antwort)
+}
 function jvStopp() { try { speechSynthesis.cancel(); } catch (x) {} try { if (jv.quelle) { jv.quelle.onended = null; jv.quelle.stop(); } } catch (x) {} jv.quelle = null; }
 function jvSprechen(text, audioB64) {
+  jvWiedergabe(); try { if (jv.ctx && jv.ctx.state !== 'running') jv.ctx.resume(); } catch (x) {}
   if (jv.stumm) { jvZustand('schlaf', ''); return; }
   var fertig = function () { jvZustand('schlaf', ''); clearTimeout(jv.unterT); jv.unterT = setTimeout(function () { if (!jv.laeuft) jvUnter(''); }, 4000); };
   if (audioB64 && jv.ctx) {
