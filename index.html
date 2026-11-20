@@ -106,7 +106,7 @@ input::placeholder{color:#646464}
 .suche input{flex:1;background:none;border:0;color:inherit;font:inherit;font-size:16px;outline:none;min-width:0;padding:0}
 .suche svg{width:18px;height:18px;stroke:var(--grau);fill:none;stroke-width:2;flex:none}
 .suche .weg{background:none;border:0;color:var(--grau);font-size:18px;padding:0 2px;display:none}
-.tag.live{border-style:dashed;opacity:.92}.livepunkt{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gruen);margin-right:6px;animation:puls 1.4s infinite}
+.tag.live{border-style:dashed;opacity:.92}.livepunkt{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px;animation:puls 1.4s infinite}
 @keyframes puls{0%,100%{opacity:1}50%{opacity:.3}}
 .fahrtzeile{font-size:12px;color:var(--gruen);margin-top:3px}
 #liste.wisch{transition:transform .22s ease,opacity .22s ease}
@@ -303,7 +303,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.65';
+var VERSION = '1.66';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -995,7 +995,7 @@ function startZeichnen(still) {
   var vorname = (daten.einst.name || 'Andi').split(' ').pop(); if (/andreas/i.test(vorname)) vorname = 'Andi';
   var stand = daten.letzterAbgleich ? new Date(daten.letzterAbgleich) : null, standTxt = !daten.einst.token ? 'nicht verbunden' : stand ? (iso2(stand) === hi ? 'Stand ' : 'Stand ' + stand.getDate() + '.' + (stand.getMonth() + 1) + '. ') + stand.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : 'noch nicht abgeglichen';
   var h = '<div class="rein" style="animation-delay:0s"><div class="sgruss">' + wt + ', ' + d.getDate() + '. ' + MONATE[d.getMonth()] + '<span class="sstand" id="sstand">' + (document.body.classList.contains('istoffline') ? 'Offline' + (stand ? ' · Stand ' + stand.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '') : standTxt) + '</span></div><div class="sname">' + gr + ', ' + esc(vorname) + '</div></div>';
-  h += '<div class="sheute rein kachel" data-ziel="heute" style="animation-delay:.06s;min-height:0"><small>Heute</small><b>' + hz + '</b><div class="zl">' + (eh ? 'Eingetragen: ' + z(R.berechne(eh).gesamt) + ' Std.' : heute && heute.tp ? 'Treffpunkt ' + esc(heute.tp) : 'Noch nichts eingetragen') + '</div>' + (fl ? '<div class="zl" style="margin-top:4px">' + fl.replace('class="fahrtzeile"', 'style="color:#ececec"') + '</div>' : '') + '</div>';
+  h += '<div class="sheute rein kachel" data-ziel="heute" style="animation-delay:.06s;min-height:0"><small>Heute</small><b>' + hz + '</b><div class="zl">' + (eh ? 'Eingetragen: ' + z(R.berechne(eh).gesamt) + ' Std.' : heute && heute.tp ? 'Treffpunkt ' + esc(heute.tp) : 'Noch nichts eingetragen') + '</div>' + (fl ? '<div class="zl" style="margin-top:4px">' + fl.replace('class="fahrtzeile"', 'style="color:#e0e0e0"') + '</div>' : '') + '</div>';
   h += '<div class="sgrid">';
   var k = function (ziel, ic, farbe, titel, wert, unter, extra, breit, delay) {
     return '<div class="kachel rein' + (breit ? ' breit' : '') + '" data-ziel="' + ziel + '" style="animation-delay:' + delay + 's"><div class="glanz" style="background:' + farbe + '"></div><span class="pfeil">›</span><div class="ic" style="background:' + farbe + '">' + ic + '</div><div><div class="t">' + titel + '</div><div class="w">' + wert + '</div><div class="u">' + unter + '</div>' + (extra || '') + '</div></div>';
