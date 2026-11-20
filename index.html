@@ -220,7 +220,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .jvfab b{position:absolute;inset:15px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#fff,#bdbdbd 45%,#4a4a4a 100%);animation:jvatem 3.2s ease-in-out infinite}
 .jvfab i{position:absolute;inset:6px;border-radius:50%;border:1px solid rgba(255,255,255,.22);animation:jvring 3.2s ease-out infinite}
 @keyframes jvatem{0%,100%{transform:scale(.94);box-shadow:0 0 14px rgba(255,255,255,.15)}50%{transform:scale(1.04);box-shadow:0 0 26px rgba(255,255,255,.35)}}
-#start.ordnen .jvfab,#start.weg .jvfab{opacity:0;pointer-events:none}
+.jvfab.weg{opacity:0;pointer-events:none;transform:scale(.8)}
 #blattJv{background:transparent}
 #blattJv .innen{background:rgba(12,12,12,.78);-webkit-backdrop-filter:blur(26px) saturate(1.2);backdrop-filter:blur(26px) saturate(1.2);clip-path:circle(0 at var(--ox,50%) var(--oy,92%));transition:clip-path .6s cubic-bezier(.2,.8,.2,1)}
 #blattJv.auf .innen{clip-path:circle(150% at var(--ox,50%) var(--oy,92%))}
@@ -306,7 +306,7 @@ body.istoffline .sstand{color:#ff6b61}
 </div>
 <div class="suche"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="suche" placeholder="Ort oder Filiale suchen" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="weg" id="sucheWeg" aria-label="Suche leeren">×</button></div>
 <div id="liste"></div>
-<div id="start"></div>
+<div id="start"></div><button class="jvfab weg" id="jvFab" aria-label="Jarvis"><canvas id="jvFabC"></canvas></button>
 <div id="sperre"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><div style="font-size:20px;font-weight:700">Stunden gesperrt</div><button class="btn" id="entsperren" style="max-width:280px">Mit Face ID entsperren</button><div class="hinweis" id="sperreInfo"></div></div>
 <button class="kugel plus" id="plus" aria-label="Stunden hinzufügen"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
 
@@ -418,7 +418,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.87';
+var VERSION = '1.88';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1154,12 +1154,11 @@ function startZeichnen(still) {
   var dp = daten.depot, dzu = !depotSicht;
   k('depot', IC.balken.replace('M4 20V10M10 20V4M16 20v-7M22 20H2', 'M3 17l5-5 4 3 8-8M15 7h5v5'), 'linear-gradient(135deg,#bdbdbd,#5e5e5e)', 'Depot', dp ? '<span class="dbox' + (dzu ? ' verdeckt' : '') + '"><span class="dpkt">••••••</span><span class="dw">' + euroK(dp.gesamt) + '</span></span>' : '–', dp ? '<span class="dbox' + (dzu ? ' verdeckt' : '') + '" style="display:block"><span class="dpkt">•••</span><span class="dw ' + (dp.heute_eur >= 0 ? 'dplus' : 'dminus') + '">' + (dp.heute_eur >= 0 ? '+' : '') + euroK(dp.heute_eur) + ' · ' + (dp.heute_pct >= 0 ? '+' : '') + String(dp.heute_pct).replace('.', ',') + ' % ' + depotWann(dp) + '</span>' + depotLinie(dp, dzu, false) + '</span>' : 'kommt vom Mac, sobald er an ist', '', false);
   var kr = kachelReihe(kdef); kr.forEach(function (z, i) { h += kk[z](.12 + i * .06).replace('class="kachel rein', 'class="kachel rein' + (kr.length % 2 && i === kr.length - 1 ? ' breit' : '')); });
-  h += '</div><div class="ordtipp">Kachel ziehen zum Verschieben</div><button class="ordfertig" id="ordfertig">Fertig</button>' + '<button class="jvfab" id="jvFab" aria-label="Jarvis"><canvas id="jvFabC"></canvas></button>';
+  h += '</div><div class="ordtipp">Kachel ziehen zum Verschieben</div><button class="ordfertig" id="ordfertig">Fertig</button>';
   $('start').innerHTML = '<div class="ptr" id="ptr"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>' + h;
   [].forEach.call($('start').querySelectorAll('[data-ziel]'), function (el) { el.onclick = function (ev) { if (window.ordnen && (ordnen.an || ordnen.klickSperre)) return; welle(el, ev); setTimeout(function () { startZiel(el.dataset.ziel); }, 160); }; });
   $('ordfertig').onclick = function () { ordnenAus(); };
   jvMiniStart();
-  $('jvFab').onclick = function () { if (window.ordnen && ordnen.an) return; jvOeffnen($('jvFab')); };
   var jh = $('jvHinweis'); if (jh) jh.onclick = function () { jvOeffnen($('jvFab')); };
   if (window.ordnen && ordnen.an) $('start').classList.add('ordnen');
 }
@@ -1533,6 +1532,7 @@ window.jvKernStart=function(){
 };
 // ---------- Kleine Jarvis-Kugel unten auf der Startseite (gleicher Look wie der große Kern, 1.700 Punkte wie die Mac-Kugel in Ruhe, 30 Bilder/s, ruht wenn nicht sichtbar) ----------
 var jvMini = { an: false, P: null, t: 0, c: null, n: 0 };
+$('jvFab').onclick = function () { if (window.ordnen && ordnen.an) return; jvOeffnen($('jvFab')); };
 function jvMiniStart() {
   if (jvMini.an) return; jvMini.an = true;
   var seed = 7, rnd = function () { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }, P = [];
@@ -1540,8 +1540,10 @@ function jvMiniStart() {
   jvMini.P = P;
   (function frame() {
     requestAnimationFrame(frame);
-    var c = document.getElementById('jvFabC'), st = $('start');
-    if (!c || document.hidden || st.classList.contains('aus') || st.classList.contains('weg') || $('blattJv').classList.contains('offen')) return;
+    var c = document.getElementById('jvFabC'), st = $('start'), fab = $('jvFab');
+    var versteckt = st.classList.contains('aus') || st.classList.contains('weg') || st.classList.contains('ordnen') || document.querySelector('.blatt.offen');
+    if (fab.classList.contains('weg') !== !!versteckt) fab.classList.toggle('weg', !!versteckt);
+    if (!c || document.hidden || versteckt) return;
     if ((jvMini.n = (jvMini.n + 1) % 2)) return; // 30 Bilder pro Sekunde reichen
     var d = Math.min(devicePixelRatio || 1, 2), S = 84;
     if (c !== jvMini.c) { jvMini.c = c; c.width = S * d; c.height = S * d; }
