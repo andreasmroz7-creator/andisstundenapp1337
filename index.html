@@ -177,6 +177,13 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .notiz .bt{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
 .nozw{font-size:12px;color:var(--grau);text-transform:uppercase;letter-spacing:.5px;margin:20px 0 4px}
 .noleer{text-align:center;color:var(--grau);font-size:14px;margin:40px 0}
+.gbneu{display:flex;flex-direction:column;gap:10px;margin:12px 0 6px}
+.gb{display:flex;gap:14px;align-items:center;background:var(--karte);border:1px solid var(--rand);border-radius:16px;padding:12px 14px;margin:10px 0;cursor:pointer;animation:auftauchen .35s cubic-bezier(.2,.8,.2,1) backwards}
+.gb .tg{flex:none;width:50px;text-align:center;line-height:1.05}.gb .tg b{display:block;font-size:22px;font-weight:750}.gb .tg small{font-size:10.5px;color:var(--grau);text-transform:uppercase;letter-spacing:.4px}
+.gb .nm{flex:1;min-width:0}.gb .nm b{font-size:15px;display:block}.gb .nm small{color:var(--grau);font-size:12.5px}
+.gbic svg{width:24px;height:24px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}
+.gb.heute{background:linear-gradient(135deg,rgba(255,255,255,.22),rgba(255,255,255,.08));border-color:rgba(255,255,255,.35)}
+.gb .bt{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.gb.edit{display:block;cursor:default}.gb.edit input{margin-top:8px}
 .welle{position:absolute;border-radius:50%;background:rgba(255,255,255,.25);transform:scale(0);animation:welle .55s ease-out forwards;pointer-events:none}
 @keyframes welle{to{transform:scale(4);opacity:0}}
 body.vonstart .kopf .mitte,body.vonstart .summe,body.vonstart .suche,body.vonstart #liste{animation:auftauchen .5s cubic-bezier(.2,.8,.2,1) backwards}
@@ -302,6 +309,10 @@ body.istoffline .sstand{color:#ff6b61}
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattU" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b id="uTitel">Urlaub</b></div></div>
   <div class="koerper" id="uKoerper"></div>
 </div></div>
+<div class="blatt" id="blattG"><div class="innen">
+  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattG" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Geburtstage</b></div></div>
+  <div class="koerper"><div class="gbneu"><input type="text" id="gbName" placeholder="Name" autocomplete="off"><input type="text" id="gbDat" inputmode="numeric" placeholder="TT.MM.JJJJ (Jahr optional)" autocomplete="off"><button id="gbPlus" class="nobtn">Hinzufügen</button></div><div id="gbListe"></div></div>
+</div></div>
 <div class="blatt" id="blattN"><div class="innen">
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattN" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b id="nwTitel">Arbeitsnachweis</b></div><div style="display:flex;gap:8px"><button class="kugel" id="nwpdf" aria-label="PDF erstellen"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button></div></div>
   <div class="koerper" id="nwKoerper"></div>
@@ -340,7 +351,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.80';
+var VERSION = '1.81';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -477,7 +488,7 @@ function sync() {
       if (r.status === 404 || r.status === 403) throw new Error('Schlüssel darf nur lesen. Contents auf „Read and write“ stellen');
       if (!r.ok) throw new Error('Hochladen ' + r.status);
     });
-  }).then(function () { return fahrtenHolen(kopf); }).then(function () { fahrtenAuto(); return nachweisHolen(kopf); }).then(function () { return fixkostenHolen(kopf); }).then(function () { return notizenSync(kopf); }).then(function () {
+  }).then(function () { return fahrtenHolen(kopf); }).then(function () { fahrtenAuto(); return nachweisHolen(kopf); }).then(function () { return fixkostenHolen(kopf); }).then(function () { return notizenSync(kopf); }).then(function () { return gbSync(kopf); }).then(function () {
     offlineZeigen(false); daten.letzterAbgleich = Date.now(); sichern(true); standPruefen(); if ($('sstand')) $('sstand').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     syncLaeuft = false; syncAnzeige('☁ abgeglichen ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
   }).catch(function (x) {
@@ -1036,6 +1047,7 @@ var IC = {
   koffer: '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></svg>',
   balken: '<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
   sonne: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  torte: '<svg viewBox="0 0 24 24"><path d="M4 21h16v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2z"/><path d="M4 16c2 1.5 4 1.5 5.3 0s4-1.5 5.4 0 4 1.5 5.3 0M12 11V7M12 4.5c.8-.6.8-1.6 0-2.5-.8.9-.8 1.9 0 2.5z"/></svg>',
   notiz: '<svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v4h4M8.5 12h7M8.5 16h5"/></svg>'
 };
 function startTag() { var s = 0, n = 0, m = iso2(new Date()).slice(0, 7); daten.eintraege.forEach(function (x) { if (x.datum.slice(0, 7) === m) { s += R.berechne(x).gesamt; n++; } }); return { s: s, n: n }; }
@@ -1059,7 +1071,7 @@ function startZeichnen(still) {
   var k0 = function (ziel, ic, farbe, titel, wert, unter, extra, breit, delay) {
     return '<div class="kachel rein' + (breit ? ' breit' : '') + '" data-ziel="' + ziel + '" style="animation-delay:' + delay + 's"><div class="glanz" style="background:' + farbe + '"></div><span class="pfeil">›</span><div class="ic" style="background:' + farbe + '">' + ic + '</div><div><div class="t">' + titel + '</div><div class="w">' + wert + '</div><div class="u">' + unter + '</div>' + (extra || '') + '</div></div>';
   };
-  var kk = {}, kdef = ['stunden', 'kosten', 'nachweis', 'jahr', 'urlaub', 'notizen'];
+  var kk = {}, kdef = ['stunden', 'kosten', 'nachweis', 'jahr', 'urlaub', 'notizen', 'geburtstage'];
   var k = function (ziel, ic, farbe, titel, wert, unter, extra, breit) { kk[ziel] = function (delay) { return k0(ziel, ic, farbe, titel, wert, unter, extra, breit, delay); }; };
   k('stunden', IC.uhr, 'linear-gradient(135deg,#b4b4b4,#737373)', 'Stunden ' + MONATE[d.getMonth()], z(std.s), std.n + ' Tage · ≈ ' + euro(std.s * lohn) + ' brutto<br>≈ ' + euro(netto(std.s * lohn)) + ' netto', '', false, .12);
   k('kosten', IC.geld, 'linear-gradient(135deg,#b0b0b0,#5a5a5a)', 'Laufende Kosten', f ? euro(fk) : '–', f ? 'pro Monat · ' + nfk + ' Posten' + (naechste ? '<br>nächste: ' + esc(naechste.p.name.split(' (')[0]) + ' am ' + naechste.p.tag + '.' : '') : 'noch nicht geladen', '', false, .18);
@@ -1069,7 +1081,9 @@ function startZeichnen(still) {
   k('urlaub', IC.sonne, 'linear-gradient(135deg,#a0a0a0,#606060)', (uk.anspruch != null ? 'Resturlaub ' : 'Urlaub ') + hi.slice(0, 4), uk.anspruch != null ? tg(uk.rest) : tg(uk.genommen), uk.anspruch != null ? String(uk.genommen) + ' genommen' + (uk.geplant ? ' · ' + uk.geplant + ' geplant' : '') + '<br>von ' + String(uk.gesamt).replace('.', ',') + ' Tagen' : 'genommen · Anspruch noch nicht eingetragen', '', false);
   var no = (daten.notizen || []).filter(function (x) { return !x.erledigt; }).sort(function (a, b) { return (b.erstellt || 0) - (a.erstellt || 0); });
   k('notizen', IC.notiz, 'linear-gradient(135deg,#9a9a9a,#5c5c5c)', 'Notizen', no.length ? no.length + ' offen' : 'Keine', no.length ? esc(no[0].text.split('\n')[0]).slice(0, 70) + (no.length > 1 ? '<br>' + esc(no[1].text.split('\n')[0]).slice(0, 70) : '') : 'Tippen, um etwas aufzuschreiben', '', false);
-  kachelReihe(kdef).forEach(function (z, i) { h += kk[z](.12 + i * .06); });
+  var gbl = gbSortiert(), g0 = gbl[0];
+  k('geburtstage', IC.torte, 'linear-gradient(135deg,#9c9c9c,#5a5a5a)', 'Geburtstage', g0 ? (g0.tage === 0 ? 'Heute!' : g0.tage === 1 ? 'Morgen' : 'in ' + g0.tage + ' Tagen') : 'Keine', g0 ? esc(g0.x.name) + (g0.alter ? ' wird ' + g0.alter : '') + ' · ' + g0.txt + (gbl[1] ? '<br>danach ' + esc(gbl[1].x.name) + ' · ' + gbl[1].txt : '') : 'Tippen, um Geburtstage einzutragen', '', false);
+  var kr = kachelReihe(kdef); kr.forEach(function (z, i) { h += kk[z](.12 + i * .06).replace('class="kachel rein', 'class="kachel rein' + (kr.length % 2 && i === kr.length - 1 ? ' breit' : '')); });
   h += '</div><div class="ordtipp">Kachel ziehen zum Verschieben</div><button class="ordfertig" id="ordfertig">Fertig</button>';
   $('start').innerHTML = '<div class="ptr" id="ptr"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>' + h;
   [].forEach.call($('start').querySelectorAll('[data-ziel]'), function (el) { el.onclick = function (ev) { if (window.ordnen && (ordnen.an || ordnen.klickSperre)) return; welle(el, ev); setTimeout(function () { startZiel(el.dataset.ziel); }, 160); }; });
@@ -1134,6 +1148,7 @@ function ordnenAus() {
     clearTimeout(t); t = null; if (!zieht) return; zieht = false; ordnen.zieht = false;
     var e = el; e.style.transition = 'translate .3s cubic-bezier(.2,.8,.2,1),scale .3s'; e.style.translate = ''; e.style.scale = '';
     setTimeout(function () { e.classList.remove('zieht'); e.style.transition = ''; }, 300);
+    var kids = [].slice.call(e.parentNode.children); kids.forEach(function (c, i) { c.classList.toggle('breit', !!(kids.length % 2 && i === kids.length - 1)); });
     var r = [].map.call(e.parentNode.children, function (c) { return c.dataset.ziel; }); try { localStorage.setItem('cockpit_kacheln', JSON.stringify(r)); } catch (x) {}
     setTimeout(function () { ordnen.klickSperre = false; }, 350); el = null;
   }
@@ -1158,10 +1173,11 @@ function startZiel(z) {
   if (z === 'stunden') { document.body.classList.remove('versteckt'); var d = new Date(); ansicht.j = d.getFullYear(); ansicht.m = d.getMonth(); zeichne(); window.scrollTo(0, 0); startWeg(); }
   else if (z === 'heute') { var hi = iso2(new Date()), eh = daten.eintraege.find(function (x) { return x.datum === hi; }); startWeg(); setTimeout(function () { oeffne(eh || neuerEintrag(hi), !eh); }, 250); }
   else {
-    var id = { kosten: 'blattF', nachweis: 'blattN', jahr: 'blattJ', notizen: 'blattNo', urlaub: 'blattU' }[z]; if (!id) return;
+    var id = { kosten: 'blattF', nachweis: 'blattN', jahr: 'blattJ', notizen: 'blattNo', urlaub: 'blattU', geburtstage: 'blattG' }[z]; if (!id) return;
     var s = $('start'); s.classList.add('oben'); void s.offsetWidth; s.classList.add('weg'); setTimeout(function () { s.classList.add('aus'); s.classList.remove('oben'); }, 420);
     $(id).dataset.vonstart = '1'; document.body.classList.add('versteckt');
     if (z === 'kosten') { fixZeichnen(); $('blattF').classList.add('offen'); }
+    else if (z === 'geburtstage') { gbZeichnen(); $('blattG').classList.add('offen'); }
     else if (z === 'urlaub') { urlaubZeichnen(); $('blattU').classList.add('offen'); }
     else if (z === 'notizen') { notizenZeichnen(); $('blattNo').classList.add('offen'); }
     else if (z === 'nachweis') $('nwknopf').onclick();
@@ -1247,6 +1263,58 @@ function fixZeichnen() {
   $('fKoerper').innerHTML = h;
 }
 $('fkauf').onclick = function (ev) { ev.stopPropagation(); fixZeichnen(); $('blattF').classList.add('offen'); };
+// ---------- Geburtstage (geburtstage.json im Daten-Repo) ----------
+var GHG = GH.replace('daten.json', 'geburtstage.json');
+function gbSync(kopf) {
+  return fetch(GHG + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) {
+    if (r.status === 404) return { sha: null, d: {} }; if (!r.ok) throw 0;
+    return r.json().then(function (j) { return { sha: j.sha, d: JSON.parse(b64dec(j.content) || '{}') }; });
+  }).then(function (fern) {
+    var m = mische({ eintraege: daten.geburtstage || [], geloescht: daten.gbWeg || {} }, { eintraege: fern.d.geburtstage || [], geloescht: fern.d.geloescht || {} });
+    var alt = JSON.stringify(daten.geburtstage || []); daten.geburtstage = m.eintraege; daten.gbWeg = m.geloescht; sichern(true);
+    if (JSON.stringify(daten.geburtstage) !== alt) { if ($('blattG').classList.contains('offen') && !document.querySelector('.gb.edit')) gbZeichnen(); if (!$('start').classList.contains('aus')) startZeichnen(true); }
+    var neu = JSON.stringify({ geburtstage: daten.geburtstage, geloescht: daten.gbWeg }, null, 1), f2 = JSON.stringify({ geburtstage: fern.d.geburtstage || [], geloescht: fern.d.geloescht || {} }, null, 1);
+    if (neu === f2) return;
+    var body = { message: 'Geburtstage ' + new Date().toLocaleString('de-DE'), content: b64enc(neu) }; if (fern.sha) body.sha = fern.sha;
+    return fetch(GHG, { method: 'PUT', headers: kopf, body: JSON.stringify(body) });
+  }).catch(function () {});
+}
+function gbLesen(t) { var m = /^\s*(\d{1,2})\.\s*(\d{1,2})\.?\s*(\d{4})?\s*$/.exec(t || ''); if (!m) return null; var d = +m[1], mo = +m[2], j = m[3] ? +m[3] : null; if (mo < 1 || mo > 12 || d < 1 || d > 31) return null; return { tag: d, monat: mo, jahr: j }; }
+function gbSortiert() {
+  var h = new Date(); h.setHours(0, 0, 0, 0);
+  return (daten.geburtstage || []).map(function (x) {
+    var j = h.getFullYear(), n = new Date(j, x.monat - 1, x.tag); if (x.monat === 2 && x.tag === 29 && n.getMonth() !== 1) n = new Date(j, 1, 28);
+    if (n < h) { j++; n = new Date(j, x.monat - 1, x.tag); if (x.monat === 2 && x.tag === 29 && n.getMonth() !== 1) n = new Date(j, 1, 28); }
+    var tage = Math.round((n - h) / 864e5);
+    return { x: x, tage: tage, alter: x.jahr ? j - x.jahr : null, txt: WT[n.getDay()] + ' ' + n.getDate() + '. ' + MONATE[n.getMonth()].slice(0, 3) + (MONATE[n.getMonth()].length > 3 ? '.' : ''), n: n };
+  }).sort(function (a, b) { return a.tage - b.tage || a.x.name.localeCompare(b.x.name); });
+}
+function gbDatTxt(x) { return ('0' + x.tag).slice(-2) + '.' + ('0' + x.monat).slice(-2) + '.' + (x.jahr || ''); }
+function gbZeichnen() {
+  var l = gbSortiert();
+  $('gbListe').innerHTML = l.length ? l.map(function (g) {
+    return '<div class="gb' + (g.tage === 0 ? ' heute' : '') + '" data-id="' + g.x.id + '"><div class="tg"><b>' + (g.tage === 0 ? '<span class="gbic">' + IC.torte + '</span>' : g.tage) + '</b><small>' + (g.tage === 0 ? 'heute' : g.tage === 1 ? 'Tag' : 'Tage') + '</small></div><div class="nm"><b>' + esc(g.x.name) + '</b><small>' + g.txt + (g.alter ? ' · wird ' + g.alter : '') + '</small></div></div>';
+  }).join('') : '<div class="noleer">Noch keine Geburtstage.</div>';
+  [].forEach.call($('gbListe').querySelectorAll('.gb'), function (el) {
+    el.onclick = function () {
+      if (el.classList.contains('edit')) return; var x = daten.geburtstage.find(function (y) { return y.id === el.dataset.id; });
+      el.classList.add('edit'); el.innerHTML = '<input type="text" class="gbN" autocomplete="off"><input type="text" class="gbD" inputmode="numeric" autocomplete="off"><div class="bt"><button class="nobtn rot">Löschen</button><button class="nobtn zweit">Abbrechen</button><button class="nobtn">Sichern</button></div>';
+      var n = el.querySelector('.gbN'), d = el.querySelector('.gbD'), b = el.querySelectorAll('button'); n.value = x.name; d.value = gbDatTxt(x);
+      b[0].onclick = function (ev) { ev.stopPropagation(); daten.geburtstage = daten.geburtstage.filter(function (y) { return y.id !== x.id; }); daten.gbWeg = daten.gbWeg || {}; daten.gbWeg[x.id] = Date.now(); sichern(); gbZeichnen();
+        toastAktion('Geburtstag gelöscht', 'Rückgängig', function () { delete daten.gbWeg[x.id]; x.geaendert = Date.now(); daten.geburtstage.push(x); sichern(); gbZeichnen(); }); };
+      b[1].onclick = function (ev) { ev.stopPropagation(); gbZeichnen(); };
+      b[2].onclick = function (ev) { ev.stopPropagation(); var g = gbLesen(d.value); if (!n.value.trim() || !g) { toast('Datum bitte als TT.MM. oder TT.MM.JJJJ'); return; } x.name = n.value.trim(); x.tag = g.tag; x.monat = g.monat; x.jahr = g.jahr; x.geaendert = Date.now(); sichern(); gbZeichnen(); };
+    };
+  });
+  gbKnopf();
+}
+function gbKnopf() { $('gbPlus').disabled = !($('gbName').value.trim() && gbLesen($('gbDat').value)); }
+$('gbName').oninput = gbKnopf; $('gbDat').oninput = gbKnopf;
+$('gbPlus').onclick = function () {
+  var g = gbLesen($('gbDat').value), n = $('gbName').value.trim(); if (!g || !n) return; var j = Date.now();
+  daten.geburtstage = daten.geburtstage || []; daten.geburtstage.push({ id: 'g' + j, name: n, tag: g.tag, monat: g.monat, jahr: g.jahr, geaendert: j });
+  $('gbName').value = ''; $('gbDat').value = ''; sichern(); gbZeichnen();
+};
 // ---------- Urlaubskonto (Anspruch je Jahr in den Einstellungen dieses Geräts, Tage aus den Einträgen mit „Urlaubstag") ----------
 function tg(n) { n = Math.round(n * 2) / 2; return String(n).replace('.', ',') + (n === 1 ? ' Tag' : ' Tage'); }
 function urlaubKonto(j) {
