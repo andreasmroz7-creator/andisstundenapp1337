@@ -185,7 +185,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .gb.heute{background:linear-gradient(135deg,rgba(255,255,255,.22),rgba(255,255,255,.08));border-color:rgba(255,255,255,.35)}
 .gb .bt{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.gb.edit{display:block;cursor:default}.gb.edit input{margin-top:8px}
 .jvk{display:flex;flex-direction:column;align-items:center;padding-bottom:110px!important}
-.jvplatz{width:100%;height:300px;margin:0 auto -10px;flex:none}
+.jvplatz{width:100%;height:300px;margin:max(0px,calc(53vh - 270px)) auto -10px;flex:none}
 .jvkern{position:fixed;left:0;top:0;width:calc(100vw - 32px);height:300px;z-index:11;pointer-events:none;transform-origin:50% 50%;will-change:transform;transition:opacity .3s ease}.jvkern canvas{width:100%;height:100%;display:block;transition:filter .7s ease}.jvkern.klein canvas{filter:brightness(1.45)}.jvkern.weg{opacity:0}
 .jvorb{position:relative;width:150px;height:150px;margin:26px auto 10px;flex:none}
 .jvorb b{position:absolute;inset:38px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#fff,#bdbdbd 45%,#4a4a4a 100%);box-shadow:0 0 40px rgba(255,255,255,.18);transition:transform .5s cubic-bezier(.2,.8,.2,1),filter .5s}
@@ -223,7 +223,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 @keyframes jvatem{0%,100%{transform:scale(.94);box-shadow:0 0 14px rgba(255,255,255,.15)}50%{transform:scale(1.04);box-shadow:0 0 26px rgba(255,255,255,.35)}}
 .jvfab.weg{opacity:0;pointer-events:none;transform:scale(.8)}
 #blattJv{background:transparent}
-#blattJv .innen{background:rgba(6,7,9,.38);-webkit-backdrop-filter:blur(20px) saturate(1.1);backdrop-filter:blur(20px) saturate(1.1);opacity:0;transition:opacity .55s ease}
+#blattJv .innen{background:rgba(6,7,9,.16);-webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px);opacity:0;transition:opacity .55s ease}
 #blattJv.auf .innen{opacity:1}
 #blattJv.zugeht .innen,#blattJv.offen:not(.auf) .innen{animation:none!important}
 #blattJv .innen::before{content:"";position:absolute;inset:-25%;pointer-events:none;z-index:0;background:radial-gradient(38% 28% at 28% 38%,rgba(205,218,232,.11),transparent 70%),radial-gradient(34% 26% at 72% 62%,rgba(185,202,222,.10),transparent 70%),radial-gradient(46% 34% at 50% 18%,rgba(225,232,242,.07),transparent 70%),radial-gradient(40% 30% at 40% 85%,rgba(200,212,228,.08),transparent 70%);animation:nebel 16s ease-in-out infinite alternate}
@@ -238,7 +238,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .jvchips button{flex:none;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);color:var(--txt);border-radius:999px;padding:8px 14px;font:inherit;font-size:13.5px;cursor:pointer;transition:transform .15s,background .2s;white-space:nowrap}
 .jvchips button:active{transform:scale(.95);background:rgba(255,255,255,.18)}
 .jvein{background:linear-gradient(transparent,rgba(12,12,12,.9) 35%)!important}
-.jvk{padding-bottom:180px!important}
+.jvk{padding-bottom:120px!important}
 .dw{transition:opacity .35s,filter .35s}.verdeckt .dw{opacity:.0;filter:blur(6px)}
 .dpkt{position:absolute;opacity:0;transition:opacity .35s;letter-spacing:3px;color:var(--grau)}.verdeckt .dpkt{opacity:1}
 .dbox{position:relative}
@@ -381,7 +381,7 @@ body.istoffline .sstand{color:#ff6b61}
 <div class="blatt" id="blattJv"><div class="innen">
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattJv" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Jarvis</b></div><button class="kugel" id="jvLeise" aria-label="Ton an/aus"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4z"/><path class="wl" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/><path class="aus" d="M16 9l6 6M22 9l-6 6" style="display:none"/></svg></button></div>
   <div class="koerper jvk"><div class="jvplatz" id="jvPlatz"></div><div class="jvstatus" id="jvStatus">Tippe aufs Mikrofon oder schreib etwas</div><div id="jvVerlauf"></div></div>
-  <div class="jvchips" id="jvChips"></div><div class="jvein"><input type="text" id="jvText" placeholder="Frag Jarvis …" autocomplete="off" enterkeyhint="send"><button class="kugel" id="jvMic" aria-label="Sprechen"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button></div>
+  <div class="jvein"><input type="text" id="jvText" placeholder="Frag Jarvis …" autocomplete="off" enterkeyhint="send"><button class="kugel" id="jvMic" aria-label="Sprechen"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button></div>
 </div></div>
 <div class="blatt" id="blattD"><div class="innen">
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattD" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Depot</b></div><button class="kugel" id="dAuge" aria-label="Beträge zeigen"></button></div>
@@ -425,7 +425,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.92';
+var VERSION = '1.93';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1583,7 +1583,7 @@ function jvOeffnen() {
   var bl = $('blattJv');
   if (bl.classList.contains('offen')) return;
   jvMiniStart();
-  jvVerlaufZeichnen(); jvChipsZeichnen(); $('jvLeise').classList.toggle('stumm', jv.stumm);
+  jvVerlaufZeichnen(); $('jvLeise').classList.toggle('stumm', jv.stumm);
   jvZustand(jv.z || 'schlaf', (daten.jarvisVerlauf || []).length ? '' : 'Was kann ich für dich tun, Meister?');
   bl.classList.remove('auf'); bl.classList.add('offen'); try { window.__orbWake && __orbWake(); } catch (x) {}
   jvMini.flug = true; clearTimeout(jv.flugT1);
