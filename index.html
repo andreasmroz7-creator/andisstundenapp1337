@@ -222,9 +222,15 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 @keyframes jvatem{0%,100%{transform:scale(.94);box-shadow:0 0 14px rgba(255,255,255,.15)}50%{transform:scale(1.04);box-shadow:0 0 26px rgba(255,255,255,.35)}}
 .jvfab.weg{opacity:0;pointer-events:none;transform:scale(.8)}
 #blattJv{background:transparent}
-#blattJv .innen{background:rgba(12,12,12,.78);-webkit-backdrop-filter:blur(26px) saturate(1.2);backdrop-filter:blur(26px) saturate(1.2);clip-path:circle(0 at var(--ox,50%) var(--oy,92%));transition:clip-path .6s cubic-bezier(.2,.8,.2,1)}
-#blattJv.auf .innen{clip-path:circle(150% at var(--ox,50%) var(--oy,92%))}
-#blattJv.zugeht .innen{animation:none!important;clip-path:circle(0 at var(--ox,50%) var(--oy,92%));transition:clip-path .38s cubic-bezier(.4,0,.2,1)}
+#blattJv .innen{background:rgba(6,7,9,.38);-webkit-backdrop-filter:blur(20px) saturate(1.1);backdrop-filter:blur(20px) saturate(1.1);opacity:0;transition:opacity .55s ease}
+#blattJv.auf .innen{opacity:1}
+#blattJv.zugeht .innen,#blattJv.offen:not(.auf) .innen{animation:none!important}
+#blattJv .innen::before{content:"";position:absolute;inset:-25%;pointer-events:none;z-index:0;background:radial-gradient(38% 28% at 28% 38%,rgba(205,218,232,.11),transparent 70%),radial-gradient(34% 26% at 72% 62%,rgba(185,202,222,.10),transparent 70%),radial-gradient(46% 34% at 50% 18%,rgba(225,232,242,.07),transparent 70%),radial-gradient(40% 30% at 40% 85%,rgba(200,212,228,.08),transparent 70%);animation:nebel 16s ease-in-out infinite alternate}
+@keyframes nebel{0%{transform:translate(0,0) scale(1)}50%{transform:translate(3%,-2%) scale(1.06)}100%{transform:translate(-3%,2%) scale(1.1)}}
+#blattJv .titel,#blattJv .koerper{position:relative;z-index:1}#blattJv .jvchips,#blattJv .jvein{z-index:2}
+#blattJv .titel b{opacity:0}
+#blattJv .jvm,#blattJv .jvstatus,#blattJv .jvchips,#blattJv .jvein,#blattJv .titel{transition:opacity .45s ease .15s}#blattJv:not(.auf) .jvm,#blattJv:not(.auf) .jvstatus,#blattJv:not(.auf) .jvchips,#blattJv:not(.auf) .jvein,#blattJv:not(.auf) .titel{opacity:0;transition-delay:0s}
+.jvkern canvas{transition:opacity .35s ease}.jvkern.kernaus canvas{opacity:0}
 #blattJv .titel{background:transparent;border-bottom:0}
 .jvchips{display:flex;gap:8px;overflow-x:auto;padding:0 16px 10px;scrollbar-width:none;position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 128px)}
 .jvchips::-webkit-scrollbar{display:none}
@@ -418,7 +424,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.88';
+var VERSION = '1.89';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -852,6 +858,7 @@ $('plus').onclick = function () {
 };
 function monatSchritt(n) { ansicht.m += n; if (ansicht.m < 0) { ansicht.m = 11; ansicht.j--; } if (ansicht.m > 11) { ansicht.m = 0; ansicht.j++; } zeichne(); }
 function blattZu(bl) {
+  if (bl && bl.id === 'blattJv') { jvSchliessen(); return; }
   if (!bl || !bl.classList.contains('offen') || bl.classList.contains('zugeht')) return;
   var vs = bl.dataset.vonstart; delete bl.dataset.vonstart;
   if (vs) document.body.classList.add('zumstart');
@@ -1541,12 +1548,12 @@ function jvMiniStart() {
   (function frame() {
     requestAnimationFrame(frame);
     var c = document.getElementById('jvFabC'), st = $('start'), fab = $('jvFab');
-    var versteckt = st.classList.contains('aus') || st.classList.contains('weg') || st.classList.contains('ordnen') || document.querySelector('.blatt.offen');
+    var versteckt = !jvMini.flug && (st.classList.contains('aus') || st.classList.contains('weg') || st.classList.contains('ordnen') || document.querySelector('.blatt.offen'));
     if (fab.classList.contains('weg') !== !!versteckt) fab.classList.toggle('weg', !!versteckt);
     if (!c || document.hidden || versteckt) return;
-    if ((jvMini.n = (jvMini.n + 1) % 2)) return; // 30 Bilder pro Sekunde reichen
-    var d = Math.min(devicePixelRatio || 1, 2), S = 84;
-    if (c !== jvMini.c) { jvMini.c = c; c.width = S * d; c.height = S * d; }
+    if ((jvMini.n = (jvMini.n + 1) % 2) && !jvMini.flug) return; // 30 Bilder pro Sekunde reichen
+    var d = Math.min(devicePixelRatio || 1, 3) * (jvMini.flug ? 2 : 1), S = 84;
+    if (c !== jvMini.c || jvMini.d !== d) { jvMini.c = c; jvMini.d = d; c.width = S * d; c.height = S * d; }
     var x = c.getContext('2d'); x.setTransform(d, 0, 0, d, 0, 0); x.clearRect(0, 0, S, S);
     var t = jvMini.t += .016, cx = S / 2, cy = S / 2, br = 1 + .045 * Math.sin(t * 1.9), R = S * .3 * br;
     x.globalCompositeOperation = 'lighter';
@@ -1575,14 +1582,33 @@ function jvVerlaufZeichnen() {
   $('jvVerlauf').innerHTML = (daten.jarvisVerlauf || []).slice(-20).map(function (m) { return '<div class="jvm ' + m.wer + (m.f ? ' fehler' : '') + '">' + esc(m.t) + '</div>'; }).join('');
   var k = document.querySelector('#blattJv .koerper'); setTimeout(function () { k.scrollTop = k.scrollHeight; }, 30);
 }
-function jvOeffnen(von) {
-  var bl = $('blattJv'), r = von ? von.getBoundingClientRect() : null;
-  bl.style.setProperty('--ox', r ? (r.left + r.width / 2) + 'px' : '50%'); bl.style.setProperty('--oy', r ? (r.top + r.height / 2) + 'px' : '92%');
+function jvOeffnen() {
+  var bl = $('blattJv'), fab = $('jvFab');
+  if (bl.classList.contains('offen')) return;
   jvVerlaufZeichnen(); jvChipsZeichnen(); $('jvLeise').classList.toggle('stumm', jv.stumm);
-  jvZustand('schlaf', (daten.jarvisVerlauf || []).length ? '' : 'Was kann ich für dich tun, Meister?');
-  bl.classList.remove('auf'); bl.classList.add('offen'); void bl.offsetWidth; requestAnimationFrame(function () { bl.classList.add('auf'); });
+  jvZustand(jv.z || 'schlaf', (daten.jarvisVerlauf || []).length ? '' : 'Was kann ich für dich tun, Meister?');
+  $('jvOrb').classList.add('kernaus'); bl.classList.remove('auf'); bl.classList.add('offen');
   if (!jv.kern) { jv.kern = 1; try { jvKernStart(); } catch (x) {} jvZustand(jv.z || 'schlaf'); } else { try { window.__orbWake && __orbWake(); } catch (x) {} }
+  var fr = fab.getBoundingClientRect(), tr = $('jvOrb').getBoundingClientRect(), k = Math.min(tr.width, tr.height) * .56 / (fr.width * .6);
+  var dx = (tr.left + tr.width / 2) - (fr.left + fr.width / 2), dy = (tr.top + tr.height / 2) - (fr.top + fr.height / 2);
+  jvMini.flug = true; fab.classList.remove('weg'); fab.style.zIndex = 12; fab.style.transition = 'transform .62s cubic-bezier(.2,.85,.25,1),opacity .3s ease';
+  requestAnimationFrame(function () { bl.classList.add('auf'); fab.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + k + ')'; });
+  clearTimeout(jv.flugT1); clearTimeout(jv.flugT2);
+  jv.flugT1 = setTimeout(function () { $('jvOrb').classList.remove('kernaus'); fab.style.opacity = '0'; }, 520);
+  jv.flugT2 = setTimeout(function () { jvMini.flug = false; fab.classList.add('weg'); fab.style.transition = 'none'; fab.style.transform = ''; fab.style.opacity = ''; fab.style.zIndex = ''; }, 880);
 }
+function jvSchliessen() {
+  var bl = $('blattJv'), fab = $('jvFab'); if (!bl.classList.contains('offen') || jv.zu) return; jv.zu = true;
+  clearTimeout(jv.flugT1); clearTimeout(jv.flugT2); try { $('jvText').blur(); if (jv.erk) jv.erk.stop(); } catch (x) {}
+  var tr = $('jvOrb').getBoundingClientRect();
+  fab.style.transition = 'none'; fab.style.transform = ''; fab.classList.remove('weg'); var fr = fab.getBoundingClientRect();
+  var k = Math.min(tr.width, tr.height) * .56 / (fr.width * .6), dx = (tr.left + tr.width / 2) - (fr.left + fr.width / 2), dy = (tr.top + tr.height / 2) - (fr.top + fr.height / 2);
+  jvMini.flug = true; fab.style.zIndex = 12; fab.style.opacity = '0'; fab.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(' + k + ')';
+  void fab.offsetWidth; fab.style.transition = 'opacity .25s ease'; fab.style.opacity = '1'; $('jvOrb').classList.add('kernaus');
+  setTimeout(function () { fab.style.transition = 'transform .58s cubic-bezier(.3,.1,.2,1)'; fab.style.transform = ''; bl.classList.remove('auf'); }, 200);
+  setTimeout(function () { bl.classList.remove('offen'); fab.style.transition = ''; fab.style.zIndex = ''; fab.style.opacity = ''; jvMini.flug = false; jv.zu = false; $('jvOrb').classList.remove('kernaus'); }, 820);
+}
+
 function jvChipsZeichnen() {
   var c = ['Wie läuft mein Depot?', 'Wo arbeite ich morgen?', 'Stunden diesen Monat', 'Nächster Geburtstag', 'Resturlaub', 'Meine Notizen', 'Laufende Kosten'];
   $('jvChips').innerHTML = c.map(function (t) { return '<button>' + t + '</button>'; }).join('');
