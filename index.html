@@ -85,6 +85,15 @@ input::placeholder{color:#5c6577}
 .btn.zweit{background:rgba(255,255,255,.08);color:var(--txt);border:1px solid var(--rand)}
 .btn.rot{background:rgba(255,69,58,.15);color:var(--rot);border:1px solid rgba(255,69,58,.35)}
 .hinweis{font-size:12px;color:var(--grau);margin-top:6px}
+.nwk{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 4px}
+.nwk div{background:rgba(255,255,255,.05);border:1px solid var(--rand);border-radius:14px;padding:10px 12px}
+.nwk small{display:block;color:var(--grau);font-size:12px}.nwk b{font-size:20px}.nwk .gr{color:var(--gruen)}
+.nwm{margin-top:18px}.nwm h3{font-size:15px;margin:0 0 6px;display:flex;justify-content:space-between;color:var(--txt)}.nwm h3 span{color:var(--grau);font-weight:400;font-size:13px}
+.nwt{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}
+.nwt .d{width:46px;flex:none;color:var(--grau)}.nwt .d b{color:var(--txt);font-size:15px;display:block}
+.nwt .m{flex:1;min-width:0}.nwt .m .l{color:var(--txt);font-size:14px}.nwt .m .x{color:var(--grau);font-size:12px;margin-top:2px}
+.nwt .v{text-align:right;flex:none;font-size:12px;color:var(--grau);white-space:nowrap}.nwt .v b{color:var(--txt);font-size:14px}
+.nwt .v .p{color:var(--gruen)}
 .toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translateX(-50%);background:rgba(30,38,54,.95);border:1px solid var(--rand);padding:10px 16px;border-radius:14px;z-index:20;font-size:14px;display:none}
 </style>
 </head>
@@ -97,6 +106,7 @@ input::placeholder{color:#5c6577}
 <div class="summe">
   <div><div class="klein">Gesamt diesen Monat</div><div class="gross" id="msumme">0,00</div><div class="klein" id="mdetail"></div><div class="klein" id="mlohn" style="color:var(--gruen);margin-top:2px"></div><div class="klein" id="sync" style="margin-top:4px"></div></div>
   <div style="display:flex;gap:8px">
+    <button class="kugel" id="nwknopf" aria-label="Arbeitsnachweis"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></svg></button>
     <button class="kugel" id="pdfknopf" aria-label="PDF"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button>
     <button class="kugel" id="einstknopf" aria-label="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </div>
@@ -143,6 +153,10 @@ input::placeholder{color:#5c6577}
 </div></div></div>
 
 <!-- Einstellungen -->
+<div class="blatt" id="blattN"><div class="innen">
+  <div class="titel"><b id="nwTitel">Arbeitsnachweis</b><div style="display:flex;gap:8px"><button class="kugel" id="nwpdf" aria-label="PDF erstellen"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button><button class="kugel schliessen" data-zu="blattN" aria-label="Schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>
+  <div class="koerper" id="nwKoerper"></div>
+</div></div>
 <div class="blatt" id="blattS"><div class="innen">
   <div class="titel"><b>Einstellungen</b><button class="kugel schliessen" data-zu="blattS" aria-label="Schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="koerper">
   <label class="l">Name (steht im PDF)</label><input type="text" id="sName" placeholder="Mroz Andreas">
@@ -170,7 +184,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.32';
+var VERSION = '1.33';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -286,7 +300,7 @@ function sync() {
       if (r.status === 404 || r.status === 403) throw new Error('Schlüssel darf nur lesen. Contents auf „Read and write“ stellen');
       if (!r.ok) throw new Error('Hochladen ' + r.status);
     });
-  }).then(function () { return fahrtenHolen(kopf); }).then(function () {
+  }).then(function () { return fahrtenHolen(kopf); }).then(function () { return nachweisHolen(kopf); }).then(function () {
     syncLaeuft = false; syncAnzeige('☁ abgeglichen ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
   }).catch(function (x) {
     syncLaeuft = false;
@@ -635,6 +649,95 @@ $('pdfknopf').onclick = function () {
   y += 12; doc.text(40, y, 'Zwischenfahrt, Teamleiterzeit, bezahlte Fahrzeit und Verpflegung werden automatisch nach den geltenden Regeln berechnet.', 8);
   var name = 'Stundennachweis-' + ansicht.j + '-' + ('0' + (ansicht.m + 1)).slice(-2) + '.pdf';
   teile(name, new Blob([doc.bytes()], { type: 'application/pdf' }));
+};
+
+// ---------- Arbeitsnachweis (Jahr): Einsatzpläne + Reiseinfos aus Gmail, liegt als nachweis.json im Daten-Repo ----------
+var GHN = GH.replace('daten.json', 'nachweis.json');
+function nachweisHolen(kopf) {
+  return fetch(GHN + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) {
+    if (!r.ok) return null;
+    return r.json().then(function (j) { var n = JSON.parse(b64dec(j.content) || '{}'); if (n && n.tage) { daten.nachweis = n; sichern(true); if ($('blattN').classList.contains('offen')) nachweisZeichnen(); } });
+  }).catch(function () {});
+}
+var WT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+function nwSumme(L) { var s = { tage: 0, reise: 0, naechte: 0, erh: 0, ges: 0, bed: 0 }; L.forEach(function (x) { if (!x.nurReise) s.tage++; if (x.reise) s.reise++; if (x.reise && !x.ab) s.naechte++; s.erh += x.vpErhalten || 0; if (x.vpBedingt) s.bed += x.vpGesetz || 0; else s.ges += x.vpGesetz || 0; }); return s; }
+function nwLaeden(x) { return (x.laeden || []).map(function (l) { return l.fil + ' ' + l.ort; }).join(' + '); }
+function nwHotelKurz(h) { var t = String(h || '').split(', '); return t.length > 2 ? t[0] + ', ' + t[t.length - 1].replace(/^\d{5} /, '') : t.join(', '); }
+function nachweisZeichnen() {
+  var n = daten.nachweis, k = $('nwKoerper');
+  if (!n || !n.tage) { k.innerHTML = '<p class="leer">' + (daten.einst.token ? 'Wird geladen …' : 'Für den Arbeitsnachweis braucht die App den GitHub-Schlüssel (Einstellungen).') + '</p>'; return; }
+  $('nwTitel').textContent = 'Arbeitsnachweis ' + n.jahr;
+  var s = nwSumme(n.tage), html = '<div class="nwk">' +
+    '<div><small>Arbeitstage</small><b>' + s.tage + '</b></div><div><small>Übernachtungen</small><b>' + s.naechte + '</b></div>' +
+    '<div><small>Verpflegung erhalten</small><b>' + euro(s.erh) + '</b></div><div><small>Gesetzlich (Reise)</small><b>' + euro(s.ges) + '</b></div>' +
+    '<div style="grid-column:1/3"><small>Differenz: kannst du als Werbungskosten angeben</small><b class="gr">' + euro(s.ges - (s.erh)) + '</b>' + (s.bed ? '<small>dazu bis zu ' + euro(s.bed) + ' für eintägige Einsätze (nur bei über 8 Std. Abwesenheit)</small>' : '') + '</div></div>' +
+    '<div class="hinweis">Aus den Einsatzplänen und Reiseinfos in deinen E-Mails · Stand ' + new Date(n.stand).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + '. ' + esc(n.regel || '') + '</div>';
+  var mon = {};
+  n.tage.forEach(function (x) { (mon[x.datum.slice(0, 7)] = mon[x.datum.slice(0, 7)] || []).push(x); });
+  Object.keys(mon).sort().reverse().forEach(function (mk) {
+    var L = mon[mk], ms = nwSumme(L);
+    html += '<div class="nwm"><h3>' + MONATE[+mk.slice(5) - 1] + '<span>' + ms.tage + ' Tage · ' + euro(ms.erh) + ' erhalten · <span style="color:var(--gruen)">+' + euro(ms.ges - ms.erh) + '</span></span></h3>';
+    L.forEach(function (x) {
+      var d = new Date(x.datum + 'T12:00:00'), titel = x.nurReise ? 'Anreise ' + x.team : (nwLaeden(x) || '–');
+      var info = [x.team + (x.reise ? ' (Reise)' : ''), x.an ? 'Anreise' : x.ab ? 'Abreise' : '', x.hotel ? '🏨 ' + nwHotelKurz(x.hotel) : '', x.tp && !x.nurReise ? 'TP ' + x.tp : ''].filter(Boolean).join(' · ');
+      var diff = (x.vpGesetz || 0) - (x.vpErhalten || 0);
+      html += '<div class="nwt"><div class="d"><b>' + d.getDate() + '.</b>' + WT[d.getDay()] + '</div><div class="m"><div class="l">' + esc(titel) + '</div><div class="x">' + esc(info) + '</div></div>' +
+        '<div class="v"><b>' + (x.vpErhalten || 0) + ' €</b> / ' + (x.vpGesetz || 0) + ' €' + (x.vpBedingt ? '*' : '') + '<br><span class="p">+' + diff + ' €</span></div></div>';
+    });
+    html += '</div>';
+  });
+  html += '<p class="hinweis" style="margin-top:14px">erhalten / gesetzlich · * nur wenn du an dem Tag über 8 Stunden von zu Hause weg warst. Keine Steuerberatung: im Zweifel Lohnsteuerhilfe oder Steuerberater fragen.</p>';
+  k.innerHTML = html;
+}
+$('nwknopf').onclick = function () {
+  nachweisZeichnen(); $('blattN').classList.add('offen');
+  if (daten.einst.token) nachweisHolen({ Authorization: 'Bearer ' + daten.einst.token, Accept: 'application/vnd.github+json' });
+};
+$('nwpdf').onclick = function () {
+  var n = daten.nachweis; if (!n || !n.tage) { toast('Noch keine Daten'); return; }
+  var doc = new MiniPDF(), y = 0, seite = 0, s = nwSumme(n.tage);
+  var X = [40, 98, 122, 180, 420, 560, 650, 712, 802];
+  function kopf() {
+    doc.addPage(); seite++;
+    doc.text(40, 36, daten.einst.name || 'Mroz Andreas', 11, true); doc.text(40, 50, 'Pers.-Nr. ' + (daten.einst.pers || '4048'), 9);
+    doc.text(802, 36, 'Seite ' + seite, 9, false, 'r');
+    if (seite === 1) {
+      doc.text(40, 78, 'Arbeitsnachweis ' + n.jahr + ' – Einsätze, Übernachtungen und Verpflegung', 16, true);
+      doc.text(40, 94, 'Grundlage: Einsatzpläne und Reiseinfos der Dornick Dienstleistungen GmbH & Co.KG (per E-Mail erhalten), Stand ' + new Date(n.stand).toLocaleDateString('de-DE') + '.', 8);
+      y = 112;
+    } else y = 70;
+    doc.rect(36, y - 10, 770, 15, 0.92);
+    ['Datum', 'KW', 'Team', 'Filialen / Einsatzort', 'Unterkunft', 'Art', 'Erhalten', 'Gesetzl.', 'Differenz'].forEach(function (t, i) { doc.text(i >= 6 ? X[i + 1 > 8 ? 8 : i] : X[i], y, t, 8, true, i >= 6 ? 'r' : null); });
+    y += 14;
+  }
+  kopf();
+  var mon = {}; n.tage.forEach(function (x) { (mon[x.datum.slice(0, 7)] = mon[x.datum.slice(0, 7)] || []).push(x); });
+  Object.keys(mon).sort().forEach(function (mk) {
+    if (y > 540) kopf();
+    doc.text(40, y + 2, MONATE[+mk.slice(5) - 1] + ' ' + mk.slice(0, 4), 10, true); y += 14;
+    mon[mk].forEach(function (x) {
+      if (y > 556) kopf();
+      var d = new Date(x.datum + 'T12:00:00'), art = x.nurReise ? 'Anreisetag' : x.ab ? 'Abreisetag' : x.an ? 'Anreisetag' : x.reise ? 'voller Tag' : 'eintägig*';
+      var l = x.nurReise ? 'Anreise' : nwLaeden(x); if (l.length > 58) l = l.slice(0, 56) + '…';
+      var h = nwHotelKurz(x.hotel); if (h.length > 30) h = h.slice(0, 29) + '…';
+      doc.text(X[0], y, WT[d.getDay()] + ' ' + d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }), 8);
+      doc.text(X[1], y, String(x.kw), 8); doc.text(X[2], y, x.team, 8); doc.text(X[3], y, l, 8); doc.text(X[4], y, h, 8); doc.text(X[5], y, art, 8);
+      doc.text(X[7] - 62, y, (x.vpErhalten || 0) + ' €', 8, false, 'r'); doc.text(X[7], y, (x.vpGesetz || 0) + ' €', 8, false, 'r'); doc.text(X[8], y, ((x.vpGesetz || 0) - (x.vpErhalten || 0)) + ' €', 8, false, 'r');
+      doc.line(40, y + 3.5, 802, y + 3.5, 0.3, 0.85); y += 12.5;
+    });
+    var ms = nwSumme(mon[mk]);
+    doc.text(X[5], y, 'Summe Monat', 8, true); doc.text(X[7] - 62, y, ms.erh + ' €', 8, true, 'r'); doc.text(X[7], y, (ms.ges + ms.bed) + ' €', 8, true, 'r'); doc.text(X[8], y, (ms.ges + ms.bed - ms.erh) + ' €', 8, true, 'r'); y += 16;
+  });
+  if (y > 470) kopf();
+  y += 6; doc.line(40, y, 802, y, 0.8); y += 16;
+  doc.text(40, y, 'Jahressumme ' + n.jahr, 12, true); y += 16;
+  [['Arbeitstage laut Einsatzplan', String(s.tage)], ['Übernachtungen (Reise)', String(s.naechte)], ['Verpflegung vom Arbeitgeber erhalten (steuerfrei)', euro(s.erh)],
+   ['Gesetzliche Pauschalen Reisetage (14 € / 28 €)', euro(s.ges)], ['Differenz Reisetage (Werbungskosten)', euro(s.ges - s.erh)], ['Eintägige Einsätze, nur bei über 8 Std. Abwesenheit (je 14 €)', 'bis zu ' + euro(s.bed)]].forEach(function (r, i) {
+    doc.text(40, y, r[0], 9, i === 4); doc.text(470, y, r[1], 9, i === 4, 'r'); y += 13;
+  });
+  y += 8; doc.text(40, y, 'Pauschalen nach § 9 Abs. 4a EStG (2026): 14 € für An- und Abreisetag sowie bei über 8 Std. Abwesenheit, 28 € für Tage mit 24 Std. Abwesenheit. Erhalten: 10 € An-/Abreisetag, 20 € voller Tag.', 7.5);
+  y += 11; doc.text(40, y, 'Die Differenz zwischen gesetzlicher Pauschale und steuerfreier Erstattung kann als Werbungskosten angegeben werden. Keine Steuerberatung.', 7.5);
+  teile('Arbeitsnachweis-' + n.jahr + '.pdf', new Blob([doc.bytes()], { type: 'application/pdf' }));
 };
 
 new MutationObserver(function () {

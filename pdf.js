@@ -6,6 +6,9 @@
       var c = s.charCodeAt(i);
       if (c === 0x20AC) out += String.fromCharCode(0x80);
       else if (c === 0x2013) out += String.fromCharCode(0x96);
+      else if (c === 0x2026) out += String.fromCharCode(0x85);
+      else if (c === 0x201E) out += String.fromCharCode(0x84);
+      else if (c === 0x201C) out += String.fromCharCode(0x93);
       else if (c < 256) out += s[i];
       else out += '?';
     }
