@@ -117,6 +117,7 @@ input::placeholder{color:#5c6577}
 #start:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(700px 480px at 0% -5%,rgba(90,200,250,.22),transparent 60%),radial-gradient(600px 460px at 105% 15%,rgba(140,100,255,.18),transparent 60%),radial-gradient(500px 400px at 50% 110%,rgba(52,199,89,.10),transparent 60%)}
 #start.weg{opacity:0;transform:scale(1.08);filter:blur(10px);pointer-events:none}
 #start.aus{display:none}
+#start.oben{z-index:11}
 body.versteckt .kopf,body.versteckt .summe,body.versteckt .suche,body.versteckt #liste,body.versteckt .plus,body.versteckt .festpfeil,body.versteckt .geistseite{visibility:hidden!important}
 #start.klein{opacity:0;transform:scale(.9);filter:blur(8px);transition:none}
 body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumstart #liste,body.zumstart .festpfeil,body.zumstart .plus{transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .25s ease!important;transform:scale(.92) translateY(10px)!important;opacity:0!important}
@@ -145,7 +146,8 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 body.vonstart .kopf .mitte,body.vonstart .summe,body.vonstart .suche,body.vonstart #liste{animation:auftauchen .5s cubic-bezier(.2,.8,.2,1) both}
 body.vonstart .summe{animation-delay:.05s}body.vonstart .suche{animation-delay:.1s}body.vonstart #liste{animation-delay:.15s}
 @keyframes auftauchen{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
-.blatt.offen .innen{animation:blattrein .5s cubic-bezier(.2,.8,.2,1)}
+.blatt.offen .titel,.blatt.offen .koerper{animation:auftauchen .5s cubic-bezier(.2,.8,.2,1) both}
+.blatt.offen .koerper{animation-delay:.07s}
 .blatt.zugeht .innen{animation:blattraus .3s cubic-bezier(.4,0,.2,1) forwards}
 .blatt.zugeht{background:transparent;transition:background .3s}
 @keyframes blattraus{to{transform:scale(.92) translateY(10px);opacity:0}}
@@ -153,7 +155,7 @@ body.vonstart .summe{animation-delay:.05s}body.vonstart .suche{animation-delay:.
 @keyframes blattrein{from{transform:translateY(14px) scale(.98);opacity:0}to{transform:none;opacity:1}}
 h1 .heim{display:inline-flex;align-items:center;gap:5px;color:var(--akz);cursor:pointer}
 h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-.geistseite{position:absolute;left:0;visibility:hidden;width:100%;padding:calc(env(safe-area-inset-top) + 10px) 16px 0;pointer-events:none;z-index:1;will-change:transform}
+.geistseite{position:fixed;left:0;top:0;visibility:hidden;width:100%;padding:calc(env(safe-area-inset-top) + 10px) 16px 0;pointer-events:none;z-index:1;will-change:transform}
 .tlinks{display:flex;align-items:center;gap:12px;min-width:0}
 .monatzeile{display:flex;align-items:center;justify-content:center;gap:10px}
 .monatzeile .wh{color:var(--grau);opacity:.45;font-size:20px;line-height:1}
@@ -263,7 +265,7 @@ h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.48';
+var VERSION = '1.49';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -828,7 +830,7 @@ var wischAktiv = false;
       wischAktiv = false; laeuft = false; monatSchritt(vor ? 1 : -1);
     }, rest + 20);
   }
-  document.addEventListener('touchstart', function (ev) { if (laeuft || document.querySelector('.blatt.offen') || !$('start').classList.contains('aus') || ev.touches.length > 1 || $('suche').value || !geist['1'] || (ev.target.closest && ev.target.closest('input,textarea,select'))) { an = false; return; } an = true; richtung = 0; v = 0; sx = lx = ev.touches[0].clientX; sy = ev.touches[0].clientY; lt = Date.now(); }, { passive: true });
+  document.addEventListener('touchstart', function (ev) { if (laeuft || document.querySelector('.blatt.offen') || !$('start').classList.contains('aus') || ev.touches.length > 1 || $('suche').value || !geist['1'] || (ev.target.closest && ev.target.closest('input,textarea,select'))) { an = false; return; } an = true; richtung = 0; v = 0; ['-1', '1'].forEach(function (k) { if (geist[k]) geist[k].style.top = (-window.scrollY) + 'px'; }); sx = lx = ev.touches[0].clientX; sy = ev.touches[0].clientY; lt = Date.now(); }, { passive: true });
   document.addEventListener('touchmove', function (ev) {
     if (!an) return; var x = ev.touches[0].clientX, dx = x - sx, dy = ev.touches[0].clientY - sy, t = Date.now();
     if (!richtung) { if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; richtung = Math.abs(dx) > Math.abs(dy) * 1.2 ? 1 : 2; if (richtung === 1) wischAktiv = true; }
@@ -939,7 +941,7 @@ function startZiel(z) {
   else if (z === 'heute') { var hi = iso2(new Date()), eh = daten.eintraege.find(function (x) { return x.datum === hi; }); startWeg(); setTimeout(function () { oeffne(eh || neuerEintrag(hi), !eh); }, 250); }
   else {
     var id = { kosten: 'blattF', nachweis: 'blattN', jahr: 'blattJ' }[z]; if (!id) return;
-    var s = $('start'); s.classList.add('weg'); setTimeout(function () { s.classList.add('aus'); }, 400);
+    var s = $('start'); s.classList.add('oben'); void s.offsetWidth; s.classList.add('weg'); setTimeout(function () { s.classList.add('aus'); s.classList.remove('oben'); }, 420);
     $(id).dataset.vonstart = '1'; document.body.classList.add('versteckt');
     if (z === 'kosten') { fixZeichnen(); $('blattF').classList.add('offen'); }
     else if (z === 'nachweis') $('nwknopf').onclick();
