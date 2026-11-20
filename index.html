@@ -6,12 +6,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Stunden">
+<meta name="apple-mobile-web-app-title" content="Cockpit">
 <meta name="theme-color" content="#0b0f17">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-180.png?v=2">
-<link rel="apple-touch-startup-image" href="splash-1206x2622.png" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
-<title>Stunden</title>
+<link rel="apple-touch-icon" href="cockpit-180.png">
+<link rel="apple-touch-startup-image" href="cockpit-splash.png" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<title>Cockpit</title>
 <style>
 :root{--bg:#0b0f17;--karte:rgba(255,255,255,.06);--rand:rgba(255,255,255,.10);--txt:#e8edf5;--grau:#8a94a6;--akz:#5ac8fa;--gruen:#34c759;--rot:#ff453a}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -143,6 +143,10 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .kachel.sheute{background:linear-gradient(135deg,rgba(90,200,250,.30),rgba(120,90,250,.22));border-color:rgba(255,255,255,.18);padding:16px 18px;justify-content:flex-start}
 .rein{animation:rein .55s cubic-bezier(.2,.8,.2,1) backwards}
 #start.still .rein{animation:none}
+/* erster Start: Startseite blendet weich über das iPhone-Startbild ein, Karten kommen etwas später nacheinander */
+#start.auftritt{animation:auftritt .75s cubic-bezier(.22,.8,.25,1) both}
+@keyframes auftritt{from{opacity:0;transform:scale(1.035);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+#start.auftritt .rein{animation-duration:.8s}
 @keyframes rein{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
 .welle{position:absolute;border-radius:50%;background:rgba(255,255,255,.25);transform:scale(0);animation:welle .55s ease-out forwards;pointer-events:none}
 @keyframes welle{to{transform:scale(4);opacity:0}}
@@ -291,7 +295,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.59';
+var VERSION = '1.61';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1212,7 +1216,8 @@ function offlineZeigen(an) {
   if (an) el.textContent = 'Offline' + (daten.letzterAbgleich ? ' · Stand ' + new Date(daten.letzterAbgleich).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '');
 }
 window.addEventListener('online', function () { offlineZeigen(false); sync(); });
-standPruefen(); sperreZeigen(); zeichne(); startZeichnen(); sync().then(function () { if (!$('start').classList.contains('aus')) startZeichnen(true); });
+standPruefen(); sperreZeigen(); zeichne(); startZeichnen();
+(function () { var s = $('start'); s.classList.add('auftritt'); document.body.classList.add('versteckt'); [].forEach.call(s.querySelectorAll('.rein'), function (el) { el.style.animationDelay = (parseFloat(el.style.animationDelay || 0) * 1.4 + .28) + 's'; }); setTimeout(function () { s.classList.remove('auftritt'); if (!s.classList.contains('aus') && !s.classList.contains('weg')) document.body.classList.remove('versteckt'); }, 1400); })(); sync().then(function () { if (!$('start').classList.contains('aus')) startZeichnen(true); });
 document.addEventListener('visibilitychange', function () { if (!document.hidden) sync(); });
 setInterval(function () { if (!document.hidden) sync(); }, 60000);
 if ('serviceWorker' in navigator) {
