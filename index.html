@@ -117,6 +117,7 @@ input::placeholder{color:#5c6577}
 #start:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(700px 480px at 0% -5%,rgba(90,200,250,.22),transparent 60%),radial-gradient(600px 460px at 105% 15%,rgba(140,100,255,.18),transparent 60%),radial-gradient(500px 400px at 50% 110%,rgba(52,199,89,.10),transparent 60%)}
 #start.weg{opacity:0;transform:scale(1.08);filter:blur(10px);pointer-events:none}
 #start.aus{display:none}
+body.versteckt .kopf,body.versteckt .summe,body.versteckt .suche,body.versteckt #liste,body.versteckt .plus,body.versteckt .festpfeil,body.versteckt .geistseite{visibility:hidden!important}
 #start.klein{opacity:0;transform:scale(.9);filter:blur(8px);transition:none}
 body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumstart #liste,body.zumstart .festpfeil,body.zumstart .plus{transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .25s ease!important;transform:scale(.92) translateY(10px)!important;opacity:0!important}
 .sgruss{font-size:13px;color:var(--grau);letter-spacing:.4px;text-transform:uppercase}
@@ -144,15 +145,15 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 body.vonstart .kopf .mitte,body.vonstart .summe,body.vonstart .suche,body.vonstart #liste{animation:auftauchen .5s cubic-bezier(.2,.8,.2,1) both}
 body.vonstart .summe{animation-delay:.05s}body.vonstart .suche{animation-delay:.1s}body.vonstart #liste{animation-delay:.15s}
 @keyframes auftauchen{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
-.blatt.offen .innen{animation:blattrein .42s cubic-bezier(.16,1,.3,1)}
-.blatt.zugeht .innen{animation:blattraus .34s cubic-bezier(.4,0,.6,1) forwards}
+.blatt.offen .innen{animation:blattrein .5s cubic-bezier(.2,.8,.2,1)}
+.blatt.zugeht .innen{animation:blattraus .3s cubic-bezier(.4,0,.2,1) forwards}
 .blatt.zugeht{background:transparent;transition:background .3s}
-@keyframes blattraus{to{transform:translateX(100%)}}
-.blatt .innen{box-shadow:-12px 0 40px rgba(0,0,0,.45)}
-@keyframes blattrein{from{transform:translateX(100%)}to{transform:none}}
+@keyframes blattraus{to{transform:scale(.92) translateY(10px);opacity:0}}
+
+@keyframes blattrein{from{transform:translateY(14px) scale(.98);opacity:0}to{transform:none;opacity:1}}
 h1 .heim{display:inline-flex;align-items:center;gap:5px;color:var(--akz);cursor:pointer}
 h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-.geistseite{position:absolute;left:0;width:100%;padding:calc(env(safe-area-inset-top) + 10px) 16px 0;pointer-events:none;z-index:1;will-change:transform}
+.geistseite{position:absolute;left:0;visibility:hidden;width:100%;padding:calc(env(safe-area-inset-top) + 10px) 16px 0;pointer-events:none;z-index:1;will-change:transform}
 .tlinks{display:flex;align-items:center;gap:12px;min-width:0}
 .monatzeile{display:flex;align-items:center;justify-content:center;gap:10px}
 .monatzeile .wh{color:var(--grau);opacity:.45;font-size:20px;line-height:1}
@@ -262,7 +263,7 @@ h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.47';
+var VERSION = '1.48';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -421,7 +422,8 @@ function monatsEintraege(j, m) {
   return daten.eintraege.filter(function (x) { return x.datum.slice(0, 7) === p; }).sort(function (a, b) { return a.datum < b.datum ? -1 : 1; });
 }
 
-function zeichne() {
+function zeichne() { zeichneEcht(); if (!geistBau && typeof geisterSpaeter === 'function') geisterSpaeter(); }
+function zeichneEcht() {
   $('monat').textContent = MONATE[ansicht.m] + ' ' + ansicht.j;
   var ls = monatsEintraege(ansicht.j, ansicht.m), sum = 0, verpf = 0, html = '';
   ls.forEach(function (x) {
@@ -649,7 +651,13 @@ $('plus').onclick = function () {
   oeffne(neuerEintrag(d), true);
 };
 function monatSchritt(n) { ansicht.m += n; if (ansicht.m < 0) { ansicht.m = 11; ansicht.j--; } if (ansicht.m > 11) { ansicht.m = 0; ansicht.j++; } zeichne(); }
-function blattZu(bl) { if (!bl || !bl.classList.contains('offen') || bl.classList.contains('zugeht')) return; bl.classList.add('zugeht'); setTimeout(function () { bl.classList.remove('offen'); bl.classList.remove('zugeht'); }, 300); }
+function blattZu(bl) {
+  if (!bl || !bl.classList.contains('offen') || bl.classList.contains('zugeht')) return;
+  var vs = bl.dataset.vonstart; delete bl.dataset.vonstart;
+  if (vs) document.body.classList.add('zumstart');
+  bl.classList.add('zugeht');
+  setTimeout(function () { bl.classList.remove('offen'); bl.classList.remove('zugeht'); if (vs) startZeigen(true); }, 300);
+}
 [].forEach.call(document.querySelectorAll('.schliessen'), function (b) { b.onclick = function () { blattZu($(b.dataset.zu)); }; });
 [].forEach.call(document.querySelectorAll('.blatt'), function (bl) { bl.addEventListener('click', function (ev) { if (ev.target === bl) blattZu(bl); }); });
 
@@ -779,47 +787,56 @@ function planFuellen(x) {
   return true;
 }
 $('datum').addEventListener('change', function () { if (e && e._neu) { e.feiertag = istFeiertagSN(this.value); formZeichnen(); } if (e && e._neu && !(e.laeden || []).some(function (l) { return (l.zeiten || []).some(function (z) { return z.von || z.bis; }) || l.std; })) { e.datum = this.value; if (planFuellen(e)) { formZeichnen(); toast('Aus dem Einsatzplan vorausgefüllt'); } } });
-// Monate wischen wie Seiten blättern: der Nachbarmonat liegt direkt daneben und schiebt sich mit dem Finger herein
-(function () {
-  var sx = 0, sy = 0, lx = 0, lt = 0, v = 0, an = false, richtung = 0, laeuft = false, geist = { '-1': null, '1': null };
-  function teile() { return [document.querySelector('.kopf .mitte'), document.querySelector('.summe'), document.querySelector('.suche'), $('liste')]; }
-  function baueGeist(n) {
-    var alt = { j: ansicht.j, m: ansicht.m };
+// Monate wischen wie Seiten blättern. Die Nachbarmonate werden VOR dem Wischen im Hintergrund gebaut
+// (nicht während der Finger liegt – sonst verliert das iPhone die Berührung, wenn die Karte darunter neu gezeichnet wird).
+var geist = { '-1': null, '1': null }, geistBau = false;
+function geisterBauen() {
+  if (geistBau) return; geistBau = true;
+  ['-1', '1'].forEach(function (k) {
+    var n = +k, alt = { j: ansicht.j, m: ansicht.m };
     ansicht.m += n; if (ansicht.m < 0) { ansicht.m = 11; ansicht.j--; } if (ansicht.m > 11) { ansicht.m = 0; ansicht.j++; }
-    zeichne();
+    zeichneEcht();
     var g = document.createElement('div'); g.className = 'geistseite';
-    var k = document.querySelector('.kopf').cloneNode(true); [].forEach.call(k.querySelectorAll('.festpfeil'), function (x) { x.remove(); });
-    g.appendChild(k); ['.summe', '.suche', '#liste'].forEach(function (s) { g.appendChild(document.querySelector(s).cloneNode(true)); });
+    var kp = document.querySelector('.kopf').cloneNode(true); [].forEach.call(kp.querySelectorAll('.festpfeil'), function (x) { x.remove(); });
+    g.appendChild(kp); ['.summe', '.suche', '#liste'].forEach(function (s) { g.appendChild(document.querySelector(s).cloneNode(true)); });
     [].forEach.call(g.querySelectorAll('[id]'), function (x) { x.removeAttribute('id'); });
-    g.style.top = '0px';
-    ansicht.j = alt.j; ansicht.m = alt.m; zeichne();
-    document.body.appendChild(g); return g;
-  }
-  function weg() { ['-1', '1'].forEach(function (k) { if (geist[k]) { geist[k].remove(); geist[k] = null; } }); }
+    ansicht.j = alt.j; ansicht.m = alt.m;
+    if (geist[k]) geist[k].remove(); geist[k] = g; document.body.appendChild(g);
+  });
+  zeichneEcht(); geistBau = false;
+}
+var geistTimer = null;
+function geisterSpaeter() { clearTimeout(geistTimer); geistTimer = setTimeout(function () { if (!wischAktiv) geisterBauen(); }, 250); }
+var wischAktiv = false;
+(function () {
+  var sx = 0, sy = 0, lx = 0, lt = 0, v = 0, an = false, richtung = 0, laeuft = false;
+  function teile() { return [document.querySelector('.kopf .mitte'), document.querySelector('.summe'), document.querySelector('.suche'), $('liste')]; }
   function setze(dx, dauer, kurve) {
     var w = window.innerWidth, tr = dauer ? 'transform ' + dauer + 'ms ' + kurve : 'none';
     teile().forEach(function (el) { if (!el) return; el.style.transition = tr; el.style.transform = dx ? 'translate3d(' + dx + 'px,0,0)' : ''; });
-    if (geist['1']) { geist['1'].style.transition = tr; geist['1'].style.transform = 'translate3d(' + (w + dx) + 'px,0,0)'; }
-    if (geist['-1']) { geist['-1'].style.transition = tr; geist['-1'].style.transform = 'translate3d(' + (-w + dx) + 'px,0,0)'; }
+    if (geist['1']) { geist['1'].style.transition = tr; geist['1'].style.transform = 'translate3d(' + (w + dx) + 'px,0,0)'; geist['1'].style.visibility = dx < 0 ? 'visible' : 'hidden'; }
+    if (geist['-1']) { geist['-1'].style.transition = tr; geist['-1'].style.transform = 'translate3d(' + (-w + dx) + 'px,0,0)'; geist['-1'].style.visibility = dx > 0 ? 'visible' : 'hidden'; }
   }
-  document.addEventListener('touchstart', function (ev) { if (laeuft || document.querySelector('.blatt.offen') || !$('start').classList.contains('aus') || ev.touches.length > 1 || $('suche').value || (ev.target.closest && ev.target.closest('input,textarea,select'))) { an = false; return; } an = true; richtung = 0; v = 0; sx = lx = ev.touches[0].clientX; sy = ev.touches[0].clientY; lt = Date.now(); }, { passive: true });
-  document.addEventListener('touchmove', function (ev) {
-    if (!an) return; var x = ev.touches[0].clientX, dx = x - sx, dy = ev.touches[0].clientY - sy, t = Date.now();
-    if (!richtung) { if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; richtung = Math.abs(dx) > Math.abs(dy) * 1.2 ? 1 : 2; if (richtung === 1) { weg(); geist['1'] = baueGeist(1); geist['-1'] = baueGeist(-1); } }
-    if (richtung !== 1) return; if (t > lt) v = (x - lx) / (t - lt); lx = x; lt = t;
-    setze(dx, 0);
-  }, { passive: true });
-  document.addEventListener('touchend', function (ev) {
-    if (!an) return; an = false; if (richtung !== 1) return;
-    var dx = ev.changedTouches[0].clientX - sx, w = window.innerWidth, schnell = Math.abs(v) > .4 && Math.abs(dx) > 25;
-    if (Math.abs(dx) < w * .25 && !schnell) { setze(0, 380, 'cubic-bezier(.16,1,.3,1)'); setTimeout(weg, 400); return; }
+  function ende(dx) {
+    var w = window.innerWidth, schnell = Math.abs(v) > .4 && Math.abs(dx) > 25;
+    if (Math.abs(dx) < w * .25 && !schnell) { setze(0, 380, 'cubic-bezier(.16,1,.3,1)'); setTimeout(function () { wischAktiv = false; }, 400); return; }
     laeuft = true; var vor = dx < 0, rest = Math.max(180, Math.min(380, (w - Math.abs(dx)) / Math.max(Math.abs(v), 1) * 1.2));
     setze(vor ? -w : w, rest, 'cubic-bezier(.2,.7,.3,1)');
     setTimeout(function () {
       teile().forEach(function (el) { if (el) { el.style.transition = 'none'; el.style.transform = ''; } });
-      monatSchritt(vor ? 1 : -1); weg(); laeuft = false;
+      ['-1', '1'].forEach(function (k) { if (geist[k]) geist[k].style.visibility = 'hidden'; });
+      wischAktiv = false; laeuft = false; monatSchritt(vor ? 1 : -1);
     }, rest + 20);
+  }
+  document.addEventListener('touchstart', function (ev) { if (laeuft || document.querySelector('.blatt.offen') || !$('start').classList.contains('aus') || ev.touches.length > 1 || $('suche').value || !geist['1'] || (ev.target.closest && ev.target.closest('input,textarea,select'))) { an = false; return; } an = true; richtung = 0; v = 0; sx = lx = ev.touches[0].clientX; sy = ev.touches[0].clientY; lt = Date.now(); }, { passive: true });
+  document.addEventListener('touchmove', function (ev) {
+    if (!an) return; var x = ev.touches[0].clientX, dx = x - sx, dy = ev.touches[0].clientY - sy, t = Date.now();
+    if (!richtung) { if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; richtung = Math.abs(dx) > Math.abs(dy) * 1.2 ? 1 : 2; if (richtung === 1) wischAktiv = true; }
+    if (richtung !== 1) return; if (t > lt) v = (x - lx) / (t - lt); lx = x; lt = t;
+    setze(dx, 0);
   }, { passive: true });
+  document.addEventListener('touchend', function (ev) { if (!an) return; an = false; if (richtung !== 1) return; ende(ev.changedTouches[0].clientX - sx); }, { passive: true });
+  document.addEventListener('touchcancel', function () { if (!an) return; an = false; if (richtung !== 1) return; ende(lx - sx); }, { passive: true });
 })();
 // Suche über alle Monate
 function sucheZeichnen() {
@@ -910,19 +927,24 @@ function startWeg() {
   setTimeout(function () { s.classList.add('aus'); }, 400);
   setTimeout(function () { document.body.classList.remove('vonstart'); }, 800);
 }
-function startZeigen() {
+function startZeigen(sofort) {
   var s = $('start'); document.body.classList.add('zumstart');
   setTimeout(function () {
     startZeichnen(); s.classList.add('klein'); s.classList.remove('aus'); void s.offsetWidth; s.classList.remove('weg'); s.classList.remove('klein'); s.scrollTop = 0;
-    setTimeout(function () { document.body.classList.remove('zumstart'); }, 450);
-  }, 230);
+    setTimeout(function () { document.body.classList.remove('zumstart'); document.body.classList.remove('versteckt'); }, 450);
+  }, sofort ? 0 : 230);
 }
 function startZiel(z) {
-  if (z === 'stunden') { var d = new Date(); ansicht.j = d.getFullYear(); ansicht.m = d.getMonth(); zeichne(); window.scrollTo(0, 0); startWeg(); }
+  if (z === 'stunden') { document.body.classList.remove('versteckt'); var d = new Date(); ansicht.j = d.getFullYear(); ansicht.m = d.getMonth(); zeichne(); window.scrollTo(0, 0); startWeg(); }
   else if (z === 'heute') { var hi = iso2(new Date()), eh = daten.eintraege.find(function (x) { return x.datum === hi; }); startWeg(); setTimeout(function () { oeffne(eh || neuerEintrag(hi), !eh); }, 250); }
-  else if (z === 'kosten') { fixZeichnen(); $('blattF').classList.add('offen'); }
-  else if (z === 'nachweis') $('nwknopf').onclick();
-  else if (z === 'jahr') { jahrZeichnen(); $('blattJ').classList.add('offen'); }
+  else {
+    var id = { kosten: 'blattF', nachweis: 'blattN', jahr: 'blattJ' }[z]; if (!id) return;
+    var s = $('start'); s.classList.add('weg'); setTimeout(function () { s.classList.add('aus'); }, 400);
+    $(id).dataset.vonstart = '1'; document.body.classList.add('versteckt');
+    if (z === 'kosten') { fixZeichnen(); $('blattF').classList.add('offen'); }
+    else if (z === 'nachweis') $('nwknopf').onclick();
+    else { jahrZeichnen(); $('blattJ').classList.add('offen'); }
+  }
 }
 $('zurStart').onclick = function () { startZeigen(); };
 
