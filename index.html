@@ -232,6 +232,16 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .jvchips button:active{transform:scale(.95);background:rgba(255,255,255,.18)}
 .jvein{background:linear-gradient(transparent,rgba(12,12,12,.9) 35%)!important}
 .jvk{padding-bottom:180px!important}
+.dw{transition:opacity .35s,filter .35s}.verdeckt .dw{opacity:.0;filter:blur(6px)}
+.dpkt{position:absolute;opacity:0;transition:opacity .35s;letter-spacing:3px;color:var(--grau)}.verdeckt .dpkt{opacity:1}
+.dbox{position:relative}
+.dplus{color:var(--ok)}.dminus{color:var(--rot)}.verdeckt .dplus,.verdeckt .dminus{color:var(--grau)}
+.dlinie{display:block;width:100%;height:46px;margin-top:8px}.dlinie path{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:stroke .4s}
+.dlinie .ref{stroke:rgba(255,255,255,.18);stroke-dasharray:3 4;stroke-width:1}
+.dlinie path.l,.dlinie .ref{transition:opacity .45s}.dlinie path.f{stroke:#777;opacity:0;transition:opacity .45s}.verdeckt .dlinie path.l,.verdeckt .dlinie .ref{opacity:0}.verdeckt .dlinie path.f{opacity:1}
+.dgross{font-size:40px;font-weight:800;letter-spacing:-1px;margin:16px 0 2px}
+.dheute{font-size:16px;font-weight:600}
+.dlinie.gross{height:180px;margin-top:22px}
 .welle{position:absolute;border-radius:50%;background:rgba(255,255,255,.25);transform:scale(0);animation:welle .55s ease-out forwards;pointer-events:none}
 @keyframes welle{to{transform:scale(4);opacity:0}}
 body.vonstart .kopf .mitte,body.vonstart .summe,body.vonstart .suche,body.vonstart #liste{animation:auftauchen .5s cubic-bezier(.2,.8,.2,1) backwards}
@@ -366,6 +376,10 @@ body.istoffline .sstand{color:#ff6b61}
   <div class="koerper jvk"><div class="jvkern" id="jvOrb"><canvas id="jvCore" aria-hidden="true"></canvas></div><div class="jvstatus" id="jvStatus">Tippe aufs Mikrofon oder schreib etwas</div><div id="jvVerlauf"></div></div>
   <div class="jvchips" id="jvChips"></div><div class="jvein"><input type="text" id="jvText" placeholder="Frag Jarvis …" autocomplete="off" enterkeyhint="send"><button class="kugel" id="jvMic" aria-label="Sprechen"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button></div>
 </div></div>
+<div class="blatt" id="blattD"><div class="innen">
+  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattD" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Depot</b></div><button class="kugel" id="dAuge" aria-label="Beträge zeigen"></button></div>
+  <div class="koerper" id="dKoerper"></div>
+</div></div>
 <div class="blatt" id="blattN"><div class="innen">
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattN" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b id="nwTitel">Arbeitsnachweis</b></div><div style="display:flex;gap:8px"><button class="kugel" id="nwpdf" aria-label="PDF erstellen"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button></div></div>
   <div class="koerper" id="nwKoerper"></div>
@@ -404,7 +418,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.84';
+var VERSION = '1.85';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -541,7 +555,7 @@ function sync() {
       if (r.status === 404 || r.status === 403) throw new Error('Schlüssel darf nur lesen. Contents auf „Read and write“ stellen');
       if (!r.ok) throw new Error('Hochladen ' + r.status);
     });
-  }).then(function () { return fahrtenHolen(kopf); }).then(function () { fahrtenAuto(); return nachweisHolen(kopf); }).then(function () { return fixkostenHolen(kopf); }).then(function () { return notizenSync(kopf); }).then(function () { return gbSync(kopf); }).then(function () {
+  }).then(function () { return fahrtenHolen(kopf); }).then(function () { fahrtenAuto(); return nachweisHolen(kopf); }).then(function () { return fixkostenHolen(kopf); }).then(function () { return notizenSync(kopf); }).then(function () { return gbSync(kopf); }).then(function () { return depotHolen(kopf); }).then(function () {
     offlineZeigen(false); daten.letzterAbgleich = Date.now(); sichern(true); standPruefen(); if ($('sstand')) $('sstand').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     syncLaeuft = false; syncAnzeige('☁ abgeglichen ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
   }).catch(function (x) {
@@ -1125,7 +1139,7 @@ function startZeichnen(still) {
   var k0 = function (ziel, ic, farbe, titel, wert, unter, extra, breit, delay) {
     return '<div class="kachel rein' + (breit ? ' breit' : '') + '" data-ziel="' + ziel + '" style="animation-delay:' + delay + 's"><div class="glanz" style="background:' + farbe + '"></div><span class="pfeil">›</span><div class="ic" style="background:' + farbe + '">' + ic + '</div><div><div class="t">' + titel + '</div><div class="w">' + wert + '</div><div class="u">' + unter + '</div>' + (extra || '') + '</div></div>';
   };
-  var kk = {}, kdef = ['stunden', 'kosten', 'nachweis', 'jahr', 'urlaub', 'notizen', 'geburtstage'];
+  var kk = {}, kdef = ['stunden', 'kosten', 'nachweis', 'jahr', 'urlaub', 'notizen', 'geburtstage', 'depot'];
   var k = function (ziel, ic, farbe, titel, wert, unter, extra, breit) { kk[ziel] = function (delay) { return k0(ziel, ic, farbe, titel, wert, unter, extra, breit, delay); }; };
   k('stunden', IC.uhr, 'linear-gradient(135deg,#b4b4b4,#737373)', 'Stunden ' + MONATE[d.getMonth()], z(std.s), std.n + (std.n === 1 ? ' Tag' : ' Tage') + ' · ≈ ' + euro(std.s * lohn) + ' brutto<br>≈ ' + euro(netto(std.s * lohn)) + ' netto', '', false, .12);
   k('kosten', IC.geld, 'linear-gradient(135deg,#b0b0b0,#5a5a5a)', 'Laufende Kosten', f ? euro(fk) : '–', f ? 'pro Monat · ' + nfk + ' Posten' + (naechste ? '<br>nächste: ' + esc(naechste.p.name.split(' (')[0]) + ' am ' + naechste.p.tag + '.' : '') : 'noch nicht geladen', '', false, .18);
@@ -1137,6 +1151,8 @@ function startZeichnen(still) {
   k('notizen', IC.notiz, 'linear-gradient(135deg,#9a9a9a,#5c5c5c)', 'Notizen', no.length ? no.length + ' offen' : 'Keine', no.length ? esc(no[0].text.split('\n')[0]).slice(0, 70) + (no.length > 1 ? '<br>' + esc(no[1].text.split('\n')[0]).slice(0, 70) : '') : 'Tippen, um etwas aufzuschreiben', '', false);
   var gbl = gbSortiert(), g0 = gbl[0];
   k('geburtstage', IC.torte, 'linear-gradient(135deg,#9c9c9c,#5a5a5a)', 'Geburtstage', g0 ? (g0.tage === 0 ? 'Heute!' : g0.tage === 1 ? 'Morgen' : 'in ' + g0.tage + ' Tagen') : 'Keine', g0 ? esc(g0.x.name) + (g0.alter ? ' wird ' + g0.alter : '') + ' · ' + g0.txt + (gbl[1] ? '<br>danach ' + esc(gbl[1].x.name) + ' · ' + gbl[1].txt : '') : 'Tippen, um Geburtstage einzutragen', '', false);
+  var dp = daten.depot, dzu = !depotSicht;
+  k('depot', IC.balken.replace('M4 20V10M10 20V4M16 20v-7M22 20H2', 'M3 17l5-5 4 3 8-8M15 7h5v5'), 'linear-gradient(135deg,#bdbdbd,#5e5e5e)', 'Depot', dp ? '<span class="dbox' + (dzu ? ' verdeckt' : '') + '"><span class="dpkt">••••••</span><span class="dw">' + euroK(dp.gesamt) + '</span></span>' : '–', dp ? '<span class="dbox' + (dzu ? ' verdeckt' : '') + '" style="display:block"><span class="dpkt">•••</span><span class="dw ' + (dp.heute_eur >= 0 ? 'dplus' : 'dminus') + '">' + (dp.heute_eur >= 0 ? '+' : '') + euroK(dp.heute_eur) + ' · ' + (dp.heute_pct >= 0 ? '+' : '') + String(dp.heute_pct).replace('.', ',') + ' % heute</span>' + depotLinie(dp, dzu, false) + '</span>' : 'kommt vom Mac, sobald er an ist', '', false);
   var kr = kachelReihe(kdef); kr.forEach(function (z, i) { h += kk[z](.12 + i * .06).replace('class="kachel rein', 'class="kachel rein' + (kr.length % 2 && i === kr.length - 1 ? ' breit' : '')); });
   h += '</div><div class="ordtipp">Kachel ziehen zum Verschieben</div><button class="ordfertig" id="ordfertig">Fertig</button>' + '<button class="jvfab" id="jvFab" aria-label="Jarvis"><i></i><b></b></button>';
   $('start').innerHTML = '<div class="ptr" id="ptr"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>' + h;
@@ -1229,11 +1245,12 @@ function startZiel(z) {
   if (z === 'stunden') { document.body.classList.remove('versteckt'); var d = new Date(); ansicht.j = d.getFullYear(); ansicht.m = d.getMonth(); zeichne(); window.scrollTo(0, 0); startWeg(); }
   else if (z === 'heute') { var hi = iso2(new Date()), eh = daten.eintraege.find(function (x) { return x.datum === hi; }); startWeg(); setTimeout(function () { oeffne(eh || neuerEintrag(hi), !eh); }, 250); }
   else {
-    var id = { kosten: 'blattF', nachweis: 'blattN', jahr: 'blattJ', notizen: 'blattNo', urlaub: 'blattU', geburtstage: 'blattG', jarvis: 'blattJv' }[z]; if (!id) return;
+    var id = { kosten: 'blattF', nachweis: 'blattN', jahr: 'blattJ', notizen: 'blattNo', urlaub: 'blattU', geburtstage: 'blattG', jarvis: 'blattJv', depot: 'blattD' }[z]; if (!id) return;
     var s = $('start'); s.classList.add('oben'); void s.offsetWidth; s.classList.add('weg'); setTimeout(function () { s.classList.add('aus'); s.classList.remove('oben'); }, 420);
     $(id).dataset.vonstart = '1'; document.body.classList.add('versteckt');
     if (z === 'kosten') { fixZeichnen(); $('blattF').classList.add('offen'); }
     else if (z === 'jarvis') { jvOeffnen(); }
+    else if (z === 'depot') { depotZeichnen(); $('blattD').classList.add('offen'); }
     else if (z === 'geburtstage') { gbZeichnen(); $('blattG').classList.add('offen'); }
     else if (z === 'urlaub') { urlaubZeichnen(); $('blattU').classList.add('offen'); }
     else if (z === 'notizen') { notizenZeichnen(); $('blattNo').classList.add('offen'); }
@@ -1644,6 +1661,36 @@ $('jvMic').onclick = function () {
   e.onerror = function (ev) { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { toast('Mikrofon nicht erlaubt – nutze das Diktier-Mikrofon der Tastatur'); $('jvText').focus(); } };
   e.onend = function () { jv.erk = null; mic.classList.remove('an'); if (letzt.trim()) jvSenden(letzt); else if (!jv.laeuft) jvZustand('schlaf', 'Nichts gehört. Nochmal tippen.'); };
   try { e.start(); } catch (x) { jv.erk = null; mic.classList.remove('an'); $('jvText').focus(); }
+};
+// ---------- Depot (depot.json im Daten-Repo, schreibt der Mac alle 30 Min.; Beträge wie im Dashboard erst über das Auge sichtbar) ----------
+var GHD = GH.replace('daten.json', 'depot.json'), depotSicht = false, AUGE_ZU = '<svg viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.1 6.1A17 17 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.9-2"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>', AUGE_AUF = '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+function euroK(n) { return (Math.round(n)).toLocaleString('de-DE') + ' €'; }
+function depotHolen(kopf) {
+  return fetch(GHD + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+    if (!j) return; var d = JSON.parse(b64dec(j.content) || '{}'); if (!d || d.gesamt == null) return;
+    var neu = JSON.stringify(d) !== JSON.stringify(daten.depot); daten.depot = d; sichern(true);
+    if (neu) { if (!$('start').classList.contains('aus')) startZeichnen(true); if ($('blattD').classList.contains('offen')) depotZeichnen(); }
+  }).catch(function () {});
+}
+function depotLinie(d, zu, gross) {
+  var l = d.linie || []; if (l.length < 2) return '';
+  var W = 300, H = gross ? 180 : 46, mn = Math.min.apply(null, l.concat([d.ref])), mx = Math.max.apply(null, l.concat([d.ref])), sp = (mx - mn) || 1;
+  var y = function (v) { return (H - 4 - (v - mn) / sp * (H - 8)).toFixed(1); }, x = function (i) { return (i / (l.length - 1) * W).toFixed(1); };
+  var pf = l.map(function (v, i) { return (i ? 'L' : 'M') + x(i) + ' ' + y(v); }).join('');
+  return '<svg class="dlinie' + (gross ? ' gross' : '') + '" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none"><path class="ref" d="M0 ' + y(d.ref) + 'H' + W + '"/><path class="l" d="' + pf + '" style="stroke:' + (d.heute_eur >= 0 ? 'var(--ok)' : 'var(--rot)') + '" vector-effect="non-scaling-stroke"/><path class="f" d="M0 ' + (H / 2) + 'H' + W + '" vector-effect="non-scaling-stroke"/></svg>';
+}
+function depotZeichnen() {
+  var d = daten.depot, zu = !depotSicht;
+  $('dAuge').innerHTML = zu ? AUGE_ZU : AUGE_AUF;
+  if (!d) { $('dKoerper').innerHTML = '<p class="hinweis">Noch kein Depot-Stand. Er kommt vom Mac, sobald das Dashboard läuft.</p>'; return; }
+  var st = new Date(d.stand), alt = (Date.now() - st) > 3 * 3600e3;
+  $('dKoerper').innerHTML = '<div class="dbox' + (zu ? ' verdeckt' : '') + '" id="dBox"><small class="hinweis">Gesamtvermögen</small><div class="dgross"><span class="dpkt">••••••</span><span class="dw">' + euro(d.gesamt) + '</span></div>' +
+    '<div class="dheute"><span class="dpkt">•••</span><span class="dw ' + (d.heute_eur >= 0 ? 'dplus' : 'dminus') + '">' + (d.heute_eur >= 0 ? '+' : '') + euro(d.heute_eur) + ' (' + (d.heute_pct >= 0 ? '+' : '') + String(d.heute_pct).replace('.', ',') + ' %) heute</span></div>' + depotLinie(d, zu, true) + '</div>' +
+    '<p class="hinweis" style="margin-top:14px">Stand ' + st.toLocaleString('de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr, vom Mac' + (alt ? ' (älter, der Mac ist wohl aus)' : '') + '. Für alles Weitere: Jarvis fragen.</p>';
+}
+$('dAuge').onclick = function () {
+  depotSicht = !depotSicht; var html = depotSicht ? AUGE_AUF : AUGE_ZU; this.innerHTML = html;
+  [].forEach.call(document.querySelectorAll('#dBox, .sgrid [data-ziel=depot] .dbox'), function (x) { x.classList.toggle('verdeckt', !depotSicht); });
 };
 // ---------- Geburtstage (geburtstage.json im Daten-Repo) ----------
 var GHG = GH.replace('daten.json', 'geburtstage.json');
