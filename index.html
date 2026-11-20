@@ -459,7 +459,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.04';
+var VERSION = '2.05';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1409,7 +1409,7 @@ function fixZeichnen() {
     var marke = p.ende ? '<span class="fkmarke">bis ' + mon[+p.ende.slice(5, 7) - 1] + ' ' + p.ende.slice(0, 4) + '</span>' : '';
     var notiz = (p.notiz || '').replace(/,?\s*Jahresvertrag läuft bis [\d.]+/, '').trim();
     return '<div class="fkpos" style="animation-delay:' + (.08 + i * .04) + 's"><div class="ic">' + esc((p.name.match(/[A-Za-zÄÖÜäöü]/) || ['•'])[0].toUpperCase()) + '</div><div class="mi"><b>' + esc(p.name) + marke + '</b><small>' + info + '</small>' + (notiz ? '<em>' + esc(notiz) + '</em>' : '') +
-      '<div class="anteil"><i style="width:' + (x.m / alle[0].m * 100).toFixed(1) + '%;background:' + farbe(i) + '"></i></div></div><div class="re"><b>' + euro(+p.betrag) + '</b><small>' + (p.rhythmus === 'monat' ? Math.round(x.m / ges * 100) + ' %' : '≈ ' + euro(x.m) + '/Mon.') + '</small></div></div>';
+      '</div><div class="re"><b>' + euro(+p.betrag) + '</b><small>' + (p.rhythmus === 'monat' ? Math.round(x.m / ges * 100) + ' %' : '≈ ' + euro(x.m) + '/Mon.') + '</small></div></div>';
   };
   var ab = alle.filter(function (x) { return !x.sp; }), spl = alle.filter(function (x) { return x.sp; });
   h += '<label class="l">Abos & Verträge</label><div class="fkliste">' + ab.map(function (x) { return zeile(x, alle.indexOf(x)); }).join('') + '</div>';
