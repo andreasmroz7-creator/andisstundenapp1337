@@ -142,6 +142,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .kachel .pfeil{position:absolute;right:14px;top:16px;color:var(--grau);font-size:18px}
 .kachel.sheute{background:linear-gradient(135deg,rgba(90,200,250,.30),rgba(120,90,250,.22));border-color:rgba(255,255,255,.18);padding:16px 18px;justify-content:flex-start}
 .rein{animation:rein .55s cubic-bezier(.2,.8,.2,1) backwards}
+#start.still .rein{animation:none}
 @keyframes rein{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
 .welle{position:absolute;border-radius:50%;background:rgba(255,255,255,.25);transform:scale(0);animation:welle .55s ease-out forwards;pointer-events:none}
 @keyframes welle{to{transform:scale(4);opacity:0}}
@@ -162,11 +163,9 @@ h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2
 .sstand:before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gruen);margin-right:6px;vertical-align:middle}
 .mitfahrt{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:8px;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--rand);color:var(--txt);font-size:13px}
 .mitfahrt{margin-top:12px}.mitfahrt span small{display:block;color:var(--grau);font-size:11px;margin-top:2px}.mitfahrt b{font-size:19px;white-space:nowrap}
-#splash{position:fixed;inset:0;z-index:100000;background:radial-gradient(500px 420px at 50% 42%,rgba(60,70,160,.45),transparent 70%),#0b111c;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .45s ease,transform .45s ease}
-#splash img{width:96px;height:96px;border-radius:22px;box-shadow:0 12px 40px rgba(0,0,0,.5);animation:splashpuls .9s cubic-bezier(.2,.8,.2,1) both}
-#splash div{font-weight:700;font-size:20px;letter-spacing:.2px;color:#ebf0fa;animation:auftauchen .6s .15s cubic-bezier(.2,.8,.2,1) both}
-#splash.weg{opacity:0;transform:scale(1.06);pointer-events:none}
-@keyframes splashpuls{from{transform:scale(.7);opacity:0}to{transform:none;opacity:1}}
+#splash{position:fixed;inset:0;z-index:100000;background:#0b111c;transition:opacity .4s ease;pointer-events:none}
+#splash img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#splash.weg{opacity:0}
 #offline{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 8px);transform:translate(-50%,-80px);z-index:9999;padding:7px 14px;border-radius:999px;font-size:13px;font-weight:600;color:#fff;background:rgba(255,159,10,.92);box-shadow:0 6px 20px rgba(0,0,0,.35);transition:transform .4s cubic-bezier(.2,.8,.2,1);white-space:nowrap;pointer-events:none}
 #offline.an{transform:translate(-50%,0)}
 .kwzeile{display:flex;justify-content:space-between;align-items:baseline;margin:16px 6px 8px;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--grau)}
@@ -199,7 +198,7 @@ h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2
 </div>
 <div class="suche"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="suche" placeholder="Ort oder Filiale suchen" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="weg" id="sucheWeg" aria-label="Suche leeren">×</button></div>
 <div id="liste"></div>
-<div id="splash"><img src="icon-512.png" alt=""><div>Stunden</div></div>
+<div id="splash"><img src="splash-1206x2622.png" alt=""></div>
 <div id="offline">Offline · wird später abgeglichen</div>
 <div id="start"></div>
 <div id="sperre"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><div style="font-size:20px;font-weight:700">Stunden gesperrt</div><button class="btn" id="entsperren" style="max-width:280px">Mit Face ID entsperren</button><div class="hinweis" id="sperreInfo"></div></div>
@@ -292,7 +291,7 @@ h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.54';
+var VERSION = '1.55';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -970,7 +969,8 @@ var IC = {
   balken: '<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>'
 };
 function startTag() { var s = 0, n = 0, m = iso2(new Date()).slice(0, 7); daten.eintraege.forEach(function (x) { if (x.datum.slice(0, 7) === m) { s += R.berechne(x).gesamt; n++; } }); return { s: s, n: n }; }
-function startZeichnen() {
+function startZeichnen(still) {
+  $('start').classList.toggle('still', !!still);
   var d = new Date(), hi = iso2(d), std = startTag(), lohn = +(daten.einst.lohn || 16);
   var f = daten.fixkosten, fk = 0, nfk = 0, naechste = null;
   if (f) { (f.posten || []).concat(f.sparplaene || []).forEach(function (p) { if (p.ende && p.ende < hi) return; fk += proMonat(p); nfk++; if (p.tag && p.rhythmus === 'monat') { var t = p.tag >= d.getDate() ? p.tag - d.getDate() : p.tag + 31 - d.getDate(); if (!naechste || t < naechste.t) naechste = { t: t, p: p }; } }); }
@@ -1039,7 +1039,7 @@ $('zurStart').onclick = function () { startZeigen(); };
     if (zug < 70) { p.style.transition = 'transform .3s,opacity .3s'; p.style.transform = 'translate(-50%,0)'; p.style.opacity = 0; inhalt(0, true); return; }
     inhalt(52, true);
     laedt = true; p.style.transition = 'transform .3s'; p.style.transform = 'translate(-50%,56px)'; p.classList.add('dreht');
-    var fertig = function () { laedt = false; inhalt(0, true); setTimeout(startZeichnen, 350); if (!daten.einst.token) toast('Kein GitHub-Schlüssel in den Einstellungen'); else toast('Aktualisiert'); };
+    var fertig = function () { laedt = false; inhalt(0, true); setTimeout(function () { startZeichnen(true); }, 350); if (!daten.einst.token) toast('Kein GitHub-Schlüssel in den Einstellungen'); else toast('Aktualisiert'); };
     Promise.race([sync(), new Promise(function (r) { setTimeout(r, 8000); })]).then(fertig, fertig);
   }, { passive: true });
 })();
@@ -1203,12 +1203,10 @@ $('nwpdf').onclick = function () {
 new MutationObserver(function () {
   document.documentElement.classList.toggle('blattoffen', !!document.querySelector('.blatt.offen'));
 }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
-(function () { var s = $('splash'); setTimeout(function () { s.classList.add('weg'); setTimeout(function () { s.remove(); }, 500); }, 650); })();
+(function () { var s = $('splash'); setTimeout(function () { startZeichnen(); s.classList.add('weg'); setTimeout(function () { s.remove(); }, 450); }, 350); })();
 function offlineZeigen(an) { $('offline').classList.toggle('an', !!an); }
-window.addEventListener('offline', function () { offlineZeigen(true); });
 window.addEventListener('online', function () { offlineZeigen(false); sync(); });
-if (navigator.onLine === false) offlineZeigen(true);
-sperreZeigen(); zeichne(); startZeichnen(); sync().then(function () { if (!$('start').classList.contains('aus')) startZeichnen(); });
+sperreZeigen(); zeichne(); startZeichnen(true); sync().then(function () { if (!$('start').classList.contains('aus')) startZeichnen(true); });
 document.addEventListener('visibilitychange', function () { if (!document.hidden) sync(); });
 setInterval(function () { if (!document.hidden) sync(); }, 60000);
 if ('serviceWorker' in navigator) {
