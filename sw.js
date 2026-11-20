@@ -1,5 +1,5 @@
 // Offline-Speicher. Bei jeder neuen Version die Nummer hochzählen.
-var CACHE = 'stunden-1.72';
+var CACHE = 'stunden-1.73';
 var DATEIEN = ['./', 'index.html', 'rechnen.js', 'pdf.js', 'manifest.webmanifest', 'cockpit-180.png', 'cockpit-192.png', 'cockpit-512.png', 'cockpit-start.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) {

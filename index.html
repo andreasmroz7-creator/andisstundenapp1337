@@ -305,7 +305,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.72';
+var VERSION = '1.73';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -397,6 +397,25 @@ function fahrtenUebernehmen(x) {
   if (geaendert) x.fahrMin = (x.fahrHin || 0) + (x.fahrZur || 0);
   return geaendert;
 }
+// Nach jedem Abgleich: fertige Fahrten automatisch in die Einträge der letzten Tage übernehmen
+// (Rückfahrt erst, wenn sie nach der letzten Arbeitszeit begonnen hat und abgeschlossen ist)
+function fahrtenAuto() {
+  var ev = daten.fahrtEvents || [], tage = {}, geaendert = 0;
+  ev.forEach(function (x) { tage[x.datum] = 1; });
+  daten.eintraege.forEach(function (x) {
+    if (!tage[x.datum] || (daten.geloescht || {})[x.id] || ($('blattE').classList.contains('offen') && e && e.id === x.id)) return;
+    var fa = fahrtenTag(x.datum); if (!fa.length) return;
+    var letzteArbeit = 0; (x.laeden || []).forEach(function (l) { (l.zeiten || []).forEach(function (z) { var b = R.zeitZuMin(z.bis); if (b != null && b > letzteArbeit) letzteArbeit = b; }); });
+    var tagEv = ev.filter(function (y) { return y.datum === x.datum; }).sort(function (a, b) { return a.min - b.min; });
+    var offen = tagEv.length && tagEv[tagEv.length - 1].art === 'an';
+    var vorher = JSON.stringify([x.hinZeit, x.zurZeit, x.zwZeit]);
+    if (fa.length >= 2 && (offen || !letzteArbeit || fa[fa.length - 1].von < letzteArbeit - 10)) { if (!x.hinZeit) { var f0 = fa[0]; x.hinZeit = mz(f0.von) + '–' + mz(f0.bis); x.fahrHin = f0.bis - f0.von; x.fahrMin = (x.fahrHin || 0) + (x.fahrZur || 0); } }
+    else fahrtenUebernehmen(x);
+    if (JSON.stringify([x.hinZeit, x.zurZeit, x.zwZeit]) !== vorher) { x.geaendert = Date.now(); geaendert++; }
+  });
+  if (geaendert) { sichern(); zeichne(); if (!$('start').classList.contains('aus')) startZeichnen(true); }
+  return geaendert;
+}
 function syncAnzeige(t, fehler) { var el = $('sync'); el.textContent = t; el.style.color = fehler ? 'var(--rot)' : ''; }
 function sync() {
   var tok = daten.einst.token; if (!tok) { syncAnzeige(''); return Promise.resolve(); }
@@ -423,7 +442,7 @@ function sync() {
       if (r.status === 404 || r.status === 403) throw new Error('Schlüssel darf nur lesen. Contents auf „Read and write“ stellen');
       if (!r.ok) throw new Error('Hochladen ' + r.status);
     });
-  }).then(function () { return fahrtenHolen(kopf); }).then(function () { return nachweisHolen(kopf); }).then(function () { return fixkostenHolen(kopf); }).then(function () {
+  }).then(function () { return fahrtenHolen(kopf); }).then(function () { fahrtenAuto(); return nachweisHolen(kopf); }).then(function () { return fixkostenHolen(kopf); }).then(function () {
     offlineZeigen(false); daten.letzterAbgleich = Date.now(); sichern(true); standPruefen(); if ($('sstand')) $('sstand').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     syncLaeuft = false; syncAnzeige('☁ abgeglichen ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
   }).catch(function (x) {
