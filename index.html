@@ -186,7 +186,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .gb .bt{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.gb.edit{display:block;cursor:default}.gb.edit input{margin-top:8px}
 .jvk{display:flex;flex-direction:column;align-items:center;padding-bottom:110px!important}
 .jvplatz{width:100%;height:300px;margin:max(0px,calc(53vh - 270px)) auto -10px;flex:none}
-.jvkern{position:fixed;left:0;top:0;width:calc(100vw - 32px);height:300px;z-index:11;pointer-events:none;transform-origin:50% 50%;will-change:transform;transition:opacity .3s ease}.jvkern canvas{width:100%;height:100%;display:block;transition:filter .7s ease}.jvkern.klein canvas{filter:brightness(1.45)}.jvkern.weg{opacity:0}
+.jvkern{position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:11;pointer-events:none;transform-origin:50% 50%;will-change:transform;transition:opacity .3s ease}.jvkern canvas{width:100%;height:100%;display:block;transition:filter .7s ease}.jvkern.klein canvas{filter:brightness(1.45)}.jvkern.weg{opacity:0}
 #jvFang{position:fixed;inset:0;z-index:10;visibility:hidden;opacity:0;background:rgba(0,0,0,.12);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);transition:opacity .55s ease,visibility 0s linear .55s;-webkit-tap-highlight-color:transparent}body.jvgross #jvFang{visibility:visible;opacity:1;transition:opacity .55s ease,visibility 0s}
 .jvunter{position:fixed;left:28px;right:28px;z-index:12;text-align:center;font-size:16px;line-height:1.4;color:#eaeaea;text-shadow:0 1px 10px #000,0 0 3px #000;opacity:0;transform:translateY(6px);transition:opacity .45s ease,transform .45s ease;pointer-events:none}
 .jvunter.an{opacity:1;transform:none}.jvunter small{display:block;color:#9a9a9a;font-size:13px;margin-bottom:4px}
@@ -429,7 +429,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.95';
+var VERSION = '1.96';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1357,7 +1357,7 @@ window.jvKernStart=function(){
   let W,H,level=0,target=0,t=0;
   window.setJarvisVoice=v=>{voxT=Math.max(0,Math.min(1,v));voxAt=performance.now()}; /* Lautstärke der Stimme: der Kern pulsiert genau mit der Sprache */
   window.setJarvisLevel=v=>{target=Math.max(0,Math.min(1,v))};
-  function size(){const d=Math.min(devicePixelRatio||1,1.5);W=c.clientWidth;H=c.clientHeight;c.width=W*d;c.height=H*d;x.setTransform(d,0,0,d,0,0)}
+  function size(){const d=Math.min(devicePixelRatio||1,window.__jvDprMax||1.5);W=c.clientWidth;H=c.clientHeight;c.width=W*d;c.height=H*d;x.setTransform(d,0,0,d,0,0)}
   size();addEventListener('resize',()=>{size();try{window.__orbWake&&window.__orbWake()}catch(_){}});
   const calm=matchMedia('(prefers-reduced-motion:reduce)').matches;
   let seed=11;const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646};
@@ -1444,7 +1444,7 @@ window.jvKernStart=function(){
     envS+=(envT-envS)*.09;const env=envS+level*(1-sp);
     /* Bewegungsstärke: wie lebendig die Kugel gerade ist */
     const live=Math.min(1,ls*.3+hr*.55+sp*.8+th*.4+level*.4);
-    const R0=Math.min(W,H)*.32,coh=Math.max(0,Math.min(1,(.28+.72*act-ls*.5-hr*.75-sp*.4)*(1-th*.85))),
+    const R0=Math.min(W,H)*.32*(window.__jvR0f||1),coh=Math.max(0,Math.min(1,(.28+.72*act-ls*.5-hr*.75-sp*.4)*(1-th*.85))),
       R=R0*(1-.14*(1-act)+ls*.16+hr*.4+sp*.3+sp*sp*sp*(.09*wdS-.03)+env*.07),
       Rs=R0*(1-.14*(1-act)+ls*.16+hr*.4+sp*.3), /* Radius ohne Pulsieren: beim Reden bewegt sich nur der Kern im Takt, alles andere bleibt ruhig */
       cx=W/2+Math.sin(t*.55)*R0*.035*live,cy=H/2+Math.cos(t*.47)*R0*.03*live;
@@ -1548,8 +1548,8 @@ var jvMini = { an: false, gross: false, flug: false };
 $('jvFab').onclick = function () { if (window.ordnen && ordnen.an) return; jvOeffnen(); };
 function jvZiel(gross) {
   var o = $('jvOrb'), w = o.offsetWidth, h = o.offsetHeight, r, cx, cy, sk;
-  if (gross) { cx = innerWidth / 2; cy = innerHeight * .56; sk = 1.12; }
-  else { r = $('jvFab').getBoundingClientRect(); cx = r.left + r.width / 2; cy = r.top + r.height / 2; sk = 78 / (Math.min(w, h) * .64); }
+  if (gross) { cx = innerWidth / 2; cy = innerHeight * .56; sk = 1; }
+  else { r = $('jvFab').getBoundingClientRect(); cx = r.left + r.width / 2; cy = r.top + r.height / 2; sk = 78 / (Math.min(w, h) * .64 * (window.__jvR0f || 1)); }
   return 'translate(' + (cx - w / 2).toFixed(1) + 'px,' + (cy - h / 2).toFixed(1) + 'px) scale(' + sk.toFixed(4) + ')';
 }
 function jvKugel(gross, anim) {
@@ -1558,7 +1558,7 @@ function jvKugel(gross, anim) {
   o.style.transform = jvMini.letzt = jvZiel(gross);
 }
 function jvMiniStart() {
-  if (jvMini.an) return; jvMini.an = true; window.__jvDreh = true;
+  if (jvMini.an) return; jvMini.an = true; window.__jvDreh = true; window.__jvDprMax = 3; window.__jvR0f = .82;
   try { jvKernStart(); jv.kern = 1; } catch (x) {}
   jvKugel(false, false);
   addEventListener('resize', function () { if (!jvMini.flug) jvKugel(jvMini.gross, false); });
