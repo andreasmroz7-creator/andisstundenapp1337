@@ -9,7 +9,8 @@
 <meta name="apple-mobile-web-app-title" content="Stunden">
 <meta name="theme-color" content="#0b0f17">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="apple-touch-icon" href="icon-180.png?v=2">
+<link rel="apple-touch-startup-image" href="splash-1206x2622.png" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
 <title>Stunden</title>
 <style>
 :root{--bg:#0b0f17;--karte:rgba(255,255,255,.06);--rand:rgba(255,255,255,.10);--txt:#e8edf5;--grau:#8a94a6;--akz:#5ac8fa;--gruen:#34c759;--rot:#ff453a}
@@ -32,7 +33,7 @@ h1{font-size:15px;font-weight:600;color:var(--grau);margin:0;letter-spacing:.3px
 .plus svg{width:28px;height:28px}
 .festpfeil{position:fixed;top:calc(env(safe-area-inset-top) + 10px);z-index:5;transition:opacity .25s ease,transform .25s ease}
 body.runter .festpfeil:not(#zurStart){opacity:0;transform:translateY(-14px) scale(.85);pointer-events:none}
-#zurStart{z-index:30;box-shadow:0 6px 20px rgba(0,0,0,.45);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);background:radial-gradient(circle at 35% 30%,#4a5468,#262d3b 60%,#1a1f2a)}
+#zurStart{z-index:7;box-shadow:0 6px 20px rgba(0,0,0,.45);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);background:radial-gradient(circle at 35% 30%,#4a5468,#262d3b 60%,#1a1f2a)}
 #zurueck{left:16px}#vor{right:16px}
 .kopf .platz{width:42px;height:42px;flex:none}
 .plus,.festpfeil{background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.22),rgba(60,70,92,.22) 60%,rgba(20,26,38,.28));-webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%);border-color:rgba(255,255,255,.25);box-shadow:inset 0 1px 1px rgba(255,255,255,.3),0 6px 20px rgba(0,0,0,.5)}
@@ -161,6 +162,13 @@ h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2
 .sstand:before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gruen);margin-right:6px;vertical-align:middle}
 .mitfahrt{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:8px;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--rand);color:var(--txt);font-size:13px}
 .mitfahrt{margin-top:12px}.mitfahrt span small{display:block;color:var(--grau);font-size:11px;margin-top:2px}.mitfahrt b{font-size:19px;white-space:nowrap}
+#splash{position:fixed;inset:0;z-index:100000;background:radial-gradient(500px 420px at 50% 42%,rgba(60,70,160,.45),transparent 70%),#0b111c;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .45s ease,transform .45s ease}
+#splash img{width:96px;height:96px;border-radius:22px;box-shadow:0 12px 40px rgba(0,0,0,.5);animation:splashpuls .9s cubic-bezier(.2,.8,.2,1) both}
+#splash div{font-weight:700;font-size:20px;letter-spacing:.2px;color:#ebf0fa;animation:auftauchen .6s .15s cubic-bezier(.2,.8,.2,1) both}
+#splash.weg{opacity:0;transform:scale(1.06);pointer-events:none}
+@keyframes splashpuls{from{transform:scale(.7);opacity:0}to{transform:none;opacity:1}}
+#offline{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 8px);transform:translate(-50%,-80px);z-index:9999;padding:7px 14px;border-radius:999px;font-size:13px;font-weight:600;color:#fff;background:rgba(255,159,10,.92);box-shadow:0 6px 20px rgba(0,0,0,.35);transition:transform .4s cubic-bezier(.2,.8,.2,1);white-space:nowrap;pointer-events:none}
+#offline.an{transform:translate(-50%,0)}
 .kwzeile{display:flex;justify-content:space-between;align-items:baseline;margin:16px 6px 8px;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--grau)}
 .kwzeile:first-child{margin-top:4px}.kwzeile b{font-size:13px;color:var(--txt);letter-spacing:0;text-transform:none;font-weight:650}
 .ptr{position:absolute;left:50%;top:calc(env(safe-area-inset-top) - 30px);width:38px;height:38px;border-radius:50%;opacity:0;transform:translate(-50%,0);display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);border:1px solid var(--rand);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);z-index:3}
@@ -191,6 +199,8 @@ h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2
 </div>
 <div class="suche"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="suche" placeholder="Ort oder Filiale suchen" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="weg" id="sucheWeg" aria-label="Suche leeren">×</button></div>
 <div id="liste"></div>
+<div id="splash"><img src="icon-512.png" alt=""><div>Stunden</div></div>
+<div id="offline">Offline · wird später abgeglichen</div>
 <div id="start"></div>
 <div id="sperre"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><div style="font-size:20px;font-weight:700">Stunden gesperrt</div><button class="btn" id="entsperren" style="max-width:280px">Mit Face ID entsperren</button><div class="hinweis" id="sperreInfo"></div></div>
 <button class="kugel plus" id="plus" aria-label="Stunden hinzufügen"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -282,7 +292,7 @@ h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.53';
+var VERSION = '1.54';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -401,12 +411,12 @@ function sync() {
       if (!r.ok) throw new Error('Hochladen ' + r.status);
     });
   }).then(function () { return fahrtenHolen(kopf); }).then(function () { return nachweisHolen(kopf); }).then(function () { return fixkostenHolen(kopf); }).then(function () {
-    daten.letzterAbgleich = Date.now(); sichern(true); if ($('sstand')) $('sstand').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    offlineZeigen(false); daten.letzterAbgleich = Date.now(); sichern(true); if ($('sstand')) $('sstand').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     syncLaeuft = false; syncAnzeige('☁ abgeglichen ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
   }).catch(function (x) {
     syncLaeuft = false;
     var netz = navigator.onLine === false || x instanceof TypeError || /load failed|failed to fetch|network/i.test(x.message || '');
-    syncAnzeige(netz ? '☁ offline, gleicht später ab' : '☁ Fehler: ' + x.message, !netz);
+    syncAnzeige(netz ? '☁ offline, gleicht später ab' : '☁ Fehler: ' + x.message, !netz); if (netz) offlineZeigen(true);
   });
 }
 function uhr(s) { var m = R.zeitZuMin(s); if (m == null) return String(s || ''); m %= 1440; return Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2); }
@@ -725,9 +735,9 @@ $('sPers').oninput = function () { daten.einst.pers = this.value; sichern(); };
 [].forEach.call(document.querySelectorAll('.sw[data-s]'), function (s) {
   s.onclick = function () { var k = s.dataset.s; daten.einst[k] = !daten.einst[k]; s.classList.toggle('an', daten.einst[k]); sichern(); };
 });
-function teile(name, blob) {
+function teile(name, blob, titel) {
   var f = new File([blob], name, { type: blob.type });
-  if (navigator.canShare && navigator.canShare({ files: [f] })) { navigator.share({ files: [f] }).catch(function () {}); return; }
+  if (navigator.canShare && navigator.canShare({ files: [f] })) { var o = { files: [f] }; if (titel) o.title = titel; navigator.share(o).catch(function () {}); return; }
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
   setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
 }
@@ -810,8 +820,9 @@ $('pdfknopf').onclick = function () {
     y += 12; doc.text(40, y, 'Fahrzeiten automatisch und minutengenau über die Bluetooth-Verbindung zum Fahrzeug erfasst (Beginn und Ende jeder Fahrt).', 8);
   }
   y += 12; doc.text(40, y, 'Zwischenfahrt, Teamleiterzeit, bezahlte Fahrzeit und Verpflegung werden automatisch nach den geltenden Regeln berechnet.', 8);
-  var name = 'Stundennachweis-' + ansicht.j + '-' + ('0' + (ansicht.m + 1)).slice(-2) + '.pdf';
-  teile(name, new Blob([doc.bytes()], { type: 'application/pdf' }));
+  var nm = (daten.einst.name || 'Mroz Andreas').replace(/\s+/g, '-');
+  var name = 'Stundennachweis-' + MONATE[ansicht.m] + '-' + ansicht.j + '-' + nm + '.pdf';
+  teile(name, new Blob([doc.bytes()], { type: 'application/pdf' }), 'Stundennachweis ' + MONATE[ansicht.m] + ' ' + ansicht.j);
 };
 
 // ---------- Komfort (20.11.) ----------
@@ -1186,12 +1197,17 @@ $('nwpdf').onclick = function () {
   [['Tage mit 24 Std. Abwesenheit', s.t24 + ' × 28 € = ' + euro(s.t24 * 28)], ['An- und Abreisetage', s.tAn + ' × 14 € = ' + euro(s.tAn * 14)], ['Eintägig über 8 Std. (nur wenn zutreffend)', s.t8 + ' × 14 € = ' + euro(s.t8 * 14)], ['Vom Arbeitgeber steuerfrei erstattet', euro(s.erh)]].forEach(function (r) { doc.text(40, y, r[0], 9); doc.text(470, y, r[1], 9, false, 'r'); y += 13; });
   y += 8; doc.text(40, y, 'Pauschalen nach § 9 Abs. 4a EStG (2026): 14 € für An- und Abreisetag sowie bei über 8 Std. Abwesenheit, 28 € für Tage mit 24 Std. Abwesenheit. Erhalten: 10 € An-/Abreisetag, 20 € voller Tag.', 7.5);
   y += 11; doc.text(40, y, 'Die Differenz zwischen gesetzlicher Pauschale und steuerfreier Erstattung kann als Werbungskosten angegeben werden. Keine Steuerberatung.', 7.5);
-  teile('Arbeitsnachweis-' + n.jahr + '.pdf', new Blob([doc.bytes()], { type: 'application/pdf' }));
+  teile('Arbeitsnachweis-' + n.jahr + '-' + (daten.einst.name || 'Mroz Andreas').replace(/\s+/g, '-') + '.pdf', new Blob([doc.bytes()], { type: 'application/pdf' }), 'Arbeitsnachweis ' + n.jahr);
 };
 
 new MutationObserver(function () {
   document.documentElement.classList.toggle('blattoffen', !!document.querySelector('.blatt.offen'));
 }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
+(function () { var s = $('splash'); setTimeout(function () { s.classList.add('weg'); setTimeout(function () { s.remove(); }, 500); }, 650); })();
+function offlineZeigen(an) { $('offline').classList.toggle('an', !!an); }
+window.addEventListener('offline', function () { offlineZeigen(true); });
+window.addEventListener('online', function () { offlineZeigen(false); sync(); });
+if (navigator.onLine === false) offlineZeigen(true);
 sperreZeigen(); zeichne(); startZeichnen(); sync().then(function () { if (!$('start').classList.contains('aus')) startZeichnen(); });
 document.addEventListener('visibilitychange', function () { if (!document.hidden) sync(); });
 setInterval(function () { if (!document.hidden) sync(); }, 60000);
