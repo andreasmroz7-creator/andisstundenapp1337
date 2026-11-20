@@ -130,7 +130,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .sheute small{color:rgba(255,255,255,.7);font-size:12px;letter-spacing:.3px;text-transform:uppercase}
 .sheute b{display:block;font-size:19px;margin:3px 0 2px}
 .sheute .zl{font-size:13px;color:rgba(255,255,255,.8)}
-.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.sgrid{position:relative;display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .kachel{position:relative;overflow:hidden;border-radius:22px;padding:15px;min-height:150px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;background:var(--karte);border:1px solid var(--rand);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:0 8px 24px rgba(0,0,0,.28);transition:transform .18s ease,box-shadow .18s ease}
 .kachel:active{transform:scale(.96)}
 .kachel.breit{grid-column:1 / -1;min-height:128px}
@@ -316,7 +316,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.77';
+var VERSION = '1.78';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1065,7 +1065,7 @@ function ordnenAus() {
     var kids = [].slice.call(grid.children), alt = kids.map(function (c) { return c.getBoundingClientRect(); });
     tu();
     kids.forEach(function (c, i) {
-      if (c === el) return; var n = c.getBoundingClientRect(), mx = alt[i].left - n.left, my = alt[i].top - n.top; if (!mx && !my) return;
+      if (c === el) return; c.style.transition = 'none'; c.style.translate = ''; var n = c.getBoundingClientRect(), mx = alt[i].left - n.left, my = alt[i].top - n.top; if (Math.abs(mx) < 1 && Math.abs(my) < 1) return;
       c.style.transition = 'none'; c.style.translate = mx + 'px ' + my + 'px'; void c.offsetWidth;
       c.style.transition = 'translate .3s cubic-bezier(.2,.8,.2,1)'; c.style.translate = '';
     });
@@ -1088,10 +1088,13 @@ function ordnenAus() {
     var grid = el.parentNode;
     dx = p.clientX - x0; dy = p.clientY - y0; setze();
     // Kachel unter dem Finger suchen
-    var ziel = null; [].forEach.call(grid.children, function (c) { if (c === el) return; var r = c.getBoundingClientRect(); if (p.clientX > r.left && p.clientX < r.right && p.clientY > r.top && p.clientY < r.bottom) ziel = c; });
+    // feste Plätze messen (ohne laufende Animation), sonst wird beim Rüberrutschen gleich wieder zurückgetauscht
+    var gr = grid.getBoundingClientRect(), ziel = null;
+    [].forEach.call(grid.children, function (c) { if (c === el) return; var l = gr.left + c.offsetLeft, o = gr.top + c.offsetTop; if (p.clientX > l + 10 && p.clientX < l + c.offsetWidth - 10 && p.clientY > o + 10 && p.clientY < o + c.offsetHeight - 10) ziel = c; });
     if (ziel) {
-      var kids = [].slice.call(grid.children), ie = kids.indexOf(el), iz = kids.indexOf(ziel), r0 = el.getBoundingClientRect();
-      flip(grid, function () { grid.insertBefore(el, ie < iz ? ziel.nextSibling : ziel); });
+      var r0 = el.getBoundingClientRect();
+      // echter Platztausch: nur die zwei Kacheln wechseln, die anderen bleiben stehen
+      flip(grid, function () { var m = document.createComment(''); grid.insertBefore(m, el); grid.insertBefore(el, ziel); grid.insertBefore(ziel, m); m.remove(); });
       // Kachel bleibt optisch unter dem Finger: neue Grundlage messen und Versatz neu setzen
       el.style.translate = ''; var r2 = el.getBoundingClientRect();
       dx = r0.left - r2.left; dy = r0.top - r2.top; x0 = p.clientX - dx; y0 = p.clientY - dy; setze();
