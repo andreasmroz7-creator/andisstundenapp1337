@@ -253,6 +253,33 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .dgross{font-size:40px;font-weight:800;letter-spacing:-1px;margin:16px 0 2px}
 .dheute{font-size:16px;font-weight:600}
 .dlinie.gross{height:180px;margin-top:22px}
+.fkheld{background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.03));border:1px solid var(--rand);border-radius:22px;padding:18px 18px 16px;margin:12px 0 12px;animation:auftauchen .45s cubic-bezier(.2,.8,.2,1) backwards}
+.fkheld small{color:var(--grau);font-size:12.5px;text-transform:uppercase;letter-spacing:.5px}
+.fkheld .gross{font-size:42px;font-weight:800;letter-spacing:-1.2px;line-height:1.1;margin:4px 0 2px}
+.fkheld .unter{color:#bdbdbd;font-size:14px}
+.fkbalken{display:flex;height:10px;border-radius:99px;overflow:hidden;margin:16px 0 10px;gap:2px}
+.fkbalken i{display:block;height:100%;transform-origin:left;animation:fkwachs .8s cubic-bezier(.2,.8,.2,1) backwards}
+@keyframes fkwachs{from{transform:scaleX(0)}}
+.fklegende{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:#bdbdbd}.fklegende span{display:inline-flex;align-items:center;gap:5px}.fklegende i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.fkmonat{background:var(--karte);border:1px solid var(--rand);border-radius:18px;padding:14px 16px;margin:0 0 6px;animation:auftauchen .45s cubic-bezier(.2,.8,.2,1) .06s backwards}
+.fkkopf{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:#cfcfcf}.fkkopf b{font-size:15px;color:var(--txt)}
+.fkfort{height:6px;background:rgba(255,255,255,.08);border-radius:99px;margin:10px 0 8px;overflow:hidden}.fkfort i{display:block;height:100%;background:#fff;border-radius:99px;transform-origin:left;animation:fkwachs .9s cubic-bezier(.2,.8,.2,1) .15s backwards}
+.fkmonat .zahlen{display:flex;justify-content:space-between;font-size:12.5px;color:var(--grau)}
+.fknaechst{display:flex;align-items:center;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid var(--rand)}
+.fknaechst .tag{flex:none;width:44px;height:44px;border-radius:12px;background:#fff;color:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.fknaechst .tag b{font-size:18px}.fknaechst .tag small{font-size:9.5px;text-transform:uppercase;font-weight:700;margin-top:2px}
+.fknaechst .tx{flex:1;min-width:0}.fknaechst .tx b{display:block;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.fknaechst .tx small{color:var(--grau);font-size:12.5px}
+.fknaechst .bt{font-weight:700;font-size:15px}
+.fkpos{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--rand);animation:auftauchen .45s cubic-bezier(.2,.8,.2,1) backwards}
+.fkpos:last-child{border-bottom:0}
+.fkpos .ic{flex:none;width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid var(--rand);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;color:#e8e8e8}
+.fkpos .mi{flex:1;min-width:0}.fkpos .mi b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fkpos .mi small{display:block;color:var(--grau);font-size:12.5px;margin-top:1px}
+.fkpos .mi em{display:block;font-style:normal;color:#8a8a8a;font-size:12px;margin-top:3px}
+.fkpos .anteil{height:3px;background:rgba(255,255,255,.07);border-radius:99px;margin-top:7px;overflow:hidden}.fkpos .anteil i{display:block;height:100%;border-radius:99px;transform-origin:left;animation:fkwachs .8s cubic-bezier(.2,.8,.2,1) .2s backwards}
+.fkpos .re{flex:none;text-align:right}.fkpos .re b{display:block;font-size:15.5px;font-weight:700}.fkpos .re small{color:var(--grau);font-size:11.5px}
+.fkmarke{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.3px;padding:2px 7px;border-radius:99px;background:rgba(255,255,255,.1);color:#d8d8d8;margin-left:6px;vertical-align:1px}
+.fkliste{background:var(--karte);border:1px solid var(--rand);border-radius:18px;padding:2px 16px}
 .welle{position:absolute;border-radius:50%;background:rgba(255,255,255,.25);transform:scale(0);animation:welle .55s ease-out forwards;pointer-events:none}
 @keyframes welle{to{transform:scale(4);opacity:0}}
 body.vonstart .kopf .mitte,body.vonstart .summe,body.vonstart .suche,body.vonstart #liste{animation:auftauchen .5s cubic-bezier(.2,.8,.2,1) backwards}
@@ -367,7 +394,7 @@ body.istoffline .sstand{color:#ff6b61}
   <div class="koerper" id="jKoerper"></div>
 </div></div>
 <div class="blatt" id="blattF"><div class="innen">
-  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattF" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Fixkosten &amp; Sparpläne</b></div></div>
+  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattF" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Laufende Kosten</b></div></div>
   <div class="koerper" id="fKoerper"></div>
 </div></div>
 <div class="blatt" id="blattNo"><div class="innen">
@@ -432,7 +459,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.03';
+var VERSION = '2.04';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1339,17 +1366,57 @@ function fixkostenHolen(kopf) {
   }).catch(function () {});
 }
 function proMonat(p) { var b = +p.betrag || 0; return p.rhythmus === 'jahr' ? b / 12 : p.rhythmus === 'quartal' ? b / 3 : p.rhythmus === 'woche' ? b * 52 / 12 : b; }
+function fixNaechste(p, ab) {
+  // nächstes Abbuchungsdatum ab 'ab' (Date, 0 Uhr)
+  if (p.rhythmus === 'monat' && p.tag) { var d = new Date(ab.getFullYear(), ab.getMonth(), Math.min(p.tag, 28 + 3)); if (d.getDate() !== p.tag) d = new Date(ab.getFullYear(), ab.getMonth() + 1, 0); if (d < ab) { d = new Date(ab.getFullYear(), ab.getMonth() + 1, 1); var l = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); d.setDate(Math.min(p.tag, l)); } return d; }
+  if (p.naechste) return new Date(p.naechste + 'T00:00');
+  return null;
+}
 function fixZeichnen() {
   var f = daten.fixkosten; if (!f) { $('fKoerper').innerHTML = '<p class="hinweis">Noch keine Daten. Einmal abgleichen (Schlüssel in den Einstellungen).</p>'; return; }
-  var heuteI = iso2(new Date()), po = (f.posten || []).filter(function (p) { return !p.ende || p.ende >= heuteI; }), sp = f.sparplaene || [], sA = 0, sS = 0, rh = { monat: 'mtl.', jahr: 'jährl.', quartal: 'vierteljährl.', woche: 'wöchentl.' };
-  po.forEach(function (p) { sA += proMonat(p); }); sp.forEach(function (p) { sS += proMonat(p); });
-  var zeile = function (p) { return '<div class="jb"><div class="k"><b>' + esc(p.name) + '</b><span>' + euro(+p.betrag) + ' ' + (rh[p.rhythmus] || '') + (p.tag ? ' · am ' + p.tag + '.' : '') + (p.naechste ? ' · nächste ' + p.naechste.split('-').reverse().join('.') : '') + (p.notiz ? ' · ' + esc(p.notiz) : '') + '</span></div></div>'; };
-  var h = '<div class="nwk"><div><small>Abos & Verträge / Monat</small><b>' + euro(sA) + '</b></div><div><small>Sparpläne / Monat</small><b>' + (sp.length ? euro(sS) : '–') + '</b></div><div><small>Zusammen / Monat</small><b>' + euro(sA + sS) + '</b></div><div><small>Aufs Jahr</small><b>' + euro((sA + sS) * 12) + '</b></div></div>';
-  h += '<label class="l">Abos & Verträge</label>'; po.forEach(function (p) { h += zeile(p); });
+  var jetzt = new Date(), heute = new Date(jetzt.getFullYear(), jetzt.getMonth(), jetzt.getDate()), heuteI = iso2(heute);
+  var po = (f.posten || []).filter(function (p) { return !p.ende || p.ende >= heuteI; }), sp = f.sparplaene || [];
+  var alle = po.map(function (p) { return { p: p, m: proMonat(p), sp: false }; }).concat(sp.map(function (p) { return { p: p, m: proMonat(p), sp: true }; }));
+  alle.sort(function (a, b) { return b.m - a.m; });
+  var sA = 0, sS = 0; alle.forEach(function (x) { if (x.sp) sS += x.m; else sA += x.m; }); var ges = sA + sS || 1;
+  var grau = ['#ffffff', '#d4d4d4', '#ababab', '#868686', '#666', '#4d4d4d', '#3b3b3b', '#2e2e2e'];
+  var farbe = function (i) { return grau[Math.min(i, grau.length - 1)]; };
+  var rhTxt = function (p) { return { monat: 'monatlich', jahr: 'jährlich', quartal: 'vierteljährlich', woche: 'wöchentlich' }[p.rhythmus] || ''; };
+  var mon = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+  // Held
+  var h = '<div class="fkheld"><small>Pro Monat</small><div class="gross">' + euro(sA + sS) + '</div><div class="unter">' + euro((sA + sS) * 12) + ' im Jahr · ' + alle.length + ' Posten' + (sS ? ' · davon Sparpläne ' + euro(sS) : '') + '</div>';
+  h += '<div class="fkbalken">' + alle.map(function (x, i) { return '<i style="width:' + (x.m / ges * 100).toFixed(2) + '%;background:' + farbe(i) + ';animation-delay:' + (.1 + i * .05) + 's"></i>'; }).join('') + '</div>';
+  h += '<div class="fklegende">' + alle.slice(0, 4).map(function (x, i) { return '<span><i style="background:' + farbe(i) + '"></i>' + esc(x.p.name.split(/[ –(]/)[0]) + ' ' + Math.round(x.m / ges * 100) + ' %</span>'; }).join('') + (alle.length > 4 ? '<span><i style="background:' + farbe(5) + '"></i>Rest ' + Math.round(alle.slice(4).reduce(function (s2, x) { return s2 + x.m; }, 0) / ges * 100) + ' %</span>' : '') + '</div></div>';
+  // Diesen Monat
+  var monatAb = 0, monatOffen = 0, naechst = [];
+  alle.forEach(function (x) {
+    var p = x.p;
+    if (p.rhythmus === 'monat' && p.tag) { if (p.tag <= heute.getDate()) monatAb += +p.betrag; else monatOffen += +p.betrag; }
+    var d = fixNaechste(p, heute); if (d) naechst.push({ x: x, d: d });
+  });
+  naechst.sort(function (a, b) { return a.d - b.d; });
+  var nx = naechst[0];
+  h += '<div class="fkmonat"><div class="fkkopf"><b>' + MONATE[heute.getMonth()] + '</b><span>' + euro(monatAb) + ' von ' + euro(monatAb + monatOffen) + '</span></div>';
+  h += '<div class="fkfort"><i style="width:' + ((monatAb / ((monatAb + monatOffen) || 1)) * 100).toFixed(1) + '%"></i></div>';
+  h += '<div class="zahlen"><span>schon abgebucht</span><span>noch offen ' + euro(monatOffen) + '</span></div>';
+  if (nx) { var tg2 = Math.round((nx.d - heute) / 864e5); h += '<div class="fknaechst"><div class="tag"><b>' + nx.d.getDate() + '</b><small>' + mon[nx.d.getMonth()] + '</small></div><div class="tx"><b>' + esc(nx.x.p.name) + '</b><small>Nächste Abbuchung · ' + (tg2 === 0 ? 'heute' : tg2 === 1 ? 'morgen' : 'in ' + tg2 + ' Tagen') + '</small></div><div class="bt">' + euro(+nx.x.p.betrag) + '</div></div>'; }
+  h += '</div>';
+  // Liste
+  var zeile = function (x, i) {
+    var p = x.p, d = fixNaechste(p, heute), info = rhTxt(p);
+    if (p.rhythmus === 'monat' && p.tag) info += ' · am ' + p.tag + '.';
+    else if (d) info += ' · nächste ' + d.getDate() + '. ' + mon[d.getMonth()] + ' ' + d.getFullYear();
+    var marke = p.ende ? '<span class="fkmarke">bis ' + mon[+p.ende.slice(5, 7) - 1] + ' ' + p.ende.slice(0, 4) + '</span>' : '';
+    var notiz = (p.notiz || '').replace(/,?\s*Jahresvertrag läuft bis [\d.]+/, '').trim();
+    return '<div class="fkpos" style="animation-delay:' + (.08 + i * .04) + 's"><div class="ic">' + esc((p.name.match(/[A-Za-zÄÖÜäöü]/) || ['•'])[0].toUpperCase()) + '</div><div class="mi"><b>' + esc(p.name) + marke + '</b><small>' + info + '</small>' + (notiz ? '<em>' + esc(notiz) + '</em>' : '') +
+      '<div class="anteil"><i style="width:' + (x.m / alle[0].m * 100).toFixed(1) + '%;background:' + farbe(i) + '"></i></div></div><div class="re"><b>' + euro(+p.betrag) + '</b><small>' + (p.rhythmus === 'monat' ? Math.round(x.m / ges * 100) + ' %' : '≈ ' + euro(x.m) + '/Mon.') + '</small></div></div>';
+  };
+  var ab = alle.filter(function (x) { return !x.sp; }), spl = alle.filter(function (x) { return x.sp; });
+  h += '<label class="l">Abos & Verträge</label><div class="fkliste">' + ab.map(function (x) { return zeile(x, alle.indexOf(x)); }).join('') + '</div>';
   h += '<label class="l">Sparpläne (Scalable)</label>';
-  if (sp.length) { sp.forEach(function (p) { h += zeile(p); }); if (f.sparplaeneStand) h += '<p class="hinweis">Sparpläne vom Dashboard, Stand ' + esc(f.sparplaeneStand) + '.</p>'; }
+  if (spl.length) { h += '<div class="fkliste">' + spl.map(function (x) { return zeile(x, alle.indexOf(x)); }).join('') + '</div>'; if (f.sparplaeneStand) h += '<p class="hinweis">Vom Dashboard, Stand ' + esc(f.sparplaeneStand) + '.</p>'; }
   else h += '<p class="hinweis">Kommen automatisch vom Dashboard, sobald der Mac an ist.</p>';
-  h += '<p class="hinweis">Stand ' + esc(f.stand || '') + '. Neue Abos oder Änderungen einfach Claude schreiben.</p>';
+  h += '<p class="hinweis" style="text-align:center;margin-top:18px">Neue Abos oder Änderungen einfach Claude oder Jarvis sagen.</p>';
   $('fKoerper').innerHTML = h;
 }
 $('fkauf').onclick = function (ev) { ev.stopPropagation(); fixZeichnen(); $('blattF').classList.add('offen'); };
