@@ -432,7 +432,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.02';
+var VERSION = '2.03';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1777,7 +1777,7 @@ function jvSenden(text) {
   if (lok) { try { /^(notier|merk dir|schreib auf|notiz)/i.test(text.trim()) ? window.jarvisBurst && jarvisBurst() : 0; } catch (x) {} jvEntsperren(); jvZeile('ich', text); $('jvText').value = ''; jvZustand('denkt', ''); setTimeout(function () { jvZeile('er', lok); jvMacStimme(lok); if (!$('start').classList.contains('aus')) startZeichnen(true); }, 300); return; }
   if (!daten.einst.token) { toast('Kein GitHub-Schlüssel in den Einstellungen'); return; }
   jvEntsperren(); jv.laeuft = true; jvZeile('ich', text); $('jvText').value = ''; jvZustand('denkt', 'Jarvis denkt nach …');
-  var id = Date.now() + '-' + Math.random().toString(36).slice(2, 6), kopf = jvKopf(), fsha = null, start = Date.now();
+  var id = Date.now() + '-' + Math.random().toString(36).slice(2, 6), kopf = jvKopf(), fsha = null, start = Date.now(); jv.warteHinweis = false;
   var body = { message: 'Jarvis-Frage', content: b64enc(JSON.stringify({ id: id, text: text, zeit: new Date().toISOString(), quelle: 'cockpit' })) };
   var ende = function () { jv.laeuft = false; };
   var weg = function (pfad, sha) { if (sha) fetch(GHJ + pfad, { method: 'DELETE', headers: kopf, body: JSON.stringify({ message: 'Jarvis aufräumen', sha: sha }) }).catch(function () {}); };
@@ -1787,8 +1787,8 @@ function jvSenden(text) {
   }).then(function (j) {
     fsha = j.content && j.content.sha;
     (function warte() {
-      if (Date.now() - start > 45000) { jvZeile('er', 'Der Mac antwortet gerade nicht. Ist er an und läuft das Dashboard?', true); jvZustand('schlaf', ''); weg('f_' + id + '.json', fsha); ende(); return; }
-      if (Date.now() - start > 12000) $('jvStatus').textContent = 'Warte auf den Mac …';
+      if (Date.now() - start > 20000) { jvZeile('er', 'Der Mac antwortet gerade nicht, Meister. Ist er an und läuft die Depot-App?', true); jvSprechen('Der Mac antwortet gerade nicht, Meister.', null); jvZustand('schlaf', ''); weg('f_' + id + '.json', fsha); ende(); return; }
+      if (Date.now() - start > 6000 && !jv.warteHinweis) { jv.warteHinweis = true; $('jvStatus').textContent = 'Warte auf den Mac …'; if (jvMini.gross) jvUnter('Warte auf den Mac …'); }
       fetch(GHJ + 'a_' + id + '.json?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) {
         if (r.status === 404) { setTimeout(warte, 1500); return; }
         if (!r.ok) { setTimeout(warte, 2500); return; }
