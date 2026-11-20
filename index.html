@@ -111,13 +111,48 @@ input::placeholder{color:#5c6577}
 .toast .rk{margin-left:12px;background:none;border:0;color:#5ac8fa;font:inherit;font-weight:700;padding:0}
 #sperre{position:fixed;inset:0;z-index:99999;background:#0b111c;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:30px;text-align:center}
 #sperre.an{display:flex}#sperre svg{width:64px;height:64px;stroke:#5ac8fa;fill:none;stroke-width:1.5}
+
+/* ---------- Startseite (Dashboard) ---------- */
+#start{position:fixed;inset:0;z-index:8;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:var(--bg);padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 30px);transition:opacity .38s ease,transform .45s cubic-bezier(.2,.8,.2,1),filter .38s ease}
+#start:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(700px 480px at 0% -5%,rgba(90,200,250,.22),transparent 60%),radial-gradient(600px 460px at 105% 15%,rgba(140,100,255,.18),transparent 60%),radial-gradient(500px 400px at 50% 110%,rgba(52,199,89,.10),transparent 60%)}
+#start.weg{opacity:0;transform:scale(1.08);filter:blur(10px);pointer-events:none}
+#start.aus{display:none}
+.sgruss{font-size:13px;color:var(--grau);letter-spacing:.4px;text-transform:uppercase}
+.sname{font-size:30px;font-weight:800;letter-spacing:-.6px;margin:2px 0 16px}
+.sheute{position:relative;overflow:hidden;border-radius:24px;padding:16px 18px;margin-bottom:12px;background:linear-gradient(135deg,rgba(90,200,250,.22),rgba(120,90,250,.16));border:1px solid rgba(255,255,255,.16);box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.sheute small{color:rgba(255,255,255,.7);font-size:12px;letter-spacing:.3px;text-transform:uppercase}
+.sheute b{display:block;font-size:19px;margin:3px 0 2px}
+.sheute .zl{font-size:13px;color:rgba(255,255,255,.8)}
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.kachel{position:relative;overflow:hidden;border-radius:22px;padding:15px;min-height:150px;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;background:var(--karte);border:1px solid var(--rand);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);box-shadow:0 8px 24px rgba(0,0,0,.28);transition:transform .18s ease,box-shadow .18s ease}
+.kachel:active{transform:scale(.96)}
+.kachel.breit{grid-column:1 / -1;min-height:128px}
+.kachel .ic{width:40px;height:40px;border-radius:13px;display:flex;align-items:center;justify-content:center}
+.kachel .ic svg{width:21px;height:21px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.kachel .t{font-size:13px;color:var(--grau);margin-top:10px}
+.kachel .w{font-size:26px;font-weight:750;letter-spacing:-.5px;line-height:1.1}
+.kachel .u{font-size:12px;color:var(--grau);margin-top:3px}
+.kachel .glanz{position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;opacity:.35;filter:blur(18px);pointer-events:none}
+.kachel .pfeil{position:absolute;right:14px;top:16px;color:var(--grau);font-size:18px}
+.kachel.sheute{background:linear-gradient(135deg,rgba(90,200,250,.30),rgba(120,90,250,.22));border-color:rgba(255,255,255,.18);padding:16px 18px;justify-content:flex-start}
+.rein{opacity:0;transform:translateY(18px) scale(.97);animation:rein .55s cubic-bezier(.2,.8,.2,1) forwards}
+@keyframes rein{to{opacity:1;transform:none}}
+.welle{position:absolute;border-radius:50%;background:rgba(255,255,255,.25);transform:scale(0);animation:welle .55s ease-out forwards;pointer-events:none}
+@keyframes welle{to{transform:scale(4);opacity:0}}
+body.vonstart .kopf .mitte,body.vonstart .summe,body.vonstart .suche,body.vonstart #liste{animation:auftauchen .5s cubic-bezier(.2,.8,.2,1) both}
+body.vonstart .summe{animation-delay:.05s}body.vonstart .suche{animation-delay:.1s}body.vonstart #liste{animation-delay:.15s}
+@keyframes auftauchen{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:none}}
+.blatt.offen .innen{animation:blattrein .38s cubic-bezier(.2,.8,.2,1)}
+@keyframes blattrein{from{transform:translateY(40px);opacity:.0}to{transform:none;opacity:1}}
+h1 .heim{display:inline-flex;align-items:center;gap:5px;color:var(--akz);cursor:pointer}
+h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translateX(-50%);background:rgba(30,38,54,.95);border:1px solid var(--rand);padding:10px 16px;border-radius:14px;z-index:20;font-size:14px;display:none;white-space:nowrap}
 </style>
 </head>
 <body>
 <div class="kopf">
   <span class="platz"></span><button class="kugel festpfeil" id="zurueck" aria-label="Vormonat"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
-  <div class="mitte"><h1>STUNDEN</h1><div class="monat" id="monat"></div></div>
+  <div class="mitte"><h1><span class="heim" id="heim"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>STUNDEN</span></h1><div class="monat" id="monat"></div></div>
   <span class="platz"></span><button class="kugel festpfeil" id="vor" aria-label="Nächster Monat"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
 </div>
 <div class="summe">
@@ -131,6 +166,7 @@ input::placeholder{color:#5c6577}
 </div>
 <div class="suche"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="suche" placeholder="Ort oder Filiale suchen" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="weg" id="sucheWeg" aria-label="Suche leeren">×</button></div>
 <div id="liste"></div>
+<div id="start"></div>
 <div id="sperre"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><div style="font-size:20px;font-weight:700">Stunden gesperrt</div><button class="btn" id="entsperren" style="max-width:280px">Mit Face ID entsperren</button><div class="hinweis" id="sperreInfo"></div></div>
 <button class="kugel plus" id="plus" aria-label="Stunden hinzufügen"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
 
@@ -216,7 +252,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.43';
+var VERSION = '1.44';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -736,7 +772,7 @@ $('datum').addEventListener('change', function () { if (e && e._neu) { e.feierta
 // Monate wischen
 (function () {
   var sx = 0, sy = 0, an = false;
-  document.addEventListener('touchstart', function (ev) { if (document.querySelector('.blatt.offen') || ev.touches.length > 1) { an = false; return; } an = true; sx = ev.touches[0].clientX; sy = ev.touches[0].clientY; }, { passive: true });
+  document.addEventListener('touchstart', function (ev) { if (document.querySelector('.blatt.offen') || !$('start').classList.contains('aus') || ev.touches.length > 1) { an = false; return; } an = true; sx = ev.touches[0].clientX; sy = ev.touches[0].clientY; }, { passive: true });
   document.addEventListener('touchend', function (ev) {
     if (!an) return; an = false; var t = ev.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
     if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6 || $('suche').value) return;
@@ -794,6 +830,56 @@ document.addEventListener('visibilitychange', function () { if (document.hidden)
 
 // Pfeile oben ausblenden beim Runterscrollen
 window.addEventListener('scroll', function () { document.body.classList.toggle('runter', window.scrollY > 40); }, { passive: true });
+// ---------- Startseite: Kacheln für Stunden, Arbeitsnachweis, laufende Kosten, Jahr ----------
+var IC = {
+  uhr: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  geld: '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M16 14.5h2"/></svg>',
+  koffer: '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></svg>',
+  balken: '<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>'
+};
+function startTag() { var s = 0, n = 0, m = iso2(new Date()).slice(0, 7); daten.eintraege.forEach(function (x) { if (x.datum.slice(0, 7) === m) { s += R.berechne(x).gesamt; n++; } }); return { s: s, n: n }; }
+function startZeichnen() {
+  var d = new Date(), hi = iso2(d), std = startTag(), lohn = +(daten.einst.lohn || 16);
+  var f = daten.fixkosten, fk = 0, nfk = 0, naechste = null;
+  if (f) { (f.posten || []).concat(f.sparplaene || []).forEach(function (p) { if (p.ende && p.ende < hi) return; fk += proMonat(p); nfk++; if (p.tag && p.rhythmus === 'monat') { var t = p.tag >= d.getDate() ? p.tag - d.getDate() : p.tag + 31 - d.getDate(); if (!naechste || t < naechste.t) naechste = { t: t, p: p }; } }); }
+  var n = daten.nachweis, nt = 0, vp = 0, nx = null;
+  if (n && n.tage) n.tage.forEach(function (x) { if (x.datum.slice(0, 4) === hi.slice(0, 4) && x.datum <= hi) { if (!x.nurReise) nt++; vp += x.vpErhalten || 0; } if (x.datum > hi && !nx && (x.laeden || []).length) nx = x; });
+  var heute = planTag(hi), fl = fahrtLiveHtml(hi), eh = daten.eintraege.find(function (x) { return x.datum === hi; });
+  var hz = heute && (heute.laeden || []).length ? heute.laeden.map(function (l) { return esc(l.ort) + ' ' + esc(l.fil); }).join(' + ') : heute && heute.nurReise ? 'Anreise ' + esc(heute.team) : 'Kein Einsatz laut Plan';
+  var wt = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'][d.getDay()];
+  var gr = d.getHours() < 11 ? 'Guten Morgen' : d.getHours() < 18 ? 'Hallo' : 'Guten Abend';
+  var vorname = (daten.einst.name || 'Andi').split(' ').pop(); if (/andreas/i.test(vorname)) vorname = 'Andi';
+  var h = '<div class="rein" style="animation-delay:0s"><div class="sgruss">' + wt + ', ' + d.getDate() + '. ' + MONATE[d.getMonth()] + '</div><div class="sname">' + gr + ', ' + esc(vorname) + '</div></div>';
+  h += '<div class="sheute rein kachel" data-ziel="heute" style="animation-delay:.06s;min-height:0"><small>Heute</small><b>' + hz + '</b><div class="zl">' + (eh ? 'Eingetragen: ' + z(R.berechne(eh).gesamt) + ' Std.' : heute && heute.tp ? 'Treffpunkt ' + esc(heute.tp) : 'Noch nichts eingetragen') + '</div>' + (fl ? '<div class="zl" style="margin-top:4px">' + fl.replace('class="fahrtzeile"', 'style="color:#b8ffcb"') + '</div>' : '') + '</div>';
+  h += '<div class="sgrid">';
+  var k = function (ziel, ic, farbe, titel, wert, unter, extra, breit, delay) {
+    return '<div class="kachel rein' + (breit ? ' breit' : '') + '" data-ziel="' + ziel + '" style="animation-delay:' + delay + 's"><div class="glanz" style="background:' + farbe + '"></div><span class="pfeil">›</span><div class="ic" style="background:' + farbe + '">' + ic + '</div><div><div class="t">' + titel + '</div><div class="w">' + wert + '</div><div class="u">' + unter + '</div>' + (extra || '') + '</div></div>';
+  };
+  h += k('stunden', IC.uhr, 'linear-gradient(135deg,#5ac8fa,#0a84ff)', 'Stunden ' + MONATE[d.getMonth()], z(std.s), std.n + ' Tage · ≈ ' + euro(std.s * lohn), '', false, .12);
+  h += k('kosten', IC.geld, 'linear-gradient(135deg,#ff9f0a,#ff375f)', 'Laufende Kosten', f ? euro(fk) : '–', f ? 'pro Monat · ' + nfk + ' Posten' + (naechste ? '<br>nächste: ' + esc(naechste.p.name.split(' (')[0]) + ' am ' + naechste.p.tag + '.' : '') : 'noch nicht geladen', '', false, .18);
+  h += k('nachweis', IC.koffer, 'linear-gradient(135deg,#30d158,#0fb5a0)', 'Arbeitsnachweis ' + hi.slice(0, 4), nt + ' Tage', 'Verpflegung erhalten ' + euro(vp) + (nx ? '<br>nächster Einsatz: ' + WT[new Date(nx.datum + 'T12:00').getDay()] + ' ' + +nx.datum.slice(8) + '.' + +nx.datum.slice(5, 7) + '. ' + esc(nx.laeden[0].ort) : ''), '', false, .24);
+  h += k('jahr', IC.balken, 'linear-gradient(135deg,#bf5af2,#5e5ce6)', 'Jahresübersicht', 'Jahr ›', 'Stunden, Brutto und Verpflegung pro Monat', '', false, .30);
+  h += '</div>';
+  $('start').innerHTML = h;
+  [].forEach.call($('start').querySelectorAll('[data-ziel]'), function (el) { el.onclick = function (ev) { welle(el, ev); setTimeout(function () { startZiel(el.dataset.ziel); }, 160); }; });
+}
+function welle(el, ev) { var r = el.getBoundingClientRect(), s = Math.max(r.width, r.height), w = document.createElement('span'); w.className = 'welle'; w.style.width = w.style.height = s + 'px'; w.style.left = ((ev.clientX || r.left + r.width / 2) - r.left - s / 2) + 'px'; w.style.top = ((ev.clientY || r.top + r.height / 2) - r.top - s / 2) + 'px'; el.appendChild(w); setTimeout(function () { w.remove(); }, 600); }
+function startWeg() {
+  var s = $('start'); s.classList.add('weg'); document.body.classList.remove('vonstart'); void document.body.offsetWidth; document.body.classList.add('vonstart');
+  setTimeout(function () { s.classList.add('aus'); }, 400);
+}
+function startZeigen() {
+  var s = $('start'); startZeichnen(); s.classList.remove('aus'); void s.offsetWidth; s.classList.remove('weg'); s.scrollTop = 0;
+}
+function startZiel(z) {
+  if (z === 'stunden') { var d = new Date(); ansicht.j = d.getFullYear(); ansicht.m = d.getMonth(); zeichne(); window.scrollTo(0, 0); startWeg(); }
+  else if (z === 'heute') { var hi = iso2(new Date()), eh = daten.eintraege.find(function (x) { return x.datum === hi; }); startWeg(); setTimeout(function () { oeffne(eh || neuerEintrag(hi), !eh); }, 250); }
+  else if (z === 'kosten') { fixZeichnen(); $('blattF').classList.add('offen'); }
+  else if (z === 'nachweis') $('nwknopf').onclick();
+  else if (z === 'jahr') { jahrZeichnen(); $('blattJ').classList.add('offen'); }
+}
+$('heim').onclick = function (ev) { ev.stopPropagation(); startZeigen(); };
+
 // ---------- Jahresübersicht (Andi: gerechnet wird erst ab September 2026) ----------
 var JAHR_AB = '2026-09';
 function jahrZeichnen() {
@@ -946,7 +1032,7 @@ $('nwpdf').onclick = function () {
 new MutationObserver(function () {
   document.documentElement.classList.toggle('blattoffen', !!document.querySelector('.blatt.offen'));
 }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
-sperreZeigen(); zeichne(); sync();
+sperreZeigen(); zeichne(); startZeichnen(); sync().then(function () { if (!$('start').classList.contains('aus')) startZeichnen(); });
 document.addEventListener('visibilitychange', function () { if (!document.hidden) sync(); });
 setInterval(function () { if (!document.hidden) sync(); }, 60000);
 if ('serviceWorker' in navigator) {
