@@ -160,14 +160,16 @@ h1 .heim{display:inline-flex;align-items:center;gap:5px;color:var(--akz);cursor:
 h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .geistseite{position:fixed;left:0;top:0;visibility:hidden;width:100%;padding:calc(env(safe-area-inset-top) + 10px) 16px 0;pointer-events:none;z-index:1;will-change:transform}
 .sstand{float:right;text-transform:none;letter-spacing:0;font-size:12px;opacity:.85}
-.sstand:before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gruen);margin-right:6px;vertical-align:middle}
+.sstand:before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gruen);margin-right:6px;vertical-align:middle;transition:background .3s,box-shadow .3s}
+.sstand{transition:color .3s}
 .mitfahrt{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:8px;padding:8px 12px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid var(--rand);color:var(--txt);font-size:13px}
 .mitfahrt{margin-top:12px}.mitfahrt span small{display:block;color:var(--grau);font-size:11px;margin-top:2px}.mitfahrt b{font-size:19px;white-space:nowrap}
 #splash{position:fixed;inset:0;z-index:100000;background:#0b111c;transition:opacity .4s ease;pointer-events:none}
 #splash img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 #splash.weg{opacity:0}
-#offline{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 8px);transform:translate(-50%,-80px);z-index:9999;padding:7px 14px;border-radius:999px;font-size:13px;font-weight:600;color:#fff;background:rgba(255,159,10,.92);box-shadow:0 6px 20px rgba(0,0,0,.35);transition:transform .4s cubic-bezier(.2,.8,.2,1);white-space:nowrap;pointer-events:none}
-#offline.an{transform:translate(-50%,0)}
+body.standalt .sstand:before{background:#ff9f0a;box-shadow:0 0 0 3px rgba(255,159,10,.25)}
+body.istoffline .sstand:before{background:#ff453a;box-shadow:0 0 0 3px rgba(255,69,58,.25)}
+body.istoffline .sstand{color:#ff6b61}
 .kwzeile{display:flex;justify-content:space-between;align-items:baseline;margin:16px 6px 8px;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--grau)}
 .kwzeile:first-child{margin-top:4px}.kwzeile b{font-size:13px;color:var(--txt);letter-spacing:0;text-transform:none;font-weight:650}
 .ptr{position:absolute;left:50%;top:calc(env(safe-area-inset-top) - 30px);width:38px;height:38px;border-radius:50%;opacity:0;transform:translate(-50%,0);display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.1);border:1px solid var(--rand);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);z-index:3}
@@ -199,7 +201,6 @@ h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2
 <div class="suche"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="suche" placeholder="Ort oder Filiale suchen" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="weg" id="sucheWeg" aria-label="Suche leeren">×</button></div>
 <div id="liste"></div>
 <div id="splash"><img src="splash-1206x2622.png" alt=""></div>
-<div id="offline">Offline · wird später abgeglichen</div>
 <div id="start"></div>
 <div id="sperre"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><div style="font-size:20px;font-weight:700">Stunden gesperrt</div><button class="btn" id="entsperren" style="max-width:280px">Mit Face ID entsperren</button><div class="hinweis" id="sperreInfo"></div></div>
 <button class="kugel plus" id="plus" aria-label="Stunden hinzufügen"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
@@ -291,7 +292,7 @@ h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.55';
+var VERSION = '1.56';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -410,7 +411,7 @@ function sync() {
       if (!r.ok) throw new Error('Hochladen ' + r.status);
     });
   }).then(function () { return fahrtenHolen(kopf); }).then(function () { return nachweisHolen(kopf); }).then(function () { return fixkostenHolen(kopf); }).then(function () {
-    offlineZeigen(false); daten.letzterAbgleich = Date.now(); sichern(true); if ($('sstand')) $('sstand').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    offlineZeigen(false); daten.letzterAbgleich = Date.now(); sichern(true); standPruefen(); if ($('sstand')) $('sstand').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     syncLaeuft = false; syncAnzeige('☁ abgeglichen ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
   }).catch(function (x) {
     syncLaeuft = false;
@@ -982,7 +983,7 @@ function startZeichnen(still) {
   var gr = d.getHours() < 11 ? 'Guten Morgen' : d.getHours() < 18 ? 'Hallo' : 'Guten Abend';
   var vorname = (daten.einst.name || 'Andi').split(' ').pop(); if (/andreas/i.test(vorname)) vorname = 'Andi';
   var stand = daten.letzterAbgleich ? new Date(daten.letzterAbgleich) : null, standTxt = !daten.einst.token ? 'nicht verbunden' : stand ? (iso2(stand) === hi ? 'Stand ' : 'Stand ' + stand.getDate() + '.' + (stand.getMonth() + 1) + '. ') + stand.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : 'noch nicht abgeglichen';
-  var h = '<div class="rein" style="animation-delay:0s"><div class="sgruss">' + wt + ', ' + d.getDate() + '. ' + MONATE[d.getMonth()] + '<span class="sstand" id="sstand">' + standTxt + '</span></div><div class="sname">' + gr + ', ' + esc(vorname) + '</div></div>';
+  var h = '<div class="rein" style="animation-delay:0s"><div class="sgruss">' + wt + ', ' + d.getDate() + '. ' + MONATE[d.getMonth()] + '<span class="sstand" id="sstand">' + (document.body.classList.contains('istoffline') ? 'Offline' + (stand ? ' · Stand ' + stand.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '') : standTxt) + '</span></div><div class="sname">' + gr + ', ' + esc(vorname) + '</div></div>';
   h += '<div class="sheute rein kachel" data-ziel="heute" style="animation-delay:.06s;min-height:0"><small>Heute</small><b>' + hz + '</b><div class="zl">' + (eh ? 'Eingetragen: ' + z(R.berechne(eh).gesamt) + ' Std.' : heute && heute.tp ? 'Treffpunkt ' + esc(heute.tp) : 'Noch nichts eingetragen') + '</div>' + (fl ? '<div class="zl" style="margin-top:4px">' + fl.replace('class="fahrtzeile"', 'style="color:#b8ffcb"') + '</div>' : '') + '</div>';
   h += '<div class="sgrid">';
   var k = function (ziel, ic, farbe, titel, wert, unter, extra, breit, delay) {
@@ -1204,9 +1205,16 @@ new MutationObserver(function () {
   document.documentElement.classList.toggle('blattoffen', !!document.querySelector('.blatt.offen'));
 }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
 (function () { var s = $('splash'); setTimeout(function () { startZeichnen(); s.classList.add('weg'); setTimeout(function () { s.remove(); }, 450); }, 350); })();
-function offlineZeigen(an) { $('offline').classList.toggle('an', !!an); }
+// Punkt oben rechts: grün = frisch abgeglichen, orange = länger nicht aktualisiert (über 15 Min.), rot = offline
+function standPruefen() { var t = daten.letzterAbgleich; document.body.classList.toggle('standalt', !t || Date.now() - t > 15 * 60000); }
+setInterval(standPruefen, 60000);
+function offlineZeigen(an) {
+  document.body.classList.toggle('istoffline', !!an);
+  var el = $('sstand'); if (!el) return;
+  if (an) el.textContent = 'Offline' + (daten.letzterAbgleich ? ' · Stand ' + new Date(daten.letzterAbgleich).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '');
+}
 window.addEventListener('online', function () { offlineZeigen(false); sync(); });
-sperreZeigen(); zeichne(); startZeichnen(true); sync().then(function () { if (!$('start').classList.contains('aus')) startZeichnen(true); });
+standPruefen(); sperreZeigen(); zeichne(); startZeichnen(true); sync().then(function () { if (!$('start').classList.contains('aus')) startZeichnen(true); });
 document.addEventListener('visibilitychange', function () { if (!document.hidden) sync(); });
 setInterval(function () { if (!document.hidden) sync(); }, 60000);
 if ('serviceWorker' in navigator) {
