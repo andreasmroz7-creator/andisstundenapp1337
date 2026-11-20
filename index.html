@@ -303,7 +303,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.64';
+var VERSION = '1.65';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1227,7 +1227,7 @@ window.addEventListener('online', function () { offlineZeigen(false); sync(); })
 standPruefen(); sperreZeigen(); zeichne(); startZeichnen();
 (function () { var s = $('start'); s.style.visibility = 'hidden'; document.body.classList.add('versteckt');
   setTimeout(function () { var sp = $('splash'); sp.classList.add('weg'); setTimeout(function () { sp.remove(); }, 550);
-  s.style.visibility = ''; s.classList.add('auftritt'); [].forEach.call(s.querySelectorAll('.rein'), function (el) { el.style.animationDelay = (parseFloat(el.style.animationDelay || 0) * 1.4 + .28) + 's'; }); setTimeout(function () { s.classList.remove('auftritt'); if (!s.classList.contains('aus') && !s.classList.contains('weg')) document.body.classList.remove('versteckt'); }, 1400); }, 1500); })(); sync().then(function () { if (!$('start').classList.contains('aus')) startZeichnen(true); });
+  s.style.visibility = ''; s.classList.add('auftritt'); [].forEach.call(s.querySelectorAll('.rein'), function (el) { el.style.animationDelay = (parseFloat(el.style.animationDelay || 0) * 1.4 + .28) + 's'; }); setTimeout(function () { s.classList.remove('auftritt'); if (!s.classList.contains('aus') && !s.classList.contains('weg')) document.body.classList.remove('versteckt'); }, 1400); }, 1700); })(); sync().then(function () { if (!$('start').classList.contains('aus')) startZeichnen(true); });
 document.addEventListener('visibilitychange', function () { if (!document.hidden) sync(); });
 setInterval(function () { if (!document.hidden) sync(); }, 60000);
 if ('serviceWorker' in navigator) {
