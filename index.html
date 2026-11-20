@@ -186,7 +186,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .gb .bt{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.gb.edit{display:block;cursor:default}.gb.edit input{margin-top:8px}
 .jvk{display:flex;flex-direction:column;align-items:center;padding-bottom:110px!important}
 .jvplatz{width:100%;height:300px;margin:max(0px,calc(53vh - 270px)) auto -10px;flex:none}
-.jvkern{position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:11;pointer-events:none;transform-origin:50% 50%;will-change:transform;transition:opacity .3s ease}.jvkern canvas{width:100%;height:100%;display:block;transition:filter .7s ease}.jvkern.klein canvas{filter:brightness(1.45)}.jvkern.weg{opacity:0}
+.jvkern{position:fixed;left:0;top:0;width:100vw;height:100vh;z-index:11;pointer-events:none;transform-origin:50% 50%;will-change:transform;transition:opacity .3s ease}.jvkern canvas{width:100%;height:100%;display:block;transition:filter .7s ease}.jvkern.klein{opacity:0!important}.jvkern.vorschau{opacity:.55!important}.jvkern.weg{opacity:0}
 #jvFang{position:fixed;inset:0;z-index:10;visibility:hidden;opacity:0;background:rgba(0,0,0,.12);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);transition:opacity .55s ease,visibility 0s linear .55s;-webkit-tap-highlight-color:transparent}body.jvgross #jvFang{visibility:visible;opacity:1;transition:opacity .55s ease,visibility 0s}
 .jvunter{position:fixed;left:28px;right:28px;z-index:12;text-align:center;font-size:16px;line-height:1.4;color:#eaeaea;text-shadow:0 1px 10px #000,0 0 3px #000;opacity:0;transform:translateY(6px);transition:opacity .45s ease,transform .45s ease;pointer-events:none}
 .jvunter.an{opacity:1;transform:none}.jvunter small{display:block;color:#9a9a9a;font-size:13px;margin-bottom:4px}
@@ -219,13 +219,17 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .jvhin{display:flex;align-items:center;gap:9px;margin:0 0 16px;font-size:14px;color:#cfcfcf;cursor:pointer;min-height:20px}
 .jvhin i{flex:none;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#fff,#9a9a9a 60%,#444);box-shadow:0 0 10px rgba(255,255,255,.35);animation:jvatem 3.2s ease-in-out infinite}
 .jvhin span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#start{padding-bottom:calc(env(safe-area-inset-bottom) + 110px)!important}
+#start{padding-bottom:calc(env(safe-area-inset-bottom) + 40px)!important;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .jvfab{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) - 10px);width:100px;height:100px;margin-left:-50px;border-radius:50%;border:0;background:transparent;-webkit-tap-highlight-color:transparent;z-index:9;padding:0;cursor:pointer;transition:transform .25s cubic-bezier(.2,.8,.2,1),opacity .3s}
 .jvfab:active{transform:none}
 .jvfab b{position:absolute;inset:15px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#fff,#bdbdbd 45%,#4a4a4a 100%);animation:jvatem 3.2s ease-in-out infinite}
 .jvfab i{position:absolute;inset:6px;border-radius:50%;border:1px solid rgba(255,255,255,.22);animation:jvring 3.2s ease-out infinite}
 @keyframes jvatem{0%,100%{transform:scale(.94);box-shadow:0 0 14px rgba(255,255,255,.15)}50%{transform:scale(1.04);box-shadow:0 0 26px rgba(255,255,255,.35)}}
 .jvfab.weg{opacity:0;pointer-events:none;transform:scale(.8)}
+#jvGriff{position:fixed;left:50%;bottom:0;width:150px;height:calc(env(safe-area-inset-bottom) + 26px);margin-left:-75px;border:0;background:transparent;z-index:9;padding:0;-webkit-tap-highlight-color:transparent;transition:opacity .3s}
+#jvGriff i{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 8px);width:46px;height:4px;margin-left:-23px;border-radius:2px;background:rgba(255,255,255,.28);transition:background .2s,width .2s,margin .2s}
+#jvGriff:active i{background:rgba(255,255,255,.6);width:60px;margin-left:-30px}
+#jvGriff.weg{opacity:0;pointer-events:none}
 #blattJv{background:transparent}
 #blattJv .innen{background:rgba(6,7,9,.16);-webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px);opacity:0;transition:opacity .55s ease}
 #blattJv.auf .innen{opacity:1}
@@ -344,7 +348,7 @@ body.istoffline .sstand{color:#ff6b61}
 </div>
 <div class="suche"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="suche" placeholder="Ort oder Filiale suchen" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="weg" id="sucheWeg" aria-label="Suche leeren">×</button></div>
 <div id="liste"></div>
-<div id="start"></div><button class="jvfab weg" id="jvFab" aria-label="Jarvis"></button><div id="jvFang"></div><div class="jvunter" id="jvUnter"></div><input type="text" id="jvTipp" placeholder="Frag Jarvis …" autocomplete="off" enterkeyhint="send"><div class="jvkern weg" id="jvOrb"><canvas id="jvCore" aria-hidden="true"></canvas></div>
+<div id="start"></div><button class="jvfab weg" id="jvFab" aria-label="Jarvis" style="display:none"></button><button id="jvGriff" aria-label="Jarvis rufen"><i></i></button><div id="jvFang"></div><div class="jvunter" id="jvUnter"></div><input type="text" id="jvTipp" placeholder="Frag Jarvis …" autocomplete="off" enterkeyhint="send"><div class="jvkern weg" id="jvOrb"><canvas id="jvCore" aria-hidden="true"></canvas></div>
 <div id="sperre"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><div style="font-size:20px;font-weight:700">Stunden gesperrt</div><button class="btn" id="entsperren" style="max-width:280px">Mit Face ID entsperren</button><div class="hinweis" id="sperreInfo"></div></div>
 <button class="kugel plus" id="plus" aria-label="Stunden hinzufügen"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
 
@@ -459,7 +463,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.07';
+var VERSION = '2.08';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1202,7 +1206,7 @@ function startZeichnen(still) {
   [].forEach.call($('start').querySelectorAll('[data-ziel]'), function (el) { el.onclick = function (ev) { if (window.ordnen && (ordnen.an || ordnen.klickSperre)) return; welle(el, ev); setTimeout(function () { startZiel(el.dataset.ziel); }, 160); }; });
   $('ordfertig').onclick = function () { ordnenAus(); };
   jvMiniStart();
-  var jh = $('jvHinweis'); if (jh) jh.onclick = function () { jvOeffnen($('jvFab')); };
+  var jh = $('jvHinweis'); if (jh) jh.onclick = function (ev) { var r = jh.querySelector('i').getBoundingClientRect(); jv.ursprung = { x: r.left + r.width / 2, y: r.top + r.height / 2 }; jvOeffnen(); };
   if (window.ordnen && ordnen.an) $('start').classList.add('ordnen');
 }
 // ---------- Kacheln anordnen (gedrückt halten, ziehen; Reihenfolge bleibt gespeichert) ----------
@@ -1618,15 +1622,30 @@ window.jvKernStart=function(){
 // Eine einzige Jarvis-Kugel: klein unten auf der Startseite, beim Antippen wächst genau diese Kugel in die Mitte (kein Umschalten zwischen zwei Kugeln)
 var jvMini = { an: false, gross: false, flug: false }, JV_HOEHE = .62;
 $('jvFab').onclick = function () { if (window.ordnen && ordnen.an) return; jvOeffnen(); };
+$('jvGriff').onclick = function () { if (window.ordnen && ordnen.an) return; jv.ursprung = { x: innerWidth / 2, y: innerHeight - 20 }; jvMiniStart(); jvKugel(false, false); jvOeffnen(); };
+// (Andi, 20.11.) Jarvis unsichtbar: lange auf eine freie Stelle der Startseite drücken. Beim Halten erscheint er unter dem Finger, beim Loslassen kommt er groß (Mikrofon darf nur beim Loslassen starten)
+(function () {
+  var s = $('start'), t = null, x0 = 0, y0 = 0, bereit = false;
+  var frei = function (el) { return !(el.closest('.kachel') || el.closest('button') || el.closest('a') || el.closest('input') || el.closest('#jvHinweis') || el.closest('.ptr')); };
+  s.addEventListener('touchstart', function (ev) {
+    bereit = false; clearTimeout(t); if (ev.touches.length > 1 || (window.ordnen && ordnen.an) || jvMini.gross || !frei(ev.target)) return;
+    x0 = ev.touches[0].clientX; y0 = ev.touches[0].clientY;
+    t = setTimeout(function () { t = null; bereit = true; jvMiniStart(); jv.ursprung = { x: x0, y: y0 }; jv.vorschau = true; jvKugel(false, false); requestAnimationFrame(function () { $('jvOrb').style.transition = 'transform .45s cubic-bezier(.2,.85,.25,1),opacity .3s ease'; jvKugel(false, false); $('jvOrb').style.transition = 'transform .45s cubic-bezier(.2,.85,.25,1),opacity .3s ease'; }); try { navigator.vibrate && navigator.vibrate(10); } catch (x) {} }, 420);
+  }, { passive: true });
+  s.addEventListener('touchmove', function (ev) { var p = ev.touches[0]; if (t && (Math.abs(p.clientX - x0) > 10 || Math.abs(p.clientY - y0) > 10)) { clearTimeout(t); t = null; } if (bereit && (Math.abs(p.clientX - x0) > 40 || Math.abs(p.clientY - y0) > 40)) { bereit = false; jv.vorschau = false; jvKugel(false, true); } }, { passive: true });
+  s.addEventListener('touchend', function (ev) { clearTimeout(t); t = null; if (!bereit) return; bereit = false; ev.preventDefault(); jv.vorschau = false; jvOeffnen(); }, { passive: false });
+  s.addEventListener('touchcancel', function () { clearTimeout(t); t = null; if (bereit) { bereit = false; jv.vorschau = false; jvKugel(false, true); } });
+  s.addEventListener('contextmenu', function (ev) { if (frei(ev.target)) ev.preventDefault(); });
+})();
 function jvZiel(gross) {
   var o = $('jvOrb'), w = o.offsetWidth, h = o.offsetHeight, r, cx, cy, sk;
   if (gross) { cx = innerWidth / 2; cy = innerHeight * JV_HOEHE; sk = 1; }
-  else { r = $('jvFab').getBoundingClientRect(); cx = r.left + r.width / 2; cy = r.top + r.height / 2; sk = 78 / (Math.min(w, h) * .64 * (window.__jvR0f || 1)); }
+  else { var u = jv.ursprung || { x: innerWidth / 2, y: innerHeight - 30 }; cx = u.x; cy = u.y; sk = (jv.vorschau ? 70 : 24) / (Math.min(w, h) * .64 * (window.__jvR0f || 1)); }
   return 'translate(' + (cx - w / 2).toFixed(1) + 'px,' + (cy - h / 2).toFixed(1) + 'px) scale(' + sk.toFixed(4) + ')';
 }
 function jvKugel(gross, anim) {
-  var o = $('jvOrb'); jvMini.gross = gross; o.classList.toggle('klein', !gross);
-  o.style.transition = anim ? 'transform .7s cubic-bezier(.2,.85,.25,1),opacity .3s ease' : 'opacity .3s ease';
+  var o = $('jvOrb'); jvMini.gross = gross; o.classList.toggle('klein', !gross && !jv.vorschau); o.classList.toggle('vorschau', !gross && !!jv.vorschau);
+  o.style.transition = anim ? 'transform .7s cubic-bezier(.2,.85,.25,1),opacity .45s ease' : 'opacity .3s ease';
   o.style.transform = jvMini.letzt = jvZiel(gross);
 }
 function jvMiniStart() {
@@ -1639,7 +1658,8 @@ function jvMiniStart() {
     requestAnimationFrame(wache);
     var st = $('start'), o = $('jvOrb'), fab = $('jvFab'), jvAuf = $('blattJv').classList.contains('offen');
     var versteckt = !jvMini.gross && !jvAuf && !jvMini.flug && (st.classList.contains('aus') || st.classList.contains('weg') || st.classList.contains('ordnen') || !!document.querySelector('.blatt.offen'));
-    if (o.classList.contains('weg') !== versteckt) { o.classList.toggle('weg', versteckt); fab.classList.toggle('weg', versteckt); }
+    if (o.classList.contains('weg') !== versteckt) { o.classList.toggle('weg', versteckt); fab.classList.toggle('weg', versteckt); $('jvGriff').classList.toggle('weg', versteckt); }
+    if (jvMini.gross !== $('jvGriff').classList.contains('auf')) $('jvGriff').classList.toggle('auf', jvMini.gross);
     if (!jvMini.flug && !versteckt && (jvMini.k = (jvMini.k || 0) + 1) % 10 === 0) { var zt = jvZiel(jvMini.gross); if (zt !== jvMini.letzt) { jvMini.letzt = zt; o.style.transition = 'opacity .3s ease'; o.style.transform = zt; } } // (iPhone) Bildschirmhöhe ändert sich nach dem Start: Kugel bleibt am richtigen Platz
   })();
 }
