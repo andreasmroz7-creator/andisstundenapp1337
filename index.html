@@ -187,7 +187,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .jvk{display:flex;flex-direction:column;align-items:center;padding-bottom:110px!important}
 .jvplatz{width:100%;height:300px;margin:max(0px,calc(53vh - 270px)) auto -10px;flex:none}
 .jvkern{position:fixed;left:0;top:0;width:calc(100vw - 32px);height:300px;z-index:11;pointer-events:none;transform-origin:50% 50%;will-change:transform;transition:opacity .3s ease}.jvkern canvas{width:100%;height:100%;display:block;transition:filter .7s ease}.jvkern.klein canvas{filter:brightness(1.45)}.jvkern.weg{opacity:0}
-#jvFang{position:fixed;inset:0;z-index:10;display:none;-webkit-tap-highlight-color:transparent}body.jvgross #jvFang{display:block}
+#jvFang{position:fixed;inset:0;z-index:10;visibility:hidden;opacity:0;background:rgba(0,0,0,.12);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);transition:opacity .55s ease,visibility 0s linear .55s;-webkit-tap-highlight-color:transparent}body.jvgross #jvFang{visibility:visible;opacity:1;transition:opacity .55s ease,visibility 0s}
 .jvunter{position:fixed;left:28px;right:28px;z-index:12;text-align:center;font-size:16px;line-height:1.4;color:#eaeaea;text-shadow:0 1px 10px #000,0 0 3px #000;opacity:0;transform:translateY(6px);transition:opacity .45s ease,transform .45s ease;pointer-events:none}
 .jvunter.an{opacity:1;transform:none}.jvunter small{display:block;color:#9a9a9a;font-size:13px;margin-bottom:4px}
 #jvTipp{position:fixed;left:24px;right:24px;z-index:12;display:none;border-radius:999px!important;padding:12px 16px!important;background:rgba(20,20,22,.7);border:1px solid rgba(255,255,255,.18);color:var(--txt);font-size:16px;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}body.jvgross #jvTipp.an{display:block}
@@ -429,7 +429,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.94';
+var VERSION = '1.95';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
