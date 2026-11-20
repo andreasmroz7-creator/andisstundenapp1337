@@ -226,9 +226,9 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .jvfab i{position:absolute;inset:6px;border-radius:50%;border:1px solid rgba(255,255,255,.22);animation:jvring 3.2s ease-out infinite}
 @keyframes jvatem{0%,100%{transform:scale(.94);box-shadow:0 0 14px rgba(255,255,255,.15)}50%{transform:scale(1.04);box-shadow:0 0 26px rgba(255,255,255,.35)}}
 .jvfab.weg{opacity:0;pointer-events:none;transform:scale(.8)}
-#jvGriff{position:fixed;left:50%;bottom:0;width:150px;height:calc(env(safe-area-inset-bottom) + 26px);margin-left:-75px;border:0;background:transparent;z-index:9;padding:0;-webkit-tap-highlight-color:transparent;transition:opacity .3s}
-#jvGriff i{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 8px);width:46px;height:4px;margin-left:-23px;border-radius:2px;background:rgba(255,255,255,.28);transition:background .2s,width .2s,margin .2s}
-#jvGriff:active i{background:rgba(255,255,255,.6);width:60px;margin-left:-30px}
+#jvGriff{position:fixed;left:50%;bottom:0;width:200px;height:calc(env(safe-area-inset-bottom) + 22px);margin-left:-100px;border:0;background:transparent;z-index:9;padding:0;-webkit-tap-highlight-color:transparent;transition:opacity .3s}
+#jvGriff i{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) * .6);width:110px;height:5px;margin-left:-55px;border-radius:2px;background:rgba(255,255,255,.28);transition:background .2s,width .2s,margin .2s}
+#jvGriff:active i{background:rgba(255,255,255,.6);width:130px;margin-left:-65px}
 #jvGriff.weg{opacity:0;pointer-events:none}
 #blattJv{background:transparent}
 #blattJv .innen{background:rgba(6,7,9,.16);-webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px);opacity:0;transition:opacity .55s ease}
@@ -463,7 +463,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.08';
+var VERSION = '2.09';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
