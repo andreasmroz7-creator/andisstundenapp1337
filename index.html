@@ -146,14 +146,17 @@ body.vonstart .summe{animation-delay:.05s}body.vonstart .suche{animation-delay:.
 @keyframes blattrein{from{transform:translateY(40px);opacity:.0}to{transform:none;opacity:1}}
 h1 .heim{display:inline-flex;align-items:center;gap:5px;color:var(--akz);cursor:pointer}
 h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.tlinks{display:flex;align-items:center;gap:12px;min-width:0}
+.monatzeile{display:flex;align-items:center;justify-content:center;gap:10px}
+.monatzeile .wh{color:var(--grau);opacity:.45;font-size:20px;line-height:1}
 .toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translateX(-50%);background:rgba(30,38,54,.95);border:1px solid var(--rand);padding:10px 16px;border-radius:14px;z-index:20;font-size:14px;display:none;white-space:nowrap}
 </style>
 </head>
 <body>
 <div class="kopf">
-  <span class="platz"></span><button class="kugel festpfeil" id="zurueck" aria-label="Vormonat"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
-  <div class="mitte"><h1><span class="heim" id="heim"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>STUNDEN</span></h1><div class="monat" id="monat"></div></div>
-  <span class="platz"></span><button class="kugel festpfeil" id="vor" aria-label="Nächster Monat"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+  <span class="platz"></span><button class="kugel festpfeil" id="zurStart" aria-label="Zurück zur Startseite"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+  <div class="mitte"><h1>STUNDEN</h1><div class="monatzeile"><span class="wh">‹</span><div class="monat" id="monat"></div><span class="wh">›</span></div></div>
+  <span class="platz"></span>
 </div>
 <div class="summe">
   <div id="jahrauf" style="cursor:pointer;min-width:0;flex:1"><div class="klein" style="white-space:nowrap">Gesamt diesen Monat <span style="color:var(--akzent,#5ac8fa)">· Jahr ›</span></div><div class="gross" id="msumme">0,00</div><div class="klein" id="mdetail"></div><div class="klein" id="mlohn" style="color:var(--gruen);margin-top:2px"></div><div class="klein" id="sync" style="margin-top:4px"></div></div>
@@ -212,15 +215,15 @@ h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2
 
 <!-- Einstellungen -->
 <div class="blatt" id="blattJ"><div class="innen">
-  <div class="titel"><b>Jahresübersicht</b><button class="kugel schliessen" data-zu="blattJ" aria-label="Schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattJ" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Jahresübersicht</b></div></div>
   <div class="koerper" id="jKoerper"></div>
 </div></div>
 <div class="blatt" id="blattF"><div class="innen">
-  <div class="titel"><b>Fixkosten &amp; Sparpläne</b><button class="kugel schliessen" data-zu="blattF" aria-label="Schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattF" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Fixkosten &amp; Sparpläne</b></div></div>
   <div class="koerper" id="fKoerper"></div>
 </div></div>
 <div class="blatt" id="blattN"><div class="innen">
-  <div class="titel"><b id="nwTitel">Arbeitsnachweis</b><div style="display:flex;gap:8px"><button class="kugel" id="nwpdf" aria-label="PDF erstellen"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button><button class="kugel schliessen" data-zu="blattN" aria-label="Schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>
+  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattN" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b id="nwTitel">Arbeitsnachweis</b></div><div style="display:flex;gap:8px"><button class="kugel" id="nwpdf" aria-label="PDF erstellen"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button></div></div>
   <div class="koerper" id="nwKoerper"></div>
 </div></div>
 <div class="blatt" id="blattS"><div class="innen">
@@ -252,7 +255,7 @@ h1 .heim svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.44';
+var VERSION = '1.45';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -638,8 +641,7 @@ $('plus').onclick = function () {
   var heute = new Date(), d = (heute.getFullYear() === ansicht.j && heute.getMonth() === ansicht.m) ? iso(heute) : iso(new Date(ansicht.j, ansicht.m, 1));
   oeffne(neuerEintrag(d), true);
 };
-$('zurueck').onclick = function () { ansicht.m--; if (ansicht.m < 0) { ansicht.m = 11; ansicht.j--; } zeichne(); };
-$('vor').onclick = function () { ansicht.m++; if (ansicht.m > 11) { ansicht.m = 0; ansicht.j++; } zeichne(); };
+function monatSchritt(n) { ansicht.m += n; if (ansicht.m < 0) { ansicht.m = 11; ansicht.j--; } if (ansicht.m > 11) { ansicht.m = 0; ansicht.j++; } zeichne(); }
 [].forEach.call(document.querySelectorAll('.schliessen'), function (b) { b.onclick = function () { $(b.dataset.zu).classList.remove('offen'); }; });
 [].forEach.call(document.querySelectorAll('.blatt'), function (bl) { bl.addEventListener('click', function (ev) { if (ev.target === bl) bl.classList.remove('offen'); }); });
 
@@ -769,15 +771,29 @@ function planFuellen(x) {
   return true;
 }
 $('datum').addEventListener('change', function () { if (e && e._neu) { e.feiertag = istFeiertagSN(this.value); formZeichnen(); } if (e && e._neu && !(e.laeden || []).some(function (l) { return (l.zeiten || []).some(function (z) { return z.von || z.bis; }) || l.std; })) { e.datum = this.value; if (planFuellen(e)) { formZeichnen(); toast('Aus dem Einsatzplan vorausgefüllt'); } } });
-// Monate wischen
+// Monate wischen: Inhalt folgt dem Finger, beim Loslassen gleitet der neue Monat herein
 (function () {
-  var sx = 0, sy = 0, an = false;
-  document.addEventListener('touchstart', function (ev) { if (document.querySelector('.blatt.offen') || !$('start').classList.contains('aus') || ev.touches.length > 1) { an = false; return; } an = true; sx = ev.touches[0].clientX; sy = ev.touches[0].clientY; }, { passive: true });
+  var sx = 0, sy = 0, an = false, richtung = 0, laeuft = false;
+  function teile() { return [$('monat'), document.querySelector('.summe'), $('liste')]; }
+  function setze(x, o, anim) { teile().forEach(function (el, i) { if (!el) return; el.style.transition = anim ? 'transform .32s cubic-bezier(.2,.8,.2,1),opacity .32s ease' : 'none'; el.style.transform = x ? 'translateX(' + (x * (i === 0 ? .6 : 1)) + 'px)' + (anim === 'rein' ? '' : ' scale(' + (1 - Math.min(Math.abs(x) / 2400, .04)) + ')') : ''; el.style.opacity = o; }); }
+  document.addEventListener('touchstart', function (ev) { if (laeuft || document.querySelector('.blatt.offen') || !$('start').classList.contains('aus') || ev.touches.length > 1 || $('suche').value || (ev.target.closest && ev.target.closest('input,textarea,select'))) { an = false; return; } an = true; richtung = 0; sx = ev.touches[0].clientX; sy = ev.touches[0].clientY; }, { passive: true });
+  document.addEventListener('touchmove', function (ev) {
+    if (!an) return; var dx = ev.touches[0].clientX - sx, dy = ev.touches[0].clientY - sy;
+    if (!richtung) { if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; richtung = Math.abs(dx) > Math.abs(dy) * 1.2 ? 1 : 2; }
+    if (richtung !== 1) return; setze(dx, String(1 - Math.min(Math.abs(dx) / 500, .5)), false);
+  }, { passive: true });
   document.addEventListener('touchend', function (ev) {
-    if (!an) return; an = false; var t = ev.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
-    if (Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6 || $('suche').value) return;
-    var L = $('liste'); L.classList.add('wisch'); L.style.transform = 'translateX(' + (dx < 0 ? -40 : 40) + 'px)'; L.style.opacity = '0';
-    setTimeout(function () { (dx < 0 ? $('vor') : $('zurueck')).onclick(); L.style.transition = 'none'; L.style.transform = 'translateX(' + (dx < 0 ? 40 : -40) + 'px)'; void L.offsetWidth; L.style.transition = ''; L.style.transform = ''; L.style.opacity = ''; setTimeout(function () { L.classList.remove('wisch'); }, 250); }, 200);
+    if (!an) return; an = false; if (richtung !== 1) return;
+    var dx = ev.changedTouches[0].clientX - sx, w = window.innerWidth;
+    if (Math.abs(dx) < 70) { setze(0, '', true); return; }
+    laeuft = true; var vor = dx < 0;
+    setze(vor ? -w : w, '0', true);
+    setTimeout(function () {
+      monatSchritt(vor ? 1 : -1); window.scrollTo(0, 0);
+      setze(vor ? w * .6 : -w * .6, '0', false); void document.body.offsetWidth;
+      setze(0, '', 'rein');
+      setTimeout(function () { teile().forEach(function (el) { if (el) { el.style.transition = ''; el.style.transform = ''; } }); laeuft = false; }, 340);
+    }, 220);
   }, { passive: true });
 })();
 // Suche über alle Monate
@@ -867,6 +883,7 @@ function welle(el, ev) { var r = el.getBoundingClientRect(), s = Math.max(r.widt
 function startWeg() {
   var s = $('start'); s.classList.add('weg'); document.body.classList.remove('vonstart'); void document.body.offsetWidth; document.body.classList.add('vonstart');
   setTimeout(function () { s.classList.add('aus'); }, 400);
+  setTimeout(function () { document.body.classList.remove('vonstart'); }, 800);
 }
 function startZeigen() {
   var s = $('start'); startZeichnen(); s.classList.remove('aus'); void s.offsetWidth; s.classList.remove('weg'); s.scrollTop = 0;
@@ -878,7 +895,7 @@ function startZiel(z) {
   else if (z === 'nachweis') $('nwknopf').onclick();
   else if (z === 'jahr') { jahrZeichnen(); $('blattJ').classList.add('offen'); }
 }
-$('heim').onclick = function (ev) { ev.stopPropagation(); startZeigen(); };
+$('zurStart').onclick = function () { startZeigen(); };
 
 // ---------- Jahresübersicht (Andi: gerechnet wird erst ab September 2026) ----------
 var JAHR_AB = '2026-09';
