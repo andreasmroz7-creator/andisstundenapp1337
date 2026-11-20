@@ -429,7 +429,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.99';
+var VERSION = '2.00';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1666,21 +1666,30 @@ function jvLokal(t) {
   return null;
 }
 function jvWiedergabe() { try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (x) {} } // iPhone: Ton auch, wenn der Lautlos-Schalter an ist, und über den Lautsprecher statt die Ohrmuschel
+function jvStille() { if (jv.stille) return jv.stille; var n = 2205, b = new ArrayBuffer(44 + n * 2), v = new DataView(b), w = function (o, t) { for (var i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, 22050, true); v.setUint32(28, 44100, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+  return (jv.stille = URL.createObjectURL(new Blob([b], { type: 'audio/wav' }))); }
 function jvEntsperren() {
   jvWiedergabe();
+  try { if (!jv.el) { jv.el = new Audio(); jv.el.playsInline = true; jv.el.setAttribute('playsinline', ''); } if (!jv.spielt) { jv.el.src = jvStille(); var p0 = jv.el.play(); if (p0 && p0.catch) p0.catch(function () {}); } } catch (x) {}
   try { var AC = window.AudioContext || window.webkitAudioContext; if (!jv.ctx && AC) jv.ctx = new AC(); if (jv.ctx) { if (jv.ctx.state !== 'running') jv.ctx.resume(); var b = jv.ctx.createBuffer(1, 1, 22050), q = jv.ctx.createBufferSource(); q.buffer = b; q.connect(jv.ctx.destination); q.start(0); } } catch (x) {}
   try { if (!jv.ttsFrei && window.speechSynthesis) { var u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); jv.ttsFrei = true; } } catch (x) {} // Sprachausgabe im Tipp freischalten (sonst blockt das iPhone die spätere Antwort)
 }
-function jvStopp() { try { speechSynthesis.cancel(); } catch (x) {} try { if (jv.quelle) { jv.quelle.onended = null; jv.quelle.stop(); } } catch (x) {} jv.quelle = null; }
+function jvStopp() { jv.spielt = false; try { if (jv.el) { jv.el.onpause = jv.el.onended = null; jv.el.pause(); } } catch (x) {} try { speechSynthesis.cancel(); } catch (x) {} try { if (jv.quelle) { jv.quelle.onended = null; jv.quelle.stop(); } } catch (x) {} jv.quelle = null; }
 function jvSprechen(text, audioB64) {
-  jvWiedergabe(); try { if (jv.ctx && jv.ctx.state !== 'running') jv.ctx.resume(); } catch (x) {}
+  jvWiedergabe();
   if (jv.stumm) { jvZustand('schlaf', ''); return; }
-  var fertig = function () { jvZustand('schlaf', ''); clearTimeout(jv.unterT); jv.unterT = setTimeout(function () { if (!jv.laeuft) jvUnter(''); }, 4000); };
-  if (audioB64 && jv.ctx) {
+  var fertig = function () { if (jv.el) { jv.el.onended = jv.el.onpause = jv.el.onerror = null; } jv.spielt = false; try { window.setJarvisVoice && setJarvisVoice(0); } catch (x) {} jvZustand('schlaf', ''); clearTimeout(jv.unterT); jv.unterT = setTimeout(function () { if (!jv.laeuft) jvUnter(''); }, 4000); };
+  if (audioB64 && jv.el) {
     try {
       var bin = atob(audioB64), buf = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-      jv.ctx.decodeAudioData(buf.buffer, function (ab) { jvStopp(); var q = jv.ctx.createBufferSource(), an = jv.ctx.createAnalyser(); an.fftSize = 512; q.buffer = ab; q.connect(an); an.connect(jv.ctx.destination); q.onended = fertig; jv.quelle = q; jvZustand('spricht', ''); q.start(0);
-        var dat = new Uint8Array(an.fftSize); (function pegel() { if (jv.quelle !== q) return; an.getByteTimeDomainData(dat); var s2 = 0; for (var k = 0; k < dat.length; k++) { var v = (dat[k] - 128) / 128; s2 += v * v; } try { window.setJarvisVoice && setJarvisVoice(Math.min(1, Math.sqrt(s2 / dat.length) * 4)); } catch (x) {} requestAnimationFrame(pegel); })(); }, function () { jvTts(text, fertig); });
+      jvStopp(); var el = jv.el; if (jv.url) URL.revokeObjectURL(jv.url); jv.url = URL.createObjectURL(new Blob([buf], { type: 'audio/mpeg' }));
+      el.src = jv.url; jv.spielt = true; jvZustand('spricht', '');
+      el.onended = fertig; el.onerror = function () { fertig(); };
+      // (iPhone) wird der Ton unterbrochen (z. B. wenn die Spracherkennung das Mikrofon freigibt), einfach weiterspielen
+      el.onpause = function () { if (jv.spielt && !el.ended) setTimeout(function () { if (jv.spielt && el.paused && !el.ended) { var p = el.play(); if (p && p.catch) p.catch(function () {}); } }, 250); };
+      (function puls() { if (!jv.spielt || jv.el.src !== jv.url) return; try { window.setJarvisVoice && setJarvisVoice(.45 + .35 * Math.abs(Math.sin(el.currentTime * 9)) * Math.abs(Math.sin(el.currentTime * 2.3 + 1))); } catch (x) {} requestAnimationFrame(puls); })();
+      var p = el.play(); if (p && p.catch) p.catch(function () { jv.spielt = false; jvTts(text, fertig); });
       return;
     } catch (x) {}
   }
