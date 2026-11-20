@@ -429,7 +429,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.00';
+var VERSION = '2.01';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1602,7 +1602,7 @@ function jvOeffnen() {
 }
 function jvSchliessen() {
   if (!jvMini.gross) return;
-  clearTimeout(jv.flugT1); jvStopp(); try { if (jv.erk) { jv.erk.onend = null; jv.erk.abort(); jv.erk = null; } $('jvTipp').blur(); } catch (x) {}
+  clearTimeout(jv.flugT1); jv.stimmeNr = (jv.stimmeNr || 0) + 1; jvStopp(); try { if (jv.erk) { jv.erk.onend = null; jv.erk.abort(); jv.erk = null; } $('jvTipp').blur(); } catch (x) {}
   $('jvTipp').classList.remove('an'); jvUnter(''); window.__jvGross = 0; document.body.classList.remove('jvgross');
   jvMini.flug = true; jvKugel(false, true); jvZustand('schlaf');
   jv.flugT1 = setTimeout(function () { jvMini.flug = false; }, 760);
@@ -1700,10 +1700,31 @@ function jvTts(text, fertig) {
   var u = new SpeechSynthesisUtterance(text); u.lang = 'de-DE'; var st = speechSynthesis.getVoices().filter(function (v) { return /^de/i.test(v.lang); }); if (st.length) u.voice = st.find(function (v) { return /premium|enhanced|anna|markus/i.test(v.name); }) || st[0];
   u.onend = fertig; u.onerror = fertig; u.onboundary = function () { try { window.jarvisKick && jarvisKick(); } catch (x) {} }; jvZustand('spricht', ''); speechSynthesis.cancel(); speechSynthesis.speak(u);
 }
+// Antwort steht schon fest (Cockpit-Daten): nur die ElevenLabs-Stimme vom Mac holen; kommt sie nicht in ~6 s, spricht das iPhone selbst
+function jvMacStimme(t) {
+  if (jv.stumm) { jvZustand('schlaf', ''); return; }
+  if (!daten.einst.token) { jvSprechen(t, null); return; }
+  var id = 's' + Date.now() + '-' + Math.random().toString(36).slice(2, 6), kopf = jvKopf(), start = Date.now(), fertig = false, mein = jv.stimmeNr = (jv.stimmeNr || 0) + 1;
+  var weg = function (pfad, sha) { if (sha) fetch(GHJ + pfad, { method: 'DELETE', headers: kopf, body: JSON.stringify({ message: 'Jarvis aufräumen', sha: sha }) }).catch(function () {}); };
+  var selbst = function () { if (fertig || mein !== jv.stimmeNr) return; fertig = true; jvSprechen(t, null); };
+  jvZustand('denkt', null);
+  fetch(GHJ + 'f_' + id + '.json', { method: 'PUT', headers: kopf, body: JSON.stringify({ message: 'Jarvis-Stimme', content: b64enc(JSON.stringify({ id: id, sag: t, text: t, zeit: new Date().toISOString(), quelle: 'cockpit' })) }) })
+    .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      if (!j) return selbst(); var fsha = j.content && j.content.sha;
+      (function warte() {
+        if (fertig || mein !== jv.stimmeNr) return;
+        if (Date.now() - start > 8000) { selbst(); weg('f_' + id + '.json', fsha); return; }
+        fetch(GHJ + 'a_' + id + '.json?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) {
+          if (!r.ok) { setTimeout(warte, 700); return; }
+          return r.json().then(function (j2) { var a = JSON.parse(b64dec(j2.content) || '{}'); weg('a_' + id + '.json', j2.sha); if (fertig || mein !== jv.stimmeNr) return; fertig = true; jvSprechen(t, a.audio || null); });
+        }).catch(function () { setTimeout(warte, 900); });
+      })();
+    }).catch(selbst);
+}
 function jvSenden(text) {
   text = (text || '').trim(); if (!text || jv.laeuft) return;
   var lok = null; try { lok = jvLokal(text); } catch (x) {}
-  if (lok) { try { /^(notier|merk dir|schreib auf|notiz)/i.test(text.trim()) ? window.jarvisBurst && jarvisBurst() : 0; } catch (x) {} jvEntsperren(); jvZeile('ich', text); $('jvText').value = ''; jvZustand('denkt', ''); setTimeout(function () { jvZeile('er', lok); jvSprechen(lok, null); if (!$('start').classList.contains('aus')) startZeichnen(true); }, 450); return; }
+  if (lok) { try { /^(notier|merk dir|schreib auf|notiz)/i.test(text.trim()) ? window.jarvisBurst && jarvisBurst() : 0; } catch (x) {} jvEntsperren(); jvZeile('ich', text); $('jvText').value = ''; jvZustand('denkt', ''); setTimeout(function () { jvZeile('er', lok); jvMacStimme(lok); if (!$('start').classList.contains('aus')) startZeichnen(true); }, 300); return; }
   if (!daten.einst.token) { toast('Kein GitHub-Schlüssel in den Einstellungen'); return; }
   jvEntsperren(); jv.laeuft = true; jvZeile('ich', text); $('jvText').value = ''; jvZustand('denkt', 'Jarvis denkt nach …');
   var id = Date.now() + '-' + Math.random().toString(36).slice(2, 6), kopf = jvKopf(), fsha = null, start = Date.now();
