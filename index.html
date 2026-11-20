@@ -215,7 +215,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.41';
+var VERSION = '1.42';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -829,7 +829,7 @@ function fixkostenHolen(kopf) {
 function proMonat(p) { var b = +p.betrag || 0; return p.rhythmus === 'jahr' ? b / 12 : p.rhythmus === 'quartal' ? b / 3 : p.rhythmus === 'woche' ? b * 52 / 12 : b; }
 function fixZeichnen() {
   var f = daten.fixkosten; if (!f) { $('fKoerper').innerHTML = '<p class="hinweis">Noch keine Daten. Einmal abgleichen (Schlüssel in den Einstellungen).</p>'; return; }
-  var po = f.posten || [], sp = f.sparplaene || [], sA = 0, sS = 0, rh = { monat: 'mtl.', jahr: 'jährl.', quartal: 'vierteljährl.', woche: 'wöchentl.' };
+  var heuteI = iso2(new Date()), po = (f.posten || []).filter(function (p) { return !p.ende || p.ende >= heuteI; }), sp = f.sparplaene || [], sA = 0, sS = 0, rh = { monat: 'mtl.', jahr: 'jährl.', quartal: 'vierteljährl.', woche: 'wöchentl.' };
   po.forEach(function (p) { sA += proMonat(p); }); sp.forEach(function (p) { sS += proMonat(p); });
   var zeile = function (p) { return '<div class="jb"><div class="k"><b>' + esc(p.name) + '</b><span>' + euro(+p.betrag) + ' ' + (rh[p.rhythmus] || '') + (p.tag ? ' · am ' + p.tag + '.' : '') + (p.naechste ? ' · nächste ' + p.naechste.split('-').reverse().join('.') : '') + (p.notiz ? ' · ' + esc(p.notiz) : '') + '</span></div></div>'; };
   var h = '<div class="nwk"><div><small>Abos & Verträge / Monat</small><b>' + euro(sA) + '</b></div><div><small>Sparpläne / Monat</small><b>' + (sp.length ? euro(sS) : '–') + '</b></div><div><small>Zusammen / Monat</small><b>' + euro(sA + sS) + '</b></div><div><small>Aufs Jahr</small><b>' + euro((sA + sS) * 12) + '</b></div></div>';
