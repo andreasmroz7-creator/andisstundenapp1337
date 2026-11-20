@@ -209,6 +209,28 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .jvein input{flex:1;border-radius:999px!important;padding:12px 16px!important}
 #jvMic.an{background:#fff;color:#000}
 #jvLeise.stumm .wl{display:none}#jvLeise.stumm .aus{display:inline!important}
+.sname{margin-bottom:8px!important}
+.jvhin{display:flex;align-items:center;gap:9px;margin:0 0 16px;font-size:14px;color:#cfcfcf;cursor:pointer;min-height:20px}
+.jvhin i{flex:none;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#fff,#9a9a9a 60%,#444);box-shadow:0 0 10px rgba(255,255,255,.35);animation:jvatem 3.2s ease-in-out infinite}
+.jvhin span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#start{padding-bottom:calc(env(safe-area-inset-bottom) + 110px)!important}
+.jvfab{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 18px);width:66px;height:66px;margin-left:-33px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:rgba(30,30,30,.55);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);box-shadow:0 10px 30px rgba(0,0,0,.55);z-index:9;padding:0;cursor:pointer;transition:transform .25s cubic-bezier(.2,.8,.2,1),opacity .3s}
+.jvfab:active{transform:scale(.9)}
+.jvfab b{position:absolute;inset:15px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#fff,#bdbdbd 45%,#4a4a4a 100%);animation:jvatem 3.2s ease-in-out infinite}
+.jvfab i{position:absolute;inset:6px;border-radius:50%;border:1px solid rgba(255,255,255,.22);animation:jvring 3.2s ease-out infinite}
+@keyframes jvatem{0%,100%{transform:scale(.94);box-shadow:0 0 14px rgba(255,255,255,.15)}50%{transform:scale(1.04);box-shadow:0 0 26px rgba(255,255,255,.35)}}
+#start.ordnen .jvfab,#start.weg .jvfab{opacity:0;pointer-events:none}
+#blattJv{background:transparent}
+#blattJv .innen{background:rgba(12,12,12,.78);-webkit-backdrop-filter:blur(26px) saturate(1.2);backdrop-filter:blur(26px) saturate(1.2);clip-path:circle(0 at var(--ox,50%) var(--oy,92%));transition:clip-path .6s cubic-bezier(.2,.8,.2,1)}
+#blattJv.auf .innen{clip-path:circle(150% at var(--ox,50%) var(--oy,92%))}
+#blattJv.zugeht .innen{animation:none!important;clip-path:circle(0 at var(--ox,50%) var(--oy,92%));transition:clip-path .38s cubic-bezier(.4,0,.2,1)}
+#blattJv .titel{background:transparent;border-bottom:0}
+.jvchips{display:flex;gap:8px;overflow-x:auto;padding:0 16px 10px;scrollbar-width:none;position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 128px)}
+.jvchips::-webkit-scrollbar{display:none}
+.jvchips button{flex:none;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);color:var(--txt);border-radius:999px;padding:8px 14px;font:inherit;font-size:13.5px;cursor:pointer;transition:transform .15s,background .2s;white-space:nowrap}
+.jvchips button:active{transform:scale(.95);background:rgba(255,255,255,.18)}
+.jvein{background:linear-gradient(transparent,rgba(12,12,12,.9) 35%)!important}
+.jvk{padding-bottom:180px!important}
 .welle{position:absolute;border-radius:50%;background:rgba(255,255,255,.25);transform:scale(0);animation:welle .55s ease-out forwards;pointer-events:none}
 @keyframes welle{to{transform:scale(4);opacity:0}}
 body.vonstart .kopf .mitte,body.vonstart .summe,body.vonstart .suche,body.vonstart #liste{animation:auftauchen .5s cubic-bezier(.2,.8,.2,1) backwards}
@@ -341,7 +363,7 @@ body.istoffline .sstand{color:#ff6b61}
 <div class="blatt" id="blattJv"><div class="innen">
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattJv" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Jarvis</b></div><button class="kugel" id="jvLeise" aria-label="Ton an/aus"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4z"/><path class="wl" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/><path class="aus" d="M16 9l6 6M22 9l-6 6" style="display:none"/></svg></button></div>
   <div class="koerper jvk"><div class="jvorb schlaf" id="jvOrb"><i></i><i></i><i></i><b></b><span><em></em><em></em><em></em></span></div><div class="jvstatus" id="jvStatus">Tippe aufs Mikrofon oder schreib etwas</div><div id="jvVerlauf"></div></div>
-  <div class="jvein"><input type="text" id="jvText" placeholder="Frag Jarvis …" autocomplete="off" enterkeyhint="send"><button class="kugel" id="jvMic" aria-label="Sprechen"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button></div>
+  <div class="jvchips" id="jvChips"></div><div class="jvein"><input type="text" id="jvText" placeholder="Frag Jarvis …" autocomplete="off" enterkeyhint="send"><button class="kugel" id="jvMic" aria-label="Sprechen"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button></div>
 </div></div>
 <div class="blatt" id="blattN"><div class="innen">
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattN" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b id="nwTitel">Arbeitsnachweis</b></div><div style="display:flex;gap:8px"><button class="kugel" id="nwpdf" aria-label="PDF erstellen"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button></div></div>
@@ -381,7 +403,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.82';
+var VERSION = '1.83';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -818,7 +840,7 @@ function blattZu(bl) {
   if (!bl || !bl.classList.contains('offen') || bl.classList.contains('zugeht')) return;
   var vs = bl.dataset.vonstart; delete bl.dataset.vonstart;
   if (vs) document.body.classList.add('zumstart');
-  bl.classList.add('zugeht');
+  bl.classList.add('zugeht'); bl.classList.remove('auf');
   setTimeout(function () { bl.classList.remove('offen'); bl.classList.remove('zugeht'); if (vs) startZeigen(true); }, 300);
 }
 [].forEach.call(document.querySelectorAll('.schliessen'), function (b) { b.onclick = function () { blattZu($(b.dataset.zu)); }; });
@@ -1096,15 +1118,15 @@ function startZeichnen(still) {
   var gr = d.getHours() < 11 ? 'Guten Morgen' : d.getHours() < 18 ? 'Hallo' : 'Guten Abend';
   var vorname = (daten.einst.name || 'Andi').split(' ').pop(); if (/andreas/i.test(vorname)) vorname = 'Andi';
   var stand = daten.letzterAbgleich ? new Date(daten.letzterAbgleich) : null, standTxt = !daten.einst.token ? 'nicht verbunden' : stand ? (iso2(stand) === hi ? 'Stand ' : 'Stand ' + stand.getDate() + '.' + (stand.getMonth() + 1) + '. ') + stand.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : 'noch nicht abgeglichen';
-  var h = '<div class="rein" style="animation-delay:0s"><div class="sgruss">' + wt + ', ' + d.getDate() + '. ' + MONATE[d.getMonth()] + '<span class="sstand" id="sstand">' + (document.body.classList.contains('istoffline') ? 'Offline' + (stand ? ' · Stand ' + stand.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '') : standTxt) + '</span></div><div class="sname">' + gr + ', ' + esc(vorname) + '</div></div>';
+  var h = '<div class="rein" style="animation-delay:0s"><div class="sgruss">' + wt + ', ' + d.getDate() + '. ' + MONATE[d.getMonth()] + '<span class="sstand" id="sstand">' + (document.body.classList.contains('istoffline') ? 'Offline' + (stand ? ' · Stand ' + stand.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '') : standTxt) + '</span></div><div class="sname">' + gr + ', ' + esc(vorname) + '</div>' + jvHinweisHtml() + '</div>';
   h += '<div class="sheute rein kachel" data-ziel="heute" style="animation-delay:.06s;min-height:0"><small>Heute</small><b>' + hz + '</b><div class="zl">' + (eh ? 'Eingetragen: ' + z(R.berechne(eh).gesamt) + ' Std.' : heute && heute.tp ? 'Treffpunkt ' + esc(heute.tp) : 'Noch nichts eingetragen') + '</div>' + (fl ? '<div class="zl" style="margin-top:4px">' + fl.replace('class="fahrtzeile"', 'style="color:#e0e0e0"') + '</div>' : '') + '</div>';
   h += '<div class="sgrid">';
   var k0 = function (ziel, ic, farbe, titel, wert, unter, extra, breit, delay) {
     return '<div class="kachel rein' + (breit ? ' breit' : '') + '" data-ziel="' + ziel + '" style="animation-delay:' + delay + 's"><div class="glanz" style="background:' + farbe + '"></div><span class="pfeil">›</span><div class="ic" style="background:' + farbe + '">' + ic + '</div><div><div class="t">' + titel + '</div><div class="w">' + wert + '</div><div class="u">' + unter + '</div>' + (extra || '') + '</div></div>';
   };
-  var kk = {}, kdef = ['stunden', 'kosten', 'nachweis', 'jahr', 'urlaub', 'notizen', 'geburtstage', 'jarvis'];
+  var kk = {}, kdef = ['stunden', 'kosten', 'nachweis', 'jahr', 'urlaub', 'notizen', 'geburtstage'];
   var k = function (ziel, ic, farbe, titel, wert, unter, extra, breit) { kk[ziel] = function (delay) { return k0(ziel, ic, farbe, titel, wert, unter, extra, breit, delay); }; };
-  k('stunden', IC.uhr, 'linear-gradient(135deg,#b4b4b4,#737373)', 'Stunden ' + MONATE[d.getMonth()], z(std.s), std.n + ' Tage · ≈ ' + euro(std.s * lohn) + ' brutto<br>≈ ' + euro(netto(std.s * lohn)) + ' netto', '', false, .12);
+  k('stunden', IC.uhr, 'linear-gradient(135deg,#b4b4b4,#737373)', 'Stunden ' + MONATE[d.getMonth()], z(std.s), std.n + (std.n === 1 ? ' Tag' : ' Tage') + ' · ≈ ' + euro(std.s * lohn) + ' brutto<br>≈ ' + euro(netto(std.s * lohn)) + ' netto', '', false, .12);
   k('kosten', IC.geld, 'linear-gradient(135deg,#b0b0b0,#5a5a5a)', 'Laufende Kosten', f ? euro(fk) : '–', f ? 'pro Monat · ' + nfk + ' Posten' + (naechste ? '<br>nächste: ' + esc(naechste.p.name.split(' (')[0]) + ' am ' + naechste.p.tag + '.' : '') : 'noch nicht geladen', '', false, .18);
   k('nachweis', IC.koffer, 'linear-gradient(135deg,#a6a6a6,#909090)', 'Arbeitsnachweis ' + hi.slice(0, 4), nt + ' Tage', 'Verpflegung erhalten ' + euro(vp) + (nx ? '<br>nächster Einsatz: ' + WT[new Date(nx.datum + 'T12:00').getDay()] + ' ' + +nx.datum.slice(8) + '.' + +nx.datum.slice(5, 7) + '. ' + esc(nx.laeden[0].ort) : ''), '', false, .24);
   k('jahr', IC.balken, 'linear-gradient(135deg,#7a7a7a,#666666)', 'Jahresübersicht', 'Jahr ›', 'Stunden, Brutto und Verpflegung pro Monat', '', false, .30);
@@ -1114,12 +1136,13 @@ function startZeichnen(still) {
   k('notizen', IC.notiz, 'linear-gradient(135deg,#9a9a9a,#5c5c5c)', 'Notizen', no.length ? no.length + ' offen' : 'Keine', no.length ? esc(no[0].text.split('\n')[0]).slice(0, 70) + (no.length > 1 ? '<br>' + esc(no[1].text.split('\n')[0]).slice(0, 70) : '') : 'Tippen, um etwas aufzuschreiben', '', false);
   var gbl = gbSortiert(), g0 = gbl[0];
   k('geburtstage', IC.torte, 'linear-gradient(135deg,#9c9c9c,#5a5a5a)', 'Geburtstage', g0 ? (g0.tage === 0 ? 'Heute!' : g0.tage === 1 ? 'Morgen' : 'in ' + g0.tage + ' Tagen') : 'Keine', g0 ? esc(g0.x.name) + (g0.alter ? ' wird ' + g0.alter : '') + ' · ' + g0.txt + (gbl[1] ? '<br>danach ' + esc(gbl[1].x.name) + ' · ' + gbl[1].txt : '') : 'Tippen, um Geburtstage einzutragen', '', false);
-  k('jarvis', IC.jarvis, 'linear-gradient(135deg,#c8c8c8,#6a6a6a)', 'Jarvis', 'Frag mich', 'Sprechen oder schreiben<br>(Mac muss an sein)', '', false);
   var kr = kachelReihe(kdef); kr.forEach(function (z, i) { h += kk[z](.12 + i * .06).replace('class="kachel rein', 'class="kachel rein' + (kr.length % 2 && i === kr.length - 1 ? ' breit' : '')); });
-  h += '</div><div class="ordtipp">Kachel ziehen zum Verschieben</div><button class="ordfertig" id="ordfertig">Fertig</button>';
+  h += '</div><div class="ordtipp">Kachel ziehen zum Verschieben</div><button class="ordfertig" id="ordfertig">Fertig</button>' + '<button class="jvfab" id="jvFab" aria-label="Jarvis"><i></i><b></b></button>';
   $('start').innerHTML = '<div class="ptr" id="ptr"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>' + h;
   [].forEach.call($('start').querySelectorAll('[data-ziel]'), function (el) { el.onclick = function (ev) { if (window.ordnen && (ordnen.an || ordnen.klickSperre)) return; welle(el, ev); setTimeout(function () { startZiel(el.dataset.ziel); }, 160); }; });
   $('ordfertig').onclick = function () { ordnenAus(); };
+  $('jvFab').onclick = function () { if (window.ordnen && ordnen.an) return; jvOeffnen($('jvFab')); };
+  var jh = $('jvHinweis'); if (jh) jh.onclick = function () { jvOeffnen($('jvFab')); };
   if (window.ordnen && ordnen.an) $('start').classList.add('ordnen');
 }
 // ---------- Kacheln anordnen (gedrückt halten, ziehen; Reihenfolge bleibt gespeichert) ----------
@@ -1308,7 +1331,57 @@ function jvVerlaufZeichnen() {
   $('jvVerlauf').innerHTML = (daten.jarvisVerlauf || []).slice(-20).map(function (m) { return '<div class="jvm ' + m.wer + (m.f ? ' fehler' : '') + '">' + esc(m.t) + '</div>'; }).join('');
   var k = document.querySelector('#blattJv .koerper'); setTimeout(function () { k.scrollTop = k.scrollHeight; }, 30);
 }
-function jvOeffnen() { jvVerlaufZeichnen(); $('jvLeise').classList.toggle('stumm', jv.stumm); jvZustand('schlaf', daten.einst.token ? 'Tippe aufs Mikrofon oder schreib etwas' : 'Erst den GitHub-Schlüssel in den Einstellungen eintragen'); $('blattJv').classList.add('offen'); }
+function jvOeffnen(von) {
+  var bl = $('blattJv'), r = von ? von.getBoundingClientRect() : null;
+  bl.style.setProperty('--ox', r ? (r.left + r.width / 2) + 'px' : '50%'); bl.style.setProperty('--oy', r ? (r.top + r.height / 2) + 'px' : '92%');
+  jvVerlaufZeichnen(); jvChipsZeichnen(); $('jvLeise').classList.toggle('stumm', jv.stumm);
+  jvZustand('schlaf', (daten.jarvisVerlauf || []).length ? '' : 'Was kann ich für dich tun, Meister?');
+  bl.classList.remove('auf'); bl.classList.add('offen'); void bl.offsetWidth; requestAnimationFrame(function () { bl.classList.add('auf'); });
+}
+function jvChipsZeichnen() {
+  var c = ['Wie läuft mein Depot?', 'Wo arbeite ich morgen?', 'Stunden diesen Monat', 'Nächster Geburtstag', 'Resturlaub', 'Meine Notizen', 'Laufende Kosten'];
+  $('jvChips').innerHTML = c.map(function (t) { return '<button>' + t + '</button>'; }).join('');
+  [].forEach.call($('jvChips').children, function (b) { b.onclick = function () { jvEntsperren(); jvSenden(b.textContent); }; });
+}
+// Jarvis-Hinweis auf der Startseite (lokal, ohne Mac)
+function jvHinweisText() {
+  var d = new Date(), hi = iso2(d), mo = new Date(d); mo.setDate(d.getDate() + 1); var mi = iso2(mo);
+  var g = gbSortiert();
+  if (g[0] && g[0].tage === 0) return esc(g[0].x.name) + ' hat heute Geburtstag' + (g[0].alter ? ' und wird ' + g[0].alter : '') + '.';
+  if (g[0] && g[0].tage === 1) return 'Morgen hat ' + esc(g[0].x.name) + ' Geburtstag.';
+  var pt = planTag(hi), pm = planTag(mi), eh = daten.eintraege.find(function (x) { return x.datum === hi; });
+  var ort = function (p) { return p.laeden.map(function (l) { return esc(l.ort); }).join(' + '); };
+  if (pt && (pt.laeden || []).length && !eh && d.getHours() < 16) return 'Heute geht es nach ' + ort(pt) + (pt.tp ? ', Treffpunkt ' + esc(pt.tp) : '') + '.';
+  if (pm && (pm.laeden || []).length && d.getHours() >= 12) return 'Morgen geht es nach ' + ort(pm) + (pm.tp ? ', Treffpunkt ' + esc(pm.tp) : '') + '.';
+  if (pm && pm.nurReise && d.getHours() >= 12) return 'Morgen ist Anreise' + (pm.team ? ' mit Team ' + esc(pm.team) : '') + '.';
+  var no = (daten.notizen || []).filter(function (x) { return !x.erledigt; });
+  if (no.length) return no.length === 1 ? 'Eine offene Notiz: ' + esc(no[0].text.split('\n')[0]) : no.length + ' offene Notizen, Meister.';
+  if (g[0] && g[0].tage <= 7) return 'In ' + g[0].tage + ' Tagen hat ' + esc(g[0].x.name) + ' Geburtstag.';
+  return 'Frag mich einfach, Meister.';
+}
+function jvHinweisHtml() { var t = 'Frag mich einfach, Meister.'; try { t = jvHinweisText(); } catch (x) {} return '<div class="jvhin" id="jvHinweis"><i></i><span>' + t + '</span></div>'; }
+// Fragen zu Cockpit-Daten beantwortet Jarvis selbst, alles andere geht an den Mac
+function jvLokal(t) {
+  var q = t.toLowerCase(), d = new Date(), hi = iso2(d);
+  var m = /^(?:notier(?:e)?|merk dir|schreib auf|notiz)[:,]?\s+(.+)$/i.exec(t.trim());
+  if (m) { var j = Date.now(); daten.notizen = daten.notizen || []; daten.notizen.push({ id: 'n' + j, text: m[1].trim(), erstellt: j, geaendert: j }); sichern(); return 'Notiert, Meister: „' + m[1].trim() + '“.'; }
+  if (/notiz/.test(q)) { var no = (daten.notizen || []).filter(function (x) { return !x.erledigt; }); return no.length ? 'Du hast ' + no.length + ' offene Notiz' + (no.length > 1 ? 'en' : '') + ': ' + no.map(function (x) { return x.text.split('\n')[0]; }).join('; ') + '.' : 'Keine offenen Notizen. Sauber, Meister.'; }
+  if (/geburtstag/.test(q)) { var g = gbSortiert(); if (!g.length) return 'Ich kenne noch keine Geburtstage.'; var a = g[0]; return (a.tage === 0 ? 'Heute hat ' + a.x.name + ' Geburtstag' : a.tage === 1 ? 'Morgen hat ' + a.x.name + ' Geburtstag' : 'Als Nächstes hat ' + a.x.name + ' Geburtstag, am ' + a.txt.replace(/\.$/, '') + ', in ' + a.tage + ' Tagen') + (a.alter ? ' und wird ' + a.alter : '') + '.' + (g[1] ? ' Danach ' + g[1].x.name + ' am ' + g[1].txt.replace(/\.$/, '') + '.' : ''); }
+  if (/urlaub/.test(q)) { var u = urlaubKonto(d.getFullYear()); return u.anspruch != null ? 'Du hast noch ' + tg(u.rest) + ' Urlaub übrig. Genommen ' + tg(u.genommen) + (u.geplant ? ', geplant ' + tg(u.geplant) : '') + '.' : 'Du hast dieses Jahr ' + tg(u.genommen) + ' Urlaub genommen. Trag deinen Anspruch ein, dann rechne ich den Rest aus.'; }
+  if (/stunde|arbeitszeit|verdien|gehalt|brutto|netto/.test(q) && !/börse|depot|aktie|krypto/.test(q)) { var st = startTag(), lohn = +(daten.einst.lohn || 16); return 'Im ' + MONATE[d.getMonth()] + ' hast du bisher ' + z(st.s) + ' Stunden an ' + st.n + (st.n === 1 ? ' Tag.' : ' Tagen.') + ' Das sind etwa ' + euro(st.s * lohn) + ' brutto, ungefähr ' + euro(netto(st.s * lohn)) + ' netto.'; }
+  if (/laufende kosten|fixkost|abos?\b|verträge/.test(q)) { var f = daten.fixkosten; if (!f) return 'Die laufenden Kosten sind noch nicht geladen.'; var s1 = 0; (f.posten || []).concat(f.sparplaene || []).forEach(function (p) { if (!p.ende || p.ende >= hi) s1 += proMonat(p); }); return 'Deine laufenden Kosten liegen bei ' + euro(s1) + ' im Monat, aufs Jahr ' + euro(s1 * 12) + '.'; }
+  var morgen = /morgen/.test(q), heute = /heute/.test(q);
+  if (/arbeit|einsatz|laden|wo bin|wohin|treffpunkt/.test(q) && (morgen || heute || /nächst/.test(q))) {
+    var tag = new Date(d); if (morgen) tag.setDate(d.getDate() + 1);
+    var p = planTag(iso2(tag));
+    if (/nächst/.test(q) && !morgen && !heute) { var n = daten.nachweis, nx = n && n.tage ? n.tage.find(function (x) { return x.datum > hi && (x.laeden || []).length; }) : null; if (!nx) return 'Ich sehe gerade keinen nächsten Einsatz im Plan.'; p = nx; tag = new Date(nx.datum + 'T12:00'); }
+    var wann = morgen ? 'Morgen' : heute ? 'Heute' : 'Am ' + ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'][tag.getDay()] + ', ' + tag.getDate() + '.' + (tag.getMonth() + 1) + '.';
+    if (!p) return wann + ' steht nichts im Einsatzplan.';
+    if (p.nurReise) return wann + ' ist ein Reisetag' + (p.team ? ', Team ' + p.team : '') + '.';
+    return wann + ' geht es nach ' + p.laeden.map(function (l) { return l.ort + ' ' + l.fil; }).join(' und ') + (p.tp ? '. Treffpunkt ' + p.tp : '') + '.';
+  }
+  return null;
+}
 function jvEntsperren() { try { var AC = window.AudioContext || window.webkitAudioContext; if (!jv.ctx && AC) jv.ctx = new AC(); if (jv.ctx && jv.ctx.state !== 'running') jv.ctx.resume(); } catch (x) {} }
 function jvStopp() { try { speechSynthesis.cancel(); } catch (x) {} try { if (jv.quelle) { jv.quelle.onended = null; jv.quelle.stop(); } } catch (x) {} jv.quelle = null; }
 function jvSprechen(text, audioB64) {
@@ -1330,6 +1403,8 @@ function jvTts(text, fertig) {
 }
 function jvSenden(text) {
   text = (text || '').trim(); if (!text || jv.laeuft) return;
+  var lok = null; try { lok = jvLokal(text); } catch (x) {}
+  if (lok) { jvEntsperren(); jvZeile('ich', text); $('jvText').value = ''; jvZustand('denkt', ''); setTimeout(function () { jvZeile('er', lok); jvSprechen(lok, null); if (!$('start').classList.contains('aus')) startZeichnen(true); }, 450); return; }
   if (!daten.einst.token) { toast('Kein GitHub-Schlüssel in den Einstellungen'); return; }
   jvEntsperren(); jv.laeuft = true; jvZeile('ich', text); $('jvText').value = ''; jvZustand('denkt', 'Jarvis denkt nach …');
   var id = Date.now() + '-' + Math.random().toString(36).slice(2, 6), kopf = jvKopf(), fsha = null, start = Date.now();
