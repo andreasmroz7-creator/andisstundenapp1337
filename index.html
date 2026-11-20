@@ -220,7 +220,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .jvhin i{flex:none;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#fff,#9a9a9a 60%,#444);box-shadow:0 0 10px rgba(255,255,255,.35);animation:jvatem 3.2s ease-in-out infinite}
 .jvhin span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #start{padding-bottom:calc(env(safe-area-inset-bottom) + 110px)!important}
-.jvfab{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) - 10px);width:100px;height:100px;margin-left:-50px;border-radius:50%;border:0;background:radial-gradient(circle,rgba(0,0,0,.55) 30%,transparent 70%);-webkit-tap-highlight-color:transparent;z-index:9;padding:0;cursor:pointer;transition:transform .25s cubic-bezier(.2,.8,.2,1),opacity .3s}
+.jvfab{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) - 10px);width:100px;height:100px;margin-left:-50px;border-radius:50%;border:0;background:transparent;-webkit-tap-highlight-color:transparent;z-index:9;padding:0;cursor:pointer;transition:transform .25s cubic-bezier(.2,.8,.2,1),opacity .3s}
 .jvfab:active{transform:none}
 .jvfab b{position:absolute;inset:15px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#fff,#bdbdbd 45%,#4a4a4a 100%);animation:jvatem 3.2s ease-in-out infinite}
 .jvfab i{position:absolute;inset:6px;border-radius:50%;border:1px solid rgba(255,255,255,.22);animation:jvring 3.2s ease-out infinite}
@@ -459,7 +459,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.06';
+var VERSION = '2.07';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1425,7 +1425,7 @@ $('fkauf').onclick = function (ev) { ev.stopPropagation(); fixZeichnen(); $('bla
 /* JARVIS-Kern: leuchtende Partikelkugel mit feinen Fäden und hellem Kern.
    Zustände: ruhig (lockere Wolke) · zuhören (Kugel) · du sprichst (Wolke lockert sich, Kern glüht) · denken (fällt zum Lichtball zusammen) · Jarvis spricht (Kugel pulsiert, Fäden schimmern) */
 window.jvKernStart=function(){
-  const c=document.getElementById('jvCore'),x=c.getContext('2d'),N=9000,N0=1700,ORB='150,205,255'; /* N0 Punkte immer sichtbar, die übrigen kommen nur beim Denken und Reden dazu */
+  const c=document.getElementById('jvCore'),x=c.getContext('2d'),N=9000,N0=1700,ORB='205,205,205'; /* N0 Punkte immer sichtbar, die übrigen kommen nur beim Denken und Reden dazu */
   let W,H,level=0,target=0,t=0;
   window.setJarvisVoice=v=>{voxT=Math.max(0,Math.min(1,v));voxAt=performance.now()}; /* Lautstärke der Stimme: der Kern pulsiert genau mit der Sprache */
   window.setJarvisLevel=v=>{target=Math.max(0,Math.min(1,v))};
@@ -1452,7 +1452,7 @@ window.jvKernStart=function(){
     while(path.length<want){let b=-1,d1=.14;for(const j of OI){if(used.has(j)||path.includes(j))continue;const d=dist2(cur,j);if(d<d1){d1=d;b=j}}if(b<0)break;path.push(b);cur=b}
     if(path.length>=3){path.forEach(k=>used.add(k));for(let k=0;k+1<path.length;k++)EO.push(path[k],path[k+1])}}
   for(const i of OI)if(((P[i].s*11)%1)<.035)SPK.push(i); /* wenige feine Linien vom Ring zum Kern */
-  const WHS=new Float32Array(N),CLS=(()=>{const a=[150,205,255],m=[214,238,255],w=[255,255,255],o=[];for(let k=0;k<7;k++){const u=k/6,f=u<.5?[a,m,u*2]:[m,w,(u-.5)*2];o.push(f[0].map((v,n)=>Math.round(v+(f[1][n]-v)*f[2])).join(','))}return o})();
+  const WHS=new Float32Array(N),CLS=(()=>{const a=[205,205,205],m=[238,238,238],w=[255,255,255],o=[];for(let k=0;k<7;k++){const u=k/6,f=u<.5?[a,m,u*2]:[m,w,(u-.5)*2];o.push(f[0].map((v,n)=>Math.round(v+(f[1][n]-v)*f[2])).join(','))}return o})();
   const PX=new Float32Array(N),PY=new Float32Array(N),PZ=new Float32Array(N),WV=new Float32Array(N),GP=new Float32Array(N),WH=new Float32Array(N);
   /* Nachbarschaft der Fäden: Funken wandern entlang der Fäden von Punkt zu Punkt */
   const ADJ=Array.from({length:N},()=>[]);
@@ -1520,15 +1520,15 @@ window.jvKernStart=function(){
       R=R0*(1-.14*(1-act)+ls*.16+hr*.4+sp*.3+sp*sp*sp*(.09*wdS-.03)+env*.07),
       Rs=R0*(1-.14*(1-act)+ls*.16+hr*.4+sp*.3), /* Radius ohne Pulsieren: beim Reden bewegt sich nur der Kern im Takt, alles andere bleibt ruhig */
       cx=W/2+Math.sin(t*.55)*R0*.035*live,cy=H/2+Math.cos(t*.47)*R0*.03*live;
-    const CO='150,205,255'; /* beim Denken wird der Kern heller, bleibt aber blau */
+    const CO='205,205,205'; /* beim Denken wird der Kern heller, bleibt aber blau */
     x.clearRect(0,0,W,H);x.globalCompositeOperation='lighter';
     /* Kern: weiches Leuchten und heller Punkt */
     vox+=(voxT-vox)*.55;const vf=nowMs-voxAt<250;
     lipS+=((sp>.05?Math.max(0,Math.min(1,vf?vox*1.5+wd*.3:wd*1.2+(env-.1)*.4)):0)-lipS)*.45;const lsx=1+sp*(.4+2.1*lipS),lsy=lsx,lsg=1+(lsx-1)*.45; /* Kern atmet als Kreis: mit jedem Laut größer, dazwischen kleiner */ /* Mund: im Ruhestand ein flacher Kern, mit jedem Laut öffnet er sich nach oben und unten */
     const thc=Math.max(th,cqS*.9),br=1+.07*Math.sin(t*.9),pulse=hr*(.5+.5*Math.sin(t*1.5)),ci=(.26*hr+.04*sp+.1*env+.16*thc)*br*(1-.6*sp),gr=R0*(.4+.4*hr+.12*ls+.18*sp+.12*env+.28*thc)*br,g=x.createRadialGradient(cx,cy,0,cx,cy,gr);
-    g.addColorStop(0,`rgba(${CO},${Math.min(.9,ci)})`);g.addColorStop(1,`rgba(${CO},0)`);x.save();x.translate(cx,cy);x.scale(lsg,lsg);x.translate(-cx,-cy);x.fillStyle=g;x.fillRect(cx-gr,cy-gr,gr*2,gr*2);x.restore();
+    g.addColorStop(0,`rgba(${CO},${window.__jvOhneNebel?0:Math.min(.9,ci)})`);g.addColorStop(1,`rgba(${CO},0)`);x.save();x.translate(cx,cy);x.scale(lsg,lsg);x.translate(-cx,-cy);x.fillStyle=g;x.fillRect(cx-gr,cy-gr,gr*2,gr*2);x.restore();
     const hw=R0*(.1+.08*hr+.07*env+.28*thc)*br,ha=Math.min(1,.22*hr+.05*sp+.14*env+.28*thc),g2=x.createRadialGradient(cx,cy,0,cx,cy,hw);
-    g2.addColorStop(0,`rgba(255,255,255,${ha})`);g2.addColorStop(.35,`rgba(200,236,255,${ha*.55})`);g2.addColorStop(1,`rgba(${CO},0)`);x.save();x.translate(cx,cy);x.scale(lsg,lsg);x.translate(-cx,-cy);x.fillStyle=g2;x.fillRect(cx-hw,cy-hw,hw*2,hw*2);x.restore();
+    g2.addColorStop(0,`rgba(255,255,255,${ha})`);g2.addColorStop(.35,`rgba(236,236,236,${ha*.55})`);g2.addColorStop(1,`rgba(${CO},0)`);x.save();x.translate(cx,cy);x.scale(lsg,lsg);x.translate(-cx,-cy);x.fillStyle=g2;x.fillRect(cx-hw,cy-hw,hw*2,hw*2);x.restore();
     /* Wirbel: die Kugel dreht sich oben und unten gegenläufig, wechselt langsam die Richtung */
     swS+=((live*(.55+.4*Math.sin(t*.3)))-swS)*.02;
     const tilt=.28+.12*Math.sin(t*.37)*live,cT=Math.cos(tilt),sT=Math.sin(tilt),
@@ -1591,23 +1591,23 @@ window.jvKernStart=function(){
         const sx=PX[s.a]+(PX[s.b]-PX[s.a])*s.u,sy=PY[s.a]+(PY[s.b]-PY[s.a])*s.u,sz=PZ[s.a]+(PZ[s.b]-PZ[s.a])*s.u;
         if(sz<-.2)continue;const fa=Math.sin(s.u*3.1416)*(.5+.5*Math.max(0,sz));gl.push(sx,sy,fa);}
       for(let pass=0;pass<2;pass++){x.beginPath();for(let n=0;n<gl.length;n+=3){const rr=pass?.9+gl[n+2]*.5:2.6+gl[n+2]*1.6;x.moveTo(gl[n]+rr,gl[n+1]);x.arc(gl[n],gl[n+1],rr,0,6.283)}
-        const sa2=Math.min(1,sp*1.6);x.fillStyle=pass?`rgba(235,250,255,${.85*sa2})`:`rgba(${ORB},${.12*sa2})`;x.fill()}}
+        const sa2=Math.min(1,sp*1.6);x.fillStyle=pass?`rgba(250,250,250,${.85*sa2})`:`rgba(${ORB},${.12*sa2})`;x.fill()}}
     /* Denken: helle Funken kreisen um den Lichtball */
     if(th>.05){x.beginPath();for(let k=0;k<14;k++){const ph=t*(2.2+k*.11)+k*.9,rad=R0*(.2+.22*((k*37)%10)/10)*(1+.12*Math.sin(t*3+k)),ex=Math.cos(ph)*rad,ey=Math.sin(ph)*rad*(.45+.35*Math.sin(k*1.7)),rt=k*.55,xx=cx+ex*Math.cos(rt)-ey*Math.sin(rt),yy=cy+ex*Math.sin(rt)+ey*Math.cos(rt);x.moveTo(xx+1.6,yy);x.arc(xx,yy,1.6,0,6.283)}
-      x.fillStyle=`rgba(165,212,255,${.8*th})`;x.fill()}
+      x.fillStyle=`rgba(212,212,212,${.8*th})`;x.fill()}
     /* Aktion ausgeführt: Druckwelle wie beim Überschallknall. Ein durchsichtiger, weicher Ring (keine weiße Linie) läuft aus der Mitte nach außen: davor eine scharfe, glasklare Kante, dahinter ein breiter, schwach leuchtender Schweif; ein zweiter, feinerer Ring folgt */
     if(axOn){const e1=1-Math.pow(1-AU,3),fa=Math.max(0,1-AU/.22),fr=fa*fa,a1=Math.pow(1-AU,1.5);
-      if(fr>.01){const rg=R0*(.22+.4*AU),g3=x.createRadialGradient(cx,cy,0,cx,cy,rg);g3.addColorStop(0,`rgba(185,225,255,${.5*fr})`);g3.addColorStop(1,`rgba(${CO},0)`);x.fillStyle=g3;x.fillRect(cx-rg,cy-rg,rg*2,rg*2)}
+      if(fr>.01){const rg=R0*(.22+.4*AU),g3=x.createRadialGradient(cx,cy,0,cx,cy,rg);g3.addColorStop(0,`rgba(225,225,225,${.5*fr})`);g3.addColorStop(1,`rgba(${CO},0)`);x.fillStyle=g3;x.fillRect(cx-rg,cy-rg,rg*2,rg*2)}
       const wave=(r,wd,k)=>{if(r<2||k<.005)return;const r0=Math.max(0,r-wd*2.6),r2=r+wd*.5,g=x.createRadialGradient(cx,cy,r0,cx,cy,r2),q=(r-r0)/(r2-r0);
-        g.addColorStop(0,`rgba(${CO},0)`);g.addColorStop(q*.45,`rgba(${CO},${.05*k})`);g.addColorStop(q*.82,`rgba(170,215,255,${.14*k})`);g.addColorStop(q*.95,`rgba(205,236,255,${.36*k})`);g.addColorStop(q,`rgba(190,228,255,${.22*k})`);g.addColorStop(1,`rgba(${CO},0)`);
+        g.addColorStop(0,`rgba(${CO},0)`);g.addColorStop(q*.45,`rgba(${CO},${.05*k})`);g.addColorStop(q*.82,`rgba(215,215,215,${.14*k})`);g.addColorStop(q*.95,`rgba(236,236,236,${.36*k})`);g.addColorStop(q,`rgba(228,228,228,${.22*k})`);g.addColorStop(1,`rgba(${CO},0)`);
         x.fillStyle=g;x.beginPath();x.arc(cx,cy,r2,0,6.283);x.fill()};
       /* Aus dem Kern fliegen Punkte nach außen und blenden aus (sie kommen nicht zurück); in der Mitte entstehen gleichzeitig neue Punkte */
       {const eb=1-Math.pow(1-AU,3),h=k=>{const v=Math.sin(k*12.9898+3.1)*43758.5453;return v-Math.floor(v)};
         for(let k=0;k<340;k++){const an=h(k*1.7+5)*6.2832,rr=R0*(.04+(.4+.8*h(k+3))*eb*1.25),al=Math.pow(1-AU,1.2)*(.4+.6*h(k+9))*Math.min(1,AU*30);if(al<.01)continue;
-          const sz=.9+1.3*h(k+5);x.fillStyle=`rgba(200,232,255,${.75*al})`;x.beginPath();x.arc(cx+Math.cos(an)*rr,cy+Math.sin(an)*rr,sz,0,6.283);x.fill()}
+          const sz=.9+1.3*h(k+5);x.fillStyle=`rgba(232,232,232,${.75*al})`;x.beginPath();x.arc(cx+Math.cos(an)*rr,cy+Math.sin(an)*rr,sz,0,6.283);x.fill()}
         const sm=u=>{u=Math.max(0,Math.min(1,u));return u*u*(3-2*u)},sa=sm((AU-.02)/.22)*(1-sm((AU-.7)/.3));
         if(sa>.01)for(let k=0;k<46;k++){const an=k*2.39996+1.1,rd=R0*.24*Math.pow(h(k+21),.7),jx=Math.sin(t*3+k)*1.2,jy=Math.cos(t*2.6+k*1.7)*1.2;
-          x.fillStyle=`rgba(190,226,255,${.8*sa*(.5+.5*h(k+33))})`;x.beginPath();x.arc(cx+Math.cos(an)*rd+jx,cy+Math.sin(an)*rd+jy,1+.7*h(k+13),0,6.283);x.fill()}}
+          x.fillStyle=`rgba(226,226,226,${.8*sa*(.5+.5*h(k+33))})`;x.beginPath();x.arc(cx+Math.cos(an)*rd+jx,cy+Math.sin(an)*rd+jy,1+.7*h(k+13),0,6.283);x.fill()}}
       }
     x.globalCompositeOperation='source-over';
     requestAnimationFrame(frame);
@@ -1630,7 +1630,7 @@ function jvKugel(gross, anim) {
   o.style.transform = jvMini.letzt = jvZiel(gross);
 }
 function jvMiniStart() {
-  if (jvMini.an) return; jvMini.an = true; window.__jvDreh = true; window.__jvDprMax = 3; window.__jvR0f = .82;
+  if (jvMini.an) return; jvMini.an = true; window.__jvDreh = true; window.__jvOhneNebel = true; window.__jvDprMax = 3; window.__jvR0f = .82;
   try { jvKernStart(); jv.kern = 1; } catch (x) {}
   jvKugel(false, false);
   addEventListener('resize', function () { if (!jvMini.flug) jvKugel(jvMini.gross, false); });
