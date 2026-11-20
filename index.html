@@ -150,6 +150,17 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 @keyframes auftritt{from{opacity:0;transform:scale(1.035);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
 #start.auftritt .rein{animation-duration:.8s}
 @keyframes rein{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+.sgrid .kachel{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+#start.ordnen .sgrid .kachel{animation:wackeln .32s ease-in-out infinite alternate!important;cursor:grab}
+#start.ordnen .sgrid .kachel:nth-child(2n){animation-delay:-.16s!important}
+#start.ordnen .sgrid .kachel:active{transform:none}
+#start.ordnen .sgrid .kachel .pfeil{opacity:0}
+.sgrid .kachel.zieht{animation:none!important;z-index:5;transition:none!important;box-shadow:0 22px 50px rgba(0,0,0,.6);opacity:.96}
+@keyframes wackeln{from{transform:rotate(-1.1deg)}to{transform:rotate(1.1deg)}}
+.ordfertig{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 22px);transform:translate(-50%,30px);opacity:0;pointer-events:none;z-index:9;background:#fff;color:#000;border:0;border-radius:999px;padding:12px 30px;font:inherit;font-weight:700;font-size:15px;box-shadow:0 10px 30px rgba(0,0,0,.5);transition:transform .35s cubic-bezier(.2,.8,.2,1),opacity .25s}
+#start.ordnen .ordfertig{transform:translate(-50%,0);opacity:1;pointer-events:auto}
+.ordtipp{font-size:12px;color:var(--grau);text-align:center;margin:14px 0 0;opacity:0;transition:opacity .3s;height:0}
+#start.ordnen .ordtipp{opacity:1;height:auto}
 .welle{position:absolute;border-radius:50%;background:rgba(255,255,255,.25);transform:scale(0);animation:welle .55s ease-out forwards;pointer-events:none}
 @keyframes welle{to{transform:scale(4);opacity:0}}
 body.vonstart .kopf .mitte,body.vonstart .summe,body.vonstart .suche,body.vonstart #liste{animation:auftauchen .5s cubic-bezier(.2,.8,.2,1) backwards}
@@ -305,7 +316,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.76';
+var VERSION = '1.77';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1003,6 +1014,7 @@ var IC = {
 };
 function startTag() { var s = 0, n = 0, m = iso2(new Date()).slice(0, 7); daten.eintraege.forEach(function (x) { if (x.datum.slice(0, 7) === m) { s += R.berechne(x).gesamt; n++; } }); return { s: s, n: n }; }
 function startZeichnen(still) {
+  if (window.ordnen && ordnen.zieht) return;
   $('start').classList.toggle('still', !!still);
   var d = new Date(), hi = iso2(d), std = startTag(), lohn = +(daten.einst.lohn || 16);
   var f = daten.fixkosten, fk = 0, nfk = 0, naechste = null;
@@ -1018,17 +1030,84 @@ function startZeichnen(still) {
   var h = '<div class="rein" style="animation-delay:0s"><div class="sgruss">' + wt + ', ' + d.getDate() + '. ' + MONATE[d.getMonth()] + '<span class="sstand" id="sstand">' + (document.body.classList.contains('istoffline') ? 'Offline' + (stand ? ' · Stand ' + stand.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '') : standTxt) + '</span></div><div class="sname">' + gr + ', ' + esc(vorname) + '</div></div>';
   h += '<div class="sheute rein kachel" data-ziel="heute" style="animation-delay:.06s;min-height:0"><small>Heute</small><b>' + hz + '</b><div class="zl">' + (eh ? 'Eingetragen: ' + z(R.berechne(eh).gesamt) + ' Std.' : heute && heute.tp ? 'Treffpunkt ' + esc(heute.tp) : 'Noch nichts eingetragen') + '</div>' + (fl ? '<div class="zl" style="margin-top:4px">' + fl.replace('class="fahrtzeile"', 'style="color:#e0e0e0"') + '</div>' : '') + '</div>';
   h += '<div class="sgrid">';
-  var k = function (ziel, ic, farbe, titel, wert, unter, extra, breit, delay) {
+  var k0 = function (ziel, ic, farbe, titel, wert, unter, extra, breit, delay) {
     return '<div class="kachel rein' + (breit ? ' breit' : '') + '" data-ziel="' + ziel + '" style="animation-delay:' + delay + 's"><div class="glanz" style="background:' + farbe + '"></div><span class="pfeil">›</span><div class="ic" style="background:' + farbe + '">' + ic + '</div><div><div class="t">' + titel + '</div><div class="w">' + wert + '</div><div class="u">' + unter + '</div>' + (extra || '') + '</div></div>';
   };
-  h += k('stunden', IC.uhr, 'linear-gradient(135deg,#b4b4b4,#737373)', 'Stunden ' + MONATE[d.getMonth()], z(std.s), std.n + ' Tage · ≈ ' + euro(std.s * lohn) + ' brutto<br>≈ ' + euro(netto(std.s * lohn)) + ' netto', '', false, .12);
-  h += k('kosten', IC.geld, 'linear-gradient(135deg,#b0b0b0,#5a5a5a)', 'Laufende Kosten', f ? euro(fk) : '–', f ? 'pro Monat · ' + nfk + ' Posten' + (naechste ? '<br>nächste: ' + esc(naechste.p.name.split(' (')[0]) + ' am ' + naechste.p.tag + '.' : '') : 'noch nicht geladen', '', false, .18);
-  h += k('nachweis', IC.koffer, 'linear-gradient(135deg,#a6a6a6,#909090)', 'Arbeitsnachweis ' + hi.slice(0, 4), nt + ' Tage', 'Verpflegung erhalten ' + euro(vp) + (nx ? '<br>nächster Einsatz: ' + WT[new Date(nx.datum + 'T12:00').getDay()] + ' ' + +nx.datum.slice(8) + '.' + +nx.datum.slice(5, 7) + '. ' + esc(nx.laeden[0].ort) : ''), '', false, .24);
-  h += k('jahr', IC.balken, 'linear-gradient(135deg,#7a7a7a,#666666)', 'Jahresübersicht', 'Jahr ›', 'Stunden, Brutto und Verpflegung pro Monat', '', false, .30);
-  h += '</div>';
+  var kk = {}, kdef = ['stunden', 'kosten', 'nachweis', 'jahr'];
+  var k = function (ziel, ic, farbe, titel, wert, unter, extra, breit) { kk[ziel] = function (delay) { return k0(ziel, ic, farbe, titel, wert, unter, extra, breit, delay); }; };
+  k('stunden', IC.uhr, 'linear-gradient(135deg,#b4b4b4,#737373)', 'Stunden ' + MONATE[d.getMonth()], z(std.s), std.n + ' Tage · ≈ ' + euro(std.s * lohn) + ' brutto<br>≈ ' + euro(netto(std.s * lohn)) + ' netto', '', false, .12);
+  k('kosten', IC.geld, 'linear-gradient(135deg,#b0b0b0,#5a5a5a)', 'Laufende Kosten', f ? euro(fk) : '–', f ? 'pro Monat · ' + nfk + ' Posten' + (naechste ? '<br>nächste: ' + esc(naechste.p.name.split(' (')[0]) + ' am ' + naechste.p.tag + '.' : '') : 'noch nicht geladen', '', false, .18);
+  k('nachweis', IC.koffer, 'linear-gradient(135deg,#a6a6a6,#909090)', 'Arbeitsnachweis ' + hi.slice(0, 4), nt + ' Tage', 'Verpflegung erhalten ' + euro(vp) + (nx ? '<br>nächster Einsatz: ' + WT[new Date(nx.datum + 'T12:00').getDay()] + ' ' + +nx.datum.slice(8) + '.' + +nx.datum.slice(5, 7) + '. ' + esc(nx.laeden[0].ort) : ''), '', false, .24);
+  k('jahr', IC.balken, 'linear-gradient(135deg,#7a7a7a,#666666)', 'Jahresübersicht', 'Jahr ›', 'Stunden, Brutto und Verpflegung pro Monat', '', false, .30);
+  kachelReihe(kdef).forEach(function (z, i) { h += kk[z](.12 + i * .06); });
+  h += '</div><div class="ordtipp">Kachel ziehen zum Verschieben</div><button class="ordfertig" id="ordfertig">Fertig</button>';
   $('start').innerHTML = '<div class="ptr" id="ptr"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>' + h;
-  [].forEach.call($('start').querySelectorAll('[data-ziel]'), function (el) { el.onclick = function (ev) { welle(el, ev); setTimeout(function () { startZiel(el.dataset.ziel); }, 160); }; });
+  [].forEach.call($('start').querySelectorAll('[data-ziel]'), function (el) { el.onclick = function (ev) { if (window.ordnen && (ordnen.an || ordnen.klickSperre)) return; welle(el, ev); setTimeout(function () { startZiel(el.dataset.ziel); }, 160); }; });
+  $('ordfertig').onclick = function () { ordnenAus(); };
+  if (window.ordnen && ordnen.an) $('start').classList.add('ordnen');
 }
+// ---------- Kacheln anordnen (gedrückt halten, ziehen; Reihenfolge bleibt gespeichert) ----------
+var ordnen = window.ordnen = { an: false, klickSperre: false, zieht: false };
+function kachelReihe(def) {
+  var r = []; try { r = JSON.parse(localStorage.getItem('cockpit_kacheln') || '[]'); } catch (e) {}
+  r = r.filter(function (z) { return def.indexOf(z) >= 0; });
+  def.forEach(function (z) { if (r.indexOf(z) < 0) r.push(z); });
+  return r;
+}
+function ordnenAus() {
+  ordnen.an = false; $('start').classList.remove('ordnen');
+  var r = [].map.call($('start').querySelectorAll('.sgrid .kachel'), function (el) { return el.dataset.ziel; });
+  try { localStorage.setItem('cockpit_kacheln', JSON.stringify(r)); } catch (e) {}
+}
+(function () {
+  var s = $('start'), t = null, x0 = 0, y0 = 0, el = null, zieht = false, dx = 0, dy = 0, ox = 0, oy = 0;
+  function flip(grid, tu) {
+    var kids = [].slice.call(grid.children), alt = kids.map(function (c) { return c.getBoundingClientRect(); });
+    tu();
+    kids.forEach(function (c, i) {
+      if (c === el) return; var n = c.getBoundingClientRect(), mx = alt[i].left - n.left, my = alt[i].top - n.top; if (!mx && !my) return;
+      c.style.transition = 'none'; c.style.translate = mx + 'px ' + my + 'px'; void c.offsetWidth;
+      c.style.transition = 'translate .3s cubic-bezier(.2,.8,.2,1)'; c.style.translate = '';
+    });
+  }
+  function setze() { el.style.translate = dx + 'px ' + dy + 'px'; }
+  function starte(k) {
+    el = k; zieht = true; ordnen.zieht = true; ordnen.klickSperre = true; el.classList.add('zieht'); el.style.scale = '1.06';
+    if (!ordnen.an) { ordnen.an = true; s.classList.add('ordnen'); }
+  }
+  s.addEventListener('touchstart', function (ev) {
+    var k = ev.target.closest && ev.target.closest('.sgrid .kachel'); if (!k || ev.touches.length > 1) return;
+    x0 = ev.touches[0].clientX; y0 = ev.touches[0].clientY; dx = dy = 0;
+    if (ordnen.an) { starte(k); return; }
+    clearTimeout(t); t = setTimeout(function () { t = null; starte(k); if (navigator.vibrate) navigator.vibrate(12); }, 450);
+  }, { passive: true });
+  s.addEventListener('touchmove', function (ev) {
+    var p = ev.touches[0];
+    if (t && (Math.abs(p.clientX - x0) > 8 || Math.abs(p.clientY - y0) > 8)) { clearTimeout(t); t = null; }
+    if (!zieht) return; ev.preventDefault();
+    var grid = el.parentNode;
+    dx = p.clientX - x0; dy = p.clientY - y0; setze();
+    // Kachel unter dem Finger suchen
+    var ziel = null; [].forEach.call(grid.children, function (c) { if (c === el) return; var r = c.getBoundingClientRect(); if (p.clientX > r.left && p.clientX < r.right && p.clientY > r.top && p.clientY < r.bottom) ziel = c; });
+    if (ziel) {
+      var kids = [].slice.call(grid.children), ie = kids.indexOf(el), iz = kids.indexOf(ziel), r0 = el.getBoundingClientRect();
+      flip(grid, function () { grid.insertBefore(el, ie < iz ? ziel.nextSibling : ziel); });
+      // Kachel bleibt optisch unter dem Finger: neue Grundlage messen und Versatz neu setzen
+      el.style.translate = ''; var r2 = el.getBoundingClientRect();
+      dx = r0.left - r2.left; dy = r0.top - r2.top; x0 = p.clientX - dx; y0 = p.clientY - dy; setze();
+    }
+  }, { passive: false });
+  function ende() {
+    clearTimeout(t); t = null; if (!zieht) return; zieht = false; ordnen.zieht = false;
+    var e = el; e.style.transition = 'translate .3s cubic-bezier(.2,.8,.2,1),scale .3s'; e.style.translate = ''; e.style.scale = '';
+    setTimeout(function () { e.classList.remove('zieht'); e.style.transition = ''; }, 300);
+    var r = [].map.call(e.parentNode.children, function (c) { return c.dataset.ziel; }); try { localStorage.setItem('cockpit_kacheln', JSON.stringify(r)); } catch (x) {}
+    setTimeout(function () { ordnen.klickSperre = false; }, 350); el = null;
+  }
+  s.addEventListener('touchend', ende); s.addEventListener('touchcancel', ende);
+  // Tippen auf freie Fläche beendet das Anordnen
+  s.addEventListener('click', function (ev) { if (ordnen.an && !ordnen.klickSperre && !ev.target.closest('.sgrid .kachel') && !ev.target.closest('#ordfertig')) ordnenAus(); });
+})();
 function welle(el, ev) { var r = el.getBoundingClientRect(), s = Math.max(r.width, r.height), w = document.createElement('span'); w.className = 'welle'; w.style.width = w.style.height = s + 'px'; w.style.left = ((ev.clientX || r.left + r.width / 2) - r.left - s / 2) + 'px'; w.style.top = ((ev.clientY || r.top + r.height / 2) - r.top - s / 2) + 'px'; el.appendChild(w); setTimeout(function () { w.remove(); }, 600); }
 function startWeg() {
   var s = $('start'); s.classList.add('weg'); document.body.classList.remove('vonstart'); void document.body.offsetWidth; document.body.classList.add('vonstart');
@@ -1060,8 +1139,9 @@ $('zurStart').onclick = function () { startZeigen(); };
 (function () {
   var s = $('start'), y0 = 0, zug = 0, an = false, laedt = false;
   function inhalt(y, anim) { [].forEach.call(s.children, function (c) { if (c.id === 'ptr') return; c.style.transition = anim ? 'transform .45s cubic-bezier(.16,1,.3,1)' : 'none'; c.style.transform = y ? 'translateY(' + y + 'px)' : ''; }); }
-  s.addEventListener('touchstart', function (ev) { if (laedt || s.scrollTop > 0) { an = false; return; } an = true; zug = 0; y0 = ev.touches[0].clientY; }, { passive: true });
+  s.addEventListener('touchstart', function (ev) { if (laedt || s.scrollTop > 0 || (window.ordnen && ordnen.an)) { an = false; return; } an = true; zug = 0; y0 = ev.touches[0].clientY; }, { passive: true });
   s.addEventListener('touchmove', function (ev) {
+    if (window.ordnen && ordnen.zieht && an) { an = false; inhalt(0, true); var pp = $('ptr'); if (pp) pp.style.opacity = 0; }
     if (!an) return; var dy = ev.touches[0].clientY - y0; if (dy <= 0 || s.scrollTop > 0) { zug = 0; return; }
     zug = Math.min(110, dy * .5); var p = $('ptr'); if (!p) return;
     p.style.transition = 'none'; p.style.opacity = Math.min(1, zug / 60); p.style.transform = 'translate(-50%,' + zug + 'px) rotate(' + zug * 3 + 'deg)';
