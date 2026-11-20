@@ -298,6 +298,10 @@ body.istoffline .sstand{color:#ff6b61}
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattNo" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Notizen</b></div></div>
   <div class="koerper"><div class="noneu"><textarea id="noText" rows="1" placeholder="Neue Notiz …"></textarea><button id="noPlus" class="nobtn">Hinzufügen</button></div><div id="noListe"></div></div>
 </div></div>
+<div class="blatt" id="blattU"><div class="innen">
+  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattU" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b id="uTitel">Urlaub</b></div></div>
+  <div class="koerper" id="uKoerper"></div>
+</div></div>
 <div class="blatt" id="blattN"><div class="innen">
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattN" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b id="nwTitel">Arbeitsnachweis</b></div><div style="display:flex;gap:8px"><button class="kugel" id="nwpdf" aria-label="PDF erstellen"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button></div></div>
   <div class="koerper" id="nwKoerper"></div>
@@ -336,7 +340,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.79';
+var VERSION = '1.80';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1031,6 +1035,7 @@ var IC = {
   geld: '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M16 14.5h2"/></svg>',
   koffer: '<svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></svg>',
   balken: '<svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>',
+  sonne: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
   notiz: '<svg viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v4h4M8.5 12h7M8.5 16h5"/></svg>'
 };
 function startTag() { var s = 0, n = 0, m = iso2(new Date()).slice(0, 7); daten.eintraege.forEach(function (x) { if (x.datum.slice(0, 7) === m) { s += R.berechne(x).gesamt; n++; } }); return { s: s, n: n }; }
@@ -1054,14 +1059,16 @@ function startZeichnen(still) {
   var k0 = function (ziel, ic, farbe, titel, wert, unter, extra, breit, delay) {
     return '<div class="kachel rein' + (breit ? ' breit' : '') + '" data-ziel="' + ziel + '" style="animation-delay:' + delay + 's"><div class="glanz" style="background:' + farbe + '"></div><span class="pfeil">›</span><div class="ic" style="background:' + farbe + '">' + ic + '</div><div><div class="t">' + titel + '</div><div class="w">' + wert + '</div><div class="u">' + unter + '</div>' + (extra || '') + '</div></div>';
   };
-  var kk = {}, kdef = ['stunden', 'kosten', 'nachweis', 'jahr', 'notizen'];
+  var kk = {}, kdef = ['stunden', 'kosten', 'nachweis', 'jahr', 'urlaub', 'notizen'];
   var k = function (ziel, ic, farbe, titel, wert, unter, extra, breit) { kk[ziel] = function (delay) { return k0(ziel, ic, farbe, titel, wert, unter, extra, breit, delay); }; };
   k('stunden', IC.uhr, 'linear-gradient(135deg,#b4b4b4,#737373)', 'Stunden ' + MONATE[d.getMonth()], z(std.s), std.n + ' Tage · ≈ ' + euro(std.s * lohn) + ' brutto<br>≈ ' + euro(netto(std.s * lohn)) + ' netto', '', false, .12);
   k('kosten', IC.geld, 'linear-gradient(135deg,#b0b0b0,#5a5a5a)', 'Laufende Kosten', f ? euro(fk) : '–', f ? 'pro Monat · ' + nfk + ' Posten' + (naechste ? '<br>nächste: ' + esc(naechste.p.name.split(' (')[0]) + ' am ' + naechste.p.tag + '.' : '') : 'noch nicht geladen', '', false, .18);
   k('nachweis', IC.koffer, 'linear-gradient(135deg,#a6a6a6,#909090)', 'Arbeitsnachweis ' + hi.slice(0, 4), nt + ' Tage', 'Verpflegung erhalten ' + euro(vp) + (nx ? '<br>nächster Einsatz: ' + WT[new Date(nx.datum + 'T12:00').getDay()] + ' ' + +nx.datum.slice(8) + '.' + +nx.datum.slice(5, 7) + '. ' + esc(nx.laeden[0].ort) : ''), '', false, .24);
   k('jahr', IC.balken, 'linear-gradient(135deg,#7a7a7a,#666666)', 'Jahresübersicht', 'Jahr ›', 'Stunden, Brutto und Verpflegung pro Monat', '', false, .30);
+  var uk = urlaubKonto(+hi.slice(0, 4));
+  k('urlaub', IC.sonne, 'linear-gradient(135deg,#a0a0a0,#606060)', (uk.anspruch != null ? 'Resturlaub ' : 'Urlaub ') + hi.slice(0, 4), uk.anspruch != null ? tg(uk.rest) : tg(uk.genommen), uk.anspruch != null ? String(uk.genommen) + ' genommen' + (uk.geplant ? ' · ' + uk.geplant + ' geplant' : '') + '<br>von ' + String(uk.gesamt).replace('.', ',') + ' Tagen' : 'genommen · Anspruch noch nicht eingetragen', '', false);
   var no = (daten.notizen || []).filter(function (x) { return !x.erledigt; }).sort(function (a, b) { return (b.erstellt || 0) - (a.erstellt || 0); });
-  k('notizen', IC.notiz, 'linear-gradient(135deg,#9a9a9a,#5c5c5c)', 'Notizen', no.length ? no.length + ' offen' : 'Keine', no.length ? esc(no[0].text.split('\n')[0]).slice(0, 70) + (no.length > 1 ? '<br>' + esc(no[1].text.split('\n')[0]).slice(0, 70) : '') : 'Tippen, um etwas aufzuschreiben', '', true);
+  k('notizen', IC.notiz, 'linear-gradient(135deg,#9a9a9a,#5c5c5c)', 'Notizen', no.length ? no.length + ' offen' : 'Keine', no.length ? esc(no[0].text.split('\n')[0]).slice(0, 70) + (no.length > 1 ? '<br>' + esc(no[1].text.split('\n')[0]).slice(0, 70) : '') : 'Tippen, um etwas aufzuschreiben', '', false);
   kachelReihe(kdef).forEach(function (z, i) { h += kk[z](.12 + i * .06); });
   h += '</div><div class="ordtipp">Kachel ziehen zum Verschieben</div><button class="ordfertig" id="ordfertig">Fertig</button>';
   $('start').innerHTML = '<div class="ptr" id="ptr"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>' + h;
@@ -1151,10 +1158,11 @@ function startZiel(z) {
   if (z === 'stunden') { document.body.classList.remove('versteckt'); var d = new Date(); ansicht.j = d.getFullYear(); ansicht.m = d.getMonth(); zeichne(); window.scrollTo(0, 0); startWeg(); }
   else if (z === 'heute') { var hi = iso2(new Date()), eh = daten.eintraege.find(function (x) { return x.datum === hi; }); startWeg(); setTimeout(function () { oeffne(eh || neuerEintrag(hi), !eh); }, 250); }
   else {
-    var id = { kosten: 'blattF', nachweis: 'blattN', jahr: 'blattJ', notizen: 'blattNo' }[z]; if (!id) return;
+    var id = { kosten: 'blattF', nachweis: 'blattN', jahr: 'blattJ', notizen: 'blattNo', urlaub: 'blattU' }[z]; if (!id) return;
     var s = $('start'); s.classList.add('oben'); void s.offsetWidth; s.classList.add('weg'); setTimeout(function () { s.classList.add('aus'); s.classList.remove('oben'); }, 420);
     $(id).dataset.vonstart = '1'; document.body.classList.add('versteckt');
     if (z === 'kosten') { fixZeichnen(); $('blattF').classList.add('offen'); }
+    else if (z === 'urlaub') { urlaubZeichnen(); $('blattU').classList.add('offen'); }
     else if (z === 'notizen') { notizenZeichnen(); $('blattNo').classList.add('offen'); }
     else if (z === 'nachweis') $('nwknopf').onclick();
     else { jahrZeichnen(); $('blattJ').classList.add('offen'); }
@@ -1239,6 +1247,33 @@ function fixZeichnen() {
   $('fKoerper').innerHTML = h;
 }
 $('fkauf').onclick = function (ev) { ev.stopPropagation(); fixZeichnen(); $('blattF').classList.add('offen'); };
+// ---------- Urlaubskonto (Anspruch je Jahr in den Einstellungen dieses Geräts, Tage aus den Einträgen mit „Urlaubstag") ----------
+function tg(n) { n = Math.round(n * 2) / 2; return String(n).replace('.', ',') + (n === 1 ? ' Tag' : ' Tage'); }
+function urlaubKonto(j) {
+  var u = (daten.einst.urlaubJahr || {})[j] || {}, hi = iso2(new Date()), gen = [], gep = [];
+  daten.eintraege.forEach(function (x) { if (!x.urlaub || x.datum.slice(0, 4) !== String(j) || (daten.geloescht || {})[x.id]) return; (x.datum <= hi ? gen : gep).push(x.datum); });
+  gen.sort(); gep.sort();
+  var an = u.anspruch != null && u.anspruch !== '' ? +u.anspruch : null, ue = +u.uebertrag || 0, ges = an != null ? an + ue : null;
+  return { anspruch: an, uebertrag: ue, gesamt: ges, genommen: gen.length, geplant: gep.length, rest: ges != null ? ges - gen.length - gep.length : null, tageGen: gen, tageGep: gep };
+}
+var uJahr = new Date().getFullYear();
+function urlaubZeichnen() {
+  var k = urlaubKonto(uJahr), h = '';
+  $('uTitel').textContent = 'Urlaub ' + uJahr;
+  h += '<div class="nwk"><div><small>Übrig</small><b>' + (k.rest != null ? tg(k.rest) : '–') + '</b></div><div><small>Genommen</small><b>' + tg(k.genommen) + '</b></div><div><small>Geplant</small><b>' + tg(k.geplant) + '</b></div><div><small>Anspruch gesamt</small><b>' + (k.gesamt != null ? tg(k.gesamt) : '–') + '</b></div></div>';
+  if (k.gesamt) h += '<div class="jb"><div class="s"><i style="width:' + Math.min(100, (k.genommen + k.geplant) / k.gesamt * 100) + '%"></i></div></div>';
+  h += '<label class="l">Urlaubsanspruch ' + uJahr + ' (Tage)</label><input type="text" inputmode="decimal" id="uAn" placeholder="z. B. 30" value="' + (k.anspruch != null ? String(k.anspruch).replace('.', ',') : '') + '">';
+  h += '<label class="l">Resturlaub aus ' + (uJahr - 1) + ' (Tage)</label><input type="text" inputmode="decimal" id="uUe" placeholder="0" value="' + (k.uebertrag ? String(k.uebertrag).replace('.', ',') : '') + '">';
+  var liste = function (t, a) { if (!a.length) return ''; var m = {}; a.forEach(function (d) { var mm = +d.slice(5, 7) - 1; (m[mm] = m[mm] || []).push(d); }); return '<label class="l">' + t + '</label>' + Object.keys(m).map(function (mm) { return '<div class="jb"><div class="k"><b>' + MONATE[mm] + '</b><span>' + tg(m[mm].length) + '</span></div><div class="hinweis" style="margin-top:0">' + m[mm].map(function (d) { return WT[new Date(d + 'T12:00').getDay()] + ' ' + +d.slice(8) + '.'; }).join(', ') + '</div></div>'; }).join(''); };
+  h += liste('Geplant', k.tageGep) + liste('Genommen', k.tageGen);
+  if (!k.genommen && !k.geplant) h += '<p class="hinweis">Noch keine Urlaubstage ' + uJahr + '. Schick Claude einfach einen Screenshot vom Urlaubsantrag.</p>';
+  h += '<p class="hinweis" style="text-align:center;margin-top:18px"><button class="mini" id="uVor">‹ ' + (uJahr - 1) + '</button> &nbsp; <button class="mini" id="uNach">' + (uJahr + 1) + ' ›</button></p>';
+  $('uKoerper').innerHTML = h;
+  var setz = function (feld, wert) { daten.einst.urlaubJahr = daten.einst.urlaubJahr || {}; var u = daten.einst.urlaubJahr[uJahr] = daten.einst.urlaubJahr[uJahr] || {}; var v = wert.trim().replace(',', '.'); u[feld] = v === '' ? null : (parseFloat(v) || 0); sichern(true); };
+  $('uAn').onchange = function () { setz('anspruch', this.value); urlaubZeichnen(); };
+  $('uUe').onchange = function () { setz('uebertrag', this.value); urlaubZeichnen(); };
+  $('uVor').onclick = function () { uJahr--; urlaubZeichnen(); }; $('uNach').onclick = function () { uJahr++; urlaubZeichnen(); };
+}
 // ---------- Notizen (notizen.json im Daten-Repo, gleicht zwischen Geräten ab) ----------
 var GHO = GH.replace('daten.json', 'notizen.json');
 function notizenSync(kopf) {
