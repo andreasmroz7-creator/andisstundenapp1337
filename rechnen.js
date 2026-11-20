@@ -63,10 +63,13 @@
     var tl = 0;
     if (e.tl) laeden.forEach(function (l) { tl += tlLaden(l.art, e.fahrer); });
     var zwUeber = n >= 2 ? Math.max(0, (+e.fahrZw || 0) - 30) : 0;
-    var fz = (+e.fahrMin || 0) + zwUeber, grenze = n >= 2 ? 120 : 60;
+    // (20.11.) Fahrzeit: ohne Fahrer zählt alles über 2 Std. (1 oder 2 Läden), als Fahrer über 1 Std. (1 Laden) bzw. 2 Std. (2 Läden).
+    // Der Überschuss wird auf die Viertelstunde ABGERUNDET, dann halbiert und wieder ABGERUNDET – aufgerundet wird nie.
+    // Beispiel: 2:18 Fahrt → 0:18 über → 0,25 → halbiert 0,125 → 0,00.
+    var fz = (+e.fahrMin || 0) + zwUeber, grenze = e.fahrer ? (n >= 2 ? 120 : 60) : 120;
     var ueber = e.auswaerts ? fz : Math.max(0, fz - grenze);
-    // bezahlter Teil wird wie die Arbeitszeit auf die Viertelstunde gerundet
-    var fahrt = rundeViertel(e.fahrer ? ueber : ueber / 2) / 60;
+    var abViertel = function (min) { return Math.floor(min / 15 + 1e-9) * 15; };
+    var fahrt = (e.fahrer ? abViertel(ueber) : abViertel(abViertel(ueber) / 2)) / 60;
     var anreise = 0;
     if (e.team === 'halle' && n > 0) anreise = 1.5;
     // Reise: An-/Abreise pauschal 1,5 Std. (Dresden, Coburg …), für andere Standorte eigener Wert
