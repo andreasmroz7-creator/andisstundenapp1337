@@ -418,7 +418,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.86';
+var VERSION = '1.87';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1152,7 +1152,7 @@ function startZeichnen(still) {
   var gbl = gbSortiert(), g0 = gbl[0];
   k('geburtstage', IC.torte, 'linear-gradient(135deg,#9c9c9c,#5a5a5a)', 'Geburtstage', g0 ? (g0.tage === 0 ? 'Heute!' : g0.tage === 1 ? 'Morgen' : 'in ' + g0.tage + ' Tagen') : 'Keine', g0 ? esc(g0.x.name) + (g0.alter ? ' wird ' + g0.alter : '') + ' · ' + g0.txt + (gbl[1] ? '<br>danach ' + esc(gbl[1].x.name) + ' · ' + gbl[1].txt : '') : 'Tippen, um Geburtstage einzutragen', '', false);
   var dp = daten.depot, dzu = !depotSicht;
-  k('depot', IC.balken.replace('M4 20V10M10 20V4M16 20v-7M22 20H2', 'M3 17l5-5 4 3 8-8M15 7h5v5'), 'linear-gradient(135deg,#bdbdbd,#5e5e5e)', 'Depot', dp ? '<span class="dbox' + (dzu ? ' verdeckt' : '') + '"><span class="dpkt">••••••</span><span class="dw">' + euroK(dp.gesamt) + '</span></span>' : '–', dp ? '<span class="dbox' + (dzu ? ' verdeckt' : '') + '" style="display:block"><span class="dpkt">•••</span><span class="dw ' + (dp.heute_eur >= 0 ? 'dplus' : 'dminus') + '">' + (dp.heute_eur >= 0 ? '+' : '') + euroK(dp.heute_eur) + ' · ' + (dp.heute_pct >= 0 ? '+' : '') + String(dp.heute_pct).replace('.', ',') + ' % heute</span>' + depotLinie(dp, dzu, false) + '</span>' : 'kommt vom Mac, sobald er an ist', '', false);
+  k('depot', IC.balken.replace('M4 20V10M10 20V4M16 20v-7M22 20H2', 'M3 17l5-5 4 3 8-8M15 7h5v5'), 'linear-gradient(135deg,#bdbdbd,#5e5e5e)', 'Depot', dp ? '<span class="dbox' + (dzu ? ' verdeckt' : '') + '"><span class="dpkt">••••••</span><span class="dw">' + euroK(dp.gesamt) + '</span></span>' : '–', dp ? '<span class="dbox' + (dzu ? ' verdeckt' : '') + '" style="display:block"><span class="dpkt">•••</span><span class="dw ' + (dp.heute_eur >= 0 ? 'dplus' : 'dminus') + '">' + (dp.heute_eur >= 0 ? '+' : '') + euroK(dp.heute_eur) + ' · ' + (dp.heute_pct >= 0 ? '+' : '') + String(dp.heute_pct).replace('.', ',') + ' % ' + depotWann(dp) + '</span>' + depotLinie(dp, dzu, false) + '</span>' : 'kommt vom Mac, sobald er an ist', '', false);
   var kr = kachelReihe(kdef); kr.forEach(function (z, i) { h += kk[z](.12 + i * .06).replace('class="kachel rein', 'class="kachel rein' + (kr.length % 2 && i === kr.length - 1 ? ' breit' : '')); });
   h += '</div><div class="ordtipp">Kachel ziehen zum Verschieben</div><button class="ordfertig" id="ordfertig">Fertig</button>' + '<button class="jvfab" id="jvFab" aria-label="Jarvis"><canvas id="jvFabC"></canvas></button>';
   $('start').innerHTML = '<div class="ptr" id="ptr"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>' + h;
@@ -1695,6 +1695,7 @@ $('jvMic').onclick = function () {
 };
 // ---------- Depot (depot.json im Daten-Repo, schreibt der Mac alle 30 Min.; Beträge wie im Dashboard erst über das Auge sichtbar) ----------
 var GHD = GH.replace('daten.json', 'depot.json'), depotSicht = false, AUGE_ZU = '<svg viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.1 6.1A17 17 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.9-2"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>', AUGE_AUF = '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+function depotWann(d) { var t = new Date(d.stand); return iso2(t) === iso2(new Date()) ? 'heute' : 'am ' + t.getDate() + '.' + (t.getMonth() + 1) + '.'; }
 function euroK(n) { return (Math.round(n)).toLocaleString('de-DE') + ' €'; }
 function depotHolen(kopf) {
   return fetch(GHD + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
@@ -1716,7 +1717,7 @@ function depotZeichnen() {
   if (!d) { $('dKoerper').innerHTML = '<p class="hinweis">Noch kein Depot-Stand. Er kommt vom Mac, sobald das Dashboard läuft.</p>'; return; }
   var st = new Date(d.stand), alt = (Date.now() - st) > 3 * 3600e3;
   $('dKoerper').innerHTML = '<div class="dbox' + (zu ? ' verdeckt' : '') + '" id="dBox"><small class="hinweis">Gesamtvermögen</small><div class="dgross"><span class="dpkt">••••••</span><span class="dw">' + euro(d.gesamt) + '</span></div>' +
-    '<div class="dheute"><span class="dpkt">•••</span><span class="dw ' + (d.heute_eur >= 0 ? 'dplus' : 'dminus') + '">' + (d.heute_eur >= 0 ? '+' : '') + euro(d.heute_eur) + ' (' + (d.heute_pct >= 0 ? '+' : '') + String(d.heute_pct).replace('.', ',') + ' %) heute</span></div>' + depotLinie(d, zu, true) + '</div>' +
+    '<div class="dheute"><span class="dpkt">•••</span><span class="dw ' + (d.heute_eur >= 0 ? 'dplus' : 'dminus') + '">' + (d.heute_eur >= 0 ? '+' : '') + euro(d.heute_eur) + ' (' + (d.heute_pct >= 0 ? '+' : '') + String(d.heute_pct).replace('.', ',') + ' %) ' + depotWann(d) + '</span></div>' + depotLinie(d, zu, true) + '</div>' +
     '<p class="hinweis" style="margin-top:14px">Stand ' + st.toLocaleString('de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr, vom Mac' + (alt ? ' (älter, der Mac ist wohl aus)' : '') + '. Für alles Weitere: Jarvis fragen.</p>';
 }
 $('dAuge').onclick = function () {
