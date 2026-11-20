@@ -184,7 +184,7 @@ input::placeholder{color:#5c6577}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.33';
+var VERSION = '1.34';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -409,6 +409,7 @@ function formZeichnen() {
 function rechnung() {
   var r = R.berechne(e), h = '';
   var am = r.arbeitMin;
+  if (r.fest) { h += '<div><span>' + esc(e.festText || 'Gesamtzeit (fest übernommen)') + '</span></div>' + (e.quelle ? '<div class="hinweis" style="display:block">Quelle: ' + esc(e.quelle) + '</div>' : '') + '<div class="hinweis" style="display:block"><button class="mini" id="festWeg">Festen Wert entfernen und selbst rechnen lassen</button></div>'; if (r.verpflegung) h += '<div><span>Verpflegung</span><b>' + r.verpflegung + ' €</b></div>'; h += '<div class="ges"><span>Gesamt</span><span>' + z(r.gesamt) + '</span></div>'; $('rechnung').innerHTML = h; $('festWeg').onclick = function () { delete e.festGesamt; formZeichnen(); }; return; }
   h += '<div><span>Arbeitszeit' + (e.modus === 'zeit' && am ? ' (' + Math.floor(am / 60) + ' Std. ' + (am % 60) + ' Min.)' : '') + '</span><b>' + z(r.arbeit) + '</b></div>';
   if (r.zwischen) h += '<div><span>Fahrt zwischen den Läden</span><b>' + z(r.zwischen) + '</b></div>';
   if (r.tl) h += '<div><span>Teamleiter</span><b>' + z(r.tl) + '</b></div>';
@@ -638,7 +639,10 @@ $('pdfknopf').onclick = function () {
   y += 28; doc.text(40, y, 'Alle Stunden in Industriestunden (100er-System). Arbeitszeit je Tag auf die Viertelstunde gerundet.', 8);
   var BT_AB = '2026-11-20';
   var vorBT = ls.some(function (x) { return x.datum < BT_AB; }), abBT = ls.some(function (x) { return x.datum >= BT_AB; });
-  if (vorBT && (abBT || (ansicht.j === 2026 && ansicht.m === 10))) {
+  if (ls.some(function (x) { return x.festGesamt != null; })) {
+    y += 12; doc.text(40, y, 'Stunden laut Inventurprotokollen (Zählstunden, Teamleiter-, Fahr- und Sonderstunden; Fotos an auswertungen@dornick.eu) bzw. laut früherer Zeiterfassungs-App.', 8);
+    y += 12; doc.text(40, y, 'An- und Abreise laut Einsatzplänen und Reiseinfos der Firma Dornick.', 8);
+  } else if (vorBT && (abBT || (ansicht.j === 2026 && ansicht.m === 10))) {
     y += 12; doc.text(40, y, 'Fahrzeiten bis 19.11.2026 minutengenau aus dem Standortverlauf (Google-Zeitachse) übernommen.', 8);
     y += 12; doc.text(40, y, 'Ab 20.11.2026 werden die Fahrzeiten automatisch und minutengenau über die Bluetooth-Verbindung zum Fahrzeug erfasst.', 8);
   } else if (vorBT) {
