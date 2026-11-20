@@ -185,6 +185,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .gb.heute{background:linear-gradient(135deg,rgba(255,255,255,.22),rgba(255,255,255,.08));border-color:rgba(255,255,255,.35)}
 .gb .bt{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.gb.edit{display:block;cursor:default}.gb.edit input{margin-top:8px}
 .jvk{display:flex;flex-direction:column;align-items:center;padding-bottom:110px!important}
+.jvkern{position:relative;width:100%;height:300px;margin:0 auto -10px;flex:none}.jvkern canvas{width:100%;height:100%;display:block}
 .jvorb{position:relative;width:150px;height:150px;margin:26px auto 10px;flex:none}
 .jvorb b{position:absolute;inset:38px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#fff,#bdbdbd 45%,#4a4a4a 100%);box-shadow:0 0 40px rgba(255,255,255,.18);transition:transform .5s cubic-bezier(.2,.8,.2,1),filter .5s}
 .jvorb i{position:absolute;inset:20px;border-radius:50%;border:1px solid rgba(255,255,255,.18);transition:opacity .5s}
@@ -362,7 +363,7 @@ body.istoffline .sstand{color:#ff6b61}
 </div></div>
 <div class="blatt" id="blattJv"><div class="innen">
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattJv" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Jarvis</b></div><button class="kugel" id="jvLeise" aria-label="Ton an/aus"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4z"/><path class="wl" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/><path class="aus" d="M16 9l6 6M22 9l-6 6" style="display:none"/></svg></button></div>
-  <div class="koerper jvk"><div class="jvorb schlaf" id="jvOrb"><i></i><i></i><i></i><b></b><span><em></em><em></em><em></em></span></div><div class="jvstatus" id="jvStatus">Tippe aufs Mikrofon oder schreib etwas</div><div id="jvVerlauf"></div></div>
+  <div class="koerper jvk"><div class="jvkern" id="jvOrb"><canvas id="jvCore" aria-hidden="true"></canvas></div><div class="jvstatus" id="jvStatus">Tippe aufs Mikrofon oder schreib etwas</div><div id="jvVerlauf"></div></div>
   <div class="jvchips" id="jvChips"></div><div class="jvein"><input type="text" id="jvText" placeholder="Frag Jarvis …" autocomplete="off" enterkeyhint="send"><button class="kugel" id="jvMic" aria-label="Sprechen"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button></div>
 </div></div>
 <div class="blatt" id="blattN"><div class="innen">
@@ -403,7 +404,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.83';
+var VERSION = '1.84';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1319,11 +1320,204 @@ function fixZeichnen() {
   $('fKoerper').innerHTML = h;
 }
 $('fkauf').onclick = function (ev) { ev.stopPropagation(); fixZeichnen(); $('blattF').classList.add('offen'); };
+// ---------- Jarvis-Kern (Partikelkugel aus dem Dashboard, fürs iPhone mit 5.000 statt 9.000 Punkten) ----------
+/* JARVIS-Kern: leuchtende Partikelkugel mit feinen Fäden und hellem Kern.
+   Zustände: ruhig (lockere Wolke) · zuhören (Kugel) · du sprichst (Wolke lockert sich, Kern glüht) · denken (fällt zum Lichtball zusammen) · Jarvis spricht (Kugel pulsiert, Fäden schimmern) */
+window.jvKernStart=function(){
+  const c=document.getElementById('jvCore'),x=c.getContext('2d'),N=5000,N0=1300,ORB='150,205,255'; /* N0 Punkte immer sichtbar, die übrigen kommen nur beim Denken und Reden dazu */
+  let W,H,level=0,target=0,t=0;
+  window.setJarvisVoice=v=>{voxT=Math.max(0,Math.min(1,v));voxAt=performance.now()}; /* Lautstärke der Stimme: der Kern pulsiert genau mit der Sprache */
+  window.setJarvisLevel=v=>{target=Math.max(0,Math.min(1,v))};
+  function size(){const d=Math.min(devicePixelRatio||1,1.5);W=c.clientWidth;H=c.clientHeight;c.width=W*d;c.height=H*d;x.setTransform(d,0,0,d,0,0)}
+  size();addEventListener('resize',()=>{size();try{window.__orbWake&&window.__orbWake()}catch(_){}});
+  const calm=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  let seed=11;const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646};
+  const P=[];
+  for(let i=0;i<N;i++){let a,b,z,q;do{a=rnd()*2-1;b=rnd()*2-1;z=rnd()*2-1;q=a*a+b*b+z*z}while(q>1||q<.01);const l=Math.sqrt(q);
+    P.push({x:a/l,y:b/l,z:z/l,rv:Math.cbrt(rnd())*1.08,j:rnd(),m:rnd(),s:rnd()*6.283,k:.55+.9*rnd(),xv:.4+1.4*rnd()})}
+  /* Beim Denken bleiben nur 25 % der Ringpunkte außen (o), die übrigen werden in die Mitte gezogen und vergrößern den Kern; f = fliegt bei der Explosion hinaus, der Rest bleibt im Kern */
+  P.forEach(p=>{p.q=p.m<.34&&((p.s*5)%1)<.8;p.o=p.m>=.6&&p.j>=.3;p.c=p.m<.34||(p.m>=.6&&p.j<.3)}); /* q: Kernpunkte, die beim Reden im Kern bleiben (etwas weniger als beim Nachdenken) */
+  /* Fäden: jeder Punkt wird mit seinen zwei nächsten Nachbarn auf der Kugel verbunden (einmal berechnet) */
+  const E=[];
+  for(let i=0;i<N0;i++){const p=P[i];let b1=-1,d1=9,b2=-1,d2=9;
+    for(let j=0;j<N0;j++){if(j===i)continue;const q=P[j],dx=p.x-q.x,dy=p.y-q.y,dz=p.z-q.z,d=dx*dx+dy*dy+dz*dz;
+      if(d<d1){d2=d1;b2=b1;d1=d;b1=j}else if(d<d2){d2=d;b2=j}}
+    if(d1<.05&&rnd()<.5)E.push(i,b1);if(d2<.05&&rnd()<.28)E.push(i,b2)}
+  /* Außenring beim Denken: manche Punkte sind mit dem nächsten Nachbarn im Ring verbunden */
+  const EO=[],SPK=[],OI=[],used=new Set();for(let i=0;i<N0;i++)if(P[i].o)OI.push(i);
+  const dist2=(i,j)=>{const p=P[i],q=P[j],dx=p.x-q.x,dy=p.y-q.y,dz=p.z-q.z;return dx*dx+dy*dy+dz*dz};
+  for(const i0 of OI){if(used.has(i0)||((P[i0].s*7)%1)>.1)continue;
+    const want=3+(((P[i0].s*13)%1)<.5?1:0),path=[i0];let cur=i0;
+    while(path.length<want){let b=-1,d1=.14;for(const j of OI){if(used.has(j)||path.includes(j))continue;const d=dist2(cur,j);if(d<d1){d1=d;b=j}}if(b<0)break;path.push(b);cur=b}
+    if(path.length>=3){path.forEach(k=>used.add(k));for(let k=0;k+1<path.length;k++)EO.push(path[k],path[k+1])}}
+  for(const i of OI)if(((P[i].s*11)%1)<.035)SPK.push(i); /* wenige feine Linien vom Ring zum Kern */
+  const WHS=new Float32Array(N),CLS=(()=>{const a=[150,205,255],m=[214,238,255],w=[255,255,255],o=[];for(let k=0;k<7;k++){const u=k/6,f=u<.5?[a,m,u*2]:[m,w,(u-.5)*2];o.push(f[0].map((v,n)=>Math.round(v+(f[1][n]-v)*f[2])).join(','))}return o})();
+  const PX=new Float32Array(N),PY=new Float32Array(N),PZ=new Float32Array(N),WV=new Float32Array(N),GP=new Float32Array(N),WH=new Float32Array(N);
+  /* Nachbarschaft der Fäden: Funken wandern entlang der Fäden von Punkt zu Punkt */
+  const ADJ=Array.from({length:N},()=>[]);
+  for(let e=0;e<E.length;e+=2){ADJ[E[e]].push(E[e+1]);ADJ[E[e+1]].push(E[e])}
+  const SP=[];for(let k=0;k<70;k++){const a=(rnd()*N0)|0;SP.push({a,b:ADJ[a].length?ADJ[a][(rnd()*ADJ[a].length)|0]:a,u:rnd(),v:.012+.03*rnd(),life:rnd(),k:rnd()})}
+  let spA=0,cqA=0,voxT=0,vox=0,voxAt=0,cqS=0,lipS=0,noX=false,wd=0,wdS=0,lastK=0,nextW=0,mode='idle',sp=0,ls=0,th=0,act=0,hr=0,hrT=0,kick=0,envS=0,rot=0,swS=0;
+  /* Reden beginnt immer mit Sammeln im Kern und danach der Explosion aus dem Kern: war das Nachdenken noch nicht weit genug (z. B. nur "Ja?"), sammelt sich die Kugel erst kurz, ohne zu verschwinden */
+  let pend=0,fastUntil=0,quiet=false; /* quiet: Redemodus ohne Ton (Vorlauf): Kugel offen, aber der Kern pulsiert erst mit dem ersten Wort */
+  window.setJarvisMode=m=>{
+    if(window.__clDenkt&&m!=='think'&&m!=='speak'){if(Date.now()-window.__clDenkt<120000&&window.__jvOn&&window.__jvOn()){mode='think';return}window.__clDenkt=0} /* wartet auf Claudes Antwort: im Nachdenk-Modus bleiben (höchstens 5 Minuten) */
+    clearTimeout(window._spkEndT);quiet=false;
+    if(m!=='speak')pend=0;
+    if(m==='speak'&&mode!=='speak'){
+      if(pend)return;
+      if(calm){mode=m;return}
+      if(th>=.6){noX=true;mode=m;return}
+      pend=performance.now()+(th<.3?700:400);noX=true;mode='think';return}
+    if(m==='think')noX=true;
+    mode=m};window.setJarvisSoft=()=>{pend=0;noX=true;quiet=true;fastUntil=performance.now()+3500;mode='speak'};window.jarvisFrischReden=()=>{clearTimeout(window._spkEndT);pend=0;quiet=false;noX=false;th=Math.min(th,.2);cqS=Math.min(cqS,.2);cqA=Math.min(cqA,.2);mode='speak'}; /* (19.11.) Claudes Antwort: aus langem Nachdenken sichtbar in den Rede-Modus (sonst blieb der Denk-Look beim Vorlesen) */window.jarvisPlatz=()=>{clearTimeout(window._spkEndT);quiet=false;noX=true;mode='think';pend=performance.now()+140}; /* (19.11.) Nachricht an Claude raus: fast ohne Nachdenk-Phase direkt die Explosion wie beim Losreden */ /* direkt und weich in den Redemodus aufgehen, ohne vorheriges Sammeln im Kern und ohne Explosion */
+    window.jarvisCalm=()=>mode==='idle'&&act<.3&&th<.12;window.jarvisThinkLevel=()=>th;window.setJarvisHear=v=>{hrT=v?1:0};window.jarvisKick=()=>{kick=Math.min(1,kick+.24+Math.random()*.12);wd=.8+Math.random()*.4;lastK=performance.now()}; /* jeder Puls leicht unterschiedlich groß */
+  let spin=0,restT=0,redraw=4; /* spin: Drehung der Kugel im Ruhezustand 0 = steht still (es wird nichts mehr gezeichnet), 1 = dreht sich; gleitet beim Darüberfahren an und beim Verlassen wieder aus */
+  window.__orbWake=()=>{redraw=Math.max(redraw,3);if(restT){clearTimeout(restT);restT=0;requestAnimationFrame(frame)}};
+  /* Kugel sicher neu zeichnen, wenn die Seite wieder sichtbar wird, das Fenster den Fokus bekommt oder die Seite aus dem Zwischenspeicher zurückkommt */
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)try{window.__orbWake()}catch(_){}});addEventListener('focus',()=>{try{window.__orbWake()}catch(_){}});addEventListener('pageshow',()=>{try{window.__orbWake()}catch(_){}});[700,1800,4000,9000,16000].forEach(t=>setTimeout(()=>{try{window.__orbWake()}catch(_){}},t)); /* nach dem Laden ein paarmal sicher neu zeichnen (je drei Bilder), falls das erste Bild in die Einblendung der Seite gefallen ist */
+  let bx0=0,skipC=0,vis=true,awV=-1,ax0=0,hvN=0,lpX=-1,lpY=-1,hv=0,hvT=0,at=0,atT=0,mxA=0,myA=0;
+  /* Maus über der Kugel: Helligkeit gleitet; Maus in der Nähe (im Schlafmodus): einige Punkte werden zur Maus gezogen */
+  c.parentNode.addEventListener('pointerenter',e=>{if(e.pointerType==='mouse'){hvT=1;window.__orbWake()}});c.parentNode.addEventListener('pointerleave',()=>{hvT=0});
+  document.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse')return;lpX=e.clientX;lpY=e.clientY;const r=c.getBoundingClientRect();mxA=e.clientX-r.left;myA=e.clientY-r.top;atT=Math.hypot(mxA-W/2,myA-H/2)<Math.min(W,H)*.32*2.4?1:0},{passive:true});
+  document.addEventListener('mouseout',e=>{if(!e.relatedTarget){atT=0;hvT=0}},{passive:true});addEventListener('blur',()=>{atT=0;hvT=0});
+  window.jarvisAction=()=>{if(ax0&&performance.now()-ax0<1900)return;ax0=performance.now()};
+  window.jarvisBurst=()=>{const n=performance.now();bx0=n;ax0=n}; /* (19.11.) Explosion der Partikel: Nachricht ist bei Claude raus (statt Sprachausgabe) */ /* Aktions-Animation: ein Befehl wurde direkt ausgeführt (Diagramm, Vergleich, Eintrag …), ohne dass Jarvis antwortet */try{new IntersectionObserver(en=>{vis=en[en.length-1].isIntersecting;if(!vis){hv=0;hvT=0;at=0;atT=0;awV=-1;try{c.parentNode.style.setProperty('--lv',0)}catch(_){}}}).observe(c)}catch(_){}
+  ['setJarvisMode','setJarvisSoft','setJarvisHear','setJarvisLevel','jarvisKick','jarvisAction'].forEach(n=>{const f=window[n];if(typeof f==='function')window[n]=function(){const r=f.apply(this,arguments);try{window.__orbWake()}catch(_){}return r}}); /* jede Änderung von außen weckt die ruhende Kugel sofort */
+  function frame(){
+    if(!vis||document.hidden){requestAnimationFrame(frame);return} /* Kugel nicht im Bild: nichts zeichnen */
+    const idle=mode==='idle'&&act<.02&&th<.02&&sp<.02&&ls<.02&&cqS<.02&&hr<.02&&kick<.01&&!ax0&&hv<.01&&at<.01&&!atT;
+    if(idle&&spin<.002&&redraw<=0&&target<.005&&level<.01){restT=setTimeout(()=>{restT=0;requestAnimationFrame(frame)},150);return} /* Ruhezustand: die Kugel steht still und wird nicht neu gezeichnet; nur alle 150 ms wird geprüft, ob die Maus kommt oder etwas passiert */
+    if(idle&&document.body.classList.contains('gbusy')){requestAnimationFrame(frame);return} /* Während ein Fenster auf- oder zuklappt (Sparziele, Pfeil bei Vermögenswerte), ruht die Kugel im Schlafmodus kurz: sie bewegt sich dort ohnehin kaum, und das Auf-/Zuklappen läuft dadurch flüssiger */
+    const SK=idle?(document.hasFocus()?3:6):1; /* in Ruhe nur 20 statt 60 Bilder pro Sekunde, im Hintergrund (Fenster ohne Fokus) nur 10: gleiche Geschwindigkeit, viel weniger Last */
+    if(SK>1){skipC=(skipC+1)%SK;if(skipC){requestAnimationFrame(frame);return}}
+    if(redraw>0)redraw--; /* erst hier zählen, also nur Bilder, die wirklich gezeichnet werden. Vorher wurde schon bei übersprungenen Bildern heruntergezählt: hatte das Fenster beim Laden keinen Fokus (jedes 6. Bild), war der Zähler leer, bevor die Kugel ein einziges Mal gezeichnet war, und sie blieb unsichtbar */
+    const DT=SK;
+    {const st0=mode==='idle'&&act<.02&&th<.02&&sp<.02&&ls<.02&&cqS<.02&&hr<.02&&kick<.01&&!ax0;if(!st0)spin=1;else{const k=hvT>spin?.035:.07;spin+=(hvT-spin)*(1-Math.pow(1-k,DT));if(spin<.0015&&!hvT)spin=0}} /* nur im Ruhezustand: mit der Maus über dem Jarvis-Fenster läuft die Drehung weich an, sonst gleitet sie aus; bei Denken, Reden, Zuhören usw. unverändert */
+    if(noX&&mode!=='think'&&mode!=='speak'&&th<.03&&sp<.03)noX=false; /* die Zusatzpunkte kommen erst wieder, wenn Denken und Reden ganz ausgeklungen sind (sonst poppen sie beim Beenden plötzlich auf) */
+    t+=(calm?.003:.012)*DT*spin;level+=(target-level)*.15;
+    const nowMs=performance.now();
+    if(pend&&nowMs>=pend){pend=0;mode='speak'}
+    const fk=nowMs<fastUntil?1.5:1; /* weicher Start vom Wochenüberblick: Kugel geht 0,5 Sekunden früher auf */
+    if(mode==='speak'){sp+=(1-sp)*.03*fk;spA=sp}else{spA+=(0-spA)*.024;sp+=(spA-sp)*.055} /* Ausklingen in zwei Stufen: sanfter Anfang, weiches Ende */
+    ls+=((mode==='listen')-ls)*.05;th+=((mode==='think')-th)*(pend?.08:.022);if(!((hvN=(hvN+1)%6)))try{{const r=c.parentNode.getBoundingClientRect();hvT=(document.hasFocus()&&lpX>=r.left&&lpX<=r.right&&lpY>=r.top&&lpY<=r.bottom)?1:0}}catch(_){} /* Maus über der Kugel wird laufend am echten Hover-Zustand geprüft, damit die Helligkeit nie hängen bleibt */
+    act+=((mode!=='idle')-act)*.04;hv+=(hvT-hv)*.06;at+=(((mode==='idle'&&!ax0)?atT:0)-at)*.07;
+    let AU=ax0?(nowMs-ax0)/(calm?700:1900):0;if(AU>=1){ax0=0;AU=0}const axOn=ax0>0,axB=axOn?Math.pow(Math.sin(Math.PI*AU),.6):0,
+      ak=axOn?1+.07*(AU<.22?(u=>u*u*(3-2*u))(AU/.22):.5+.5*Math.cos(Math.PI*(AU-.22)/.78)):1; /* kein Zusammenziehen; kurz etwas größer, wenn die Welle den Rand erreicht, dann wieder zurück */
+    {const lv=(idle&&hv<.01)?0:Math.min(1,Math.max(act,ls,th,sp,hr,axB,hv*.8)),a=Math.round(lv*500)/500;if(a!==awV){awV=a;c.parentNode.style.setProperty('--lv',a)}} /* Helligkeit von Kugel und Schriftzug folgt genau dem Zustand der Kugel: die Ausblendung endet erst, wenn sie ganz im Schlafmodus ist */
+    if(mode==='think'||mode==='speak'){cqS+=(1-cqS)*((mode==='think'&&pend)?.08:.022*fk);cqA=cqS}else{cqA+=(0-cqA)*.017;cqS+=(cqA-cqS)*.045} /* Kern und Außenring behalten den Denk-Look durchgehend (kein Hin und Her beim Wechsel Denken -> Reden) */
+    {const ht=mode==='listen'?hrT:0;hr+=(ht-hr)*(ht>hr?.075:.008)}kick*=.93;rot+=((calm?.0012:.004)*(1-.6*ls)+(calm?0:.006*cqS))*DT*spin;
+    /* Wörter: bei jedem neuen Wort geht die Kugel kurz ein Stück auf und wird dazwischen minimal kleiner (ohne Wortmeldung vom Browser kommt ein gleichmäßiger Ersatztakt) */
+    if(!quiet&&sp>.8&&nowMs-lastK>650&&nowMs>nextW&&nowMs-voxAt>400){wd=1;nextW=nowMs+330+Math.random()*220}
+    wd*=.91;wdS+=(wd-wdS)*.24;
+    const s1=Math.abs(Math.sin(t*8+1.8*Math.sin(t*1.9))),s2=Math.abs(Math.sin(t*7.3+1.3)),
+      envT=quiet?0:sp*sp*(.2+.8*(.6*s1+.4*s2)*(.55+.45*Math.sin(t*1.3))*(1+kick*.1));
+    envS+=(envT-envS)*.09;const env=envS+level*(1-sp);
+    /* Bewegungsstärke: wie lebendig die Kugel gerade ist */
+    const live=Math.min(1,ls*.3+hr*.55+sp*.8+th*.4+level*.4);
+    const R0=Math.min(W,H)*.32,coh=Math.max(0,Math.min(1,(.28+.72*act-ls*.5-hr*.75-sp*.4)*(1-th*.85))),
+      R=R0*(1-.14*(1-act)+ls*.16+hr*.4+sp*.3+sp*sp*sp*(.09*wdS-.03)+env*.07),
+      Rs=R0*(1-.14*(1-act)+ls*.16+hr*.4+sp*.3), /* Radius ohne Pulsieren: beim Reden bewegt sich nur der Kern im Takt, alles andere bleibt ruhig */
+      cx=W/2+Math.sin(t*.55)*R0*.035*live,cy=H/2+Math.cos(t*.47)*R0*.03*live;
+    const CO='150,205,255'; /* beim Denken wird der Kern heller, bleibt aber blau */
+    x.clearRect(0,0,W,H);x.globalCompositeOperation='lighter';
+    /* Kern: weiches Leuchten und heller Punkt */
+    vox+=(voxT-vox)*.55;const vf=nowMs-voxAt<250;
+    lipS+=((sp>.05?Math.max(0,Math.min(1,vf?vox*1.5+wd*.3:wd*1.2+(env-.1)*.4)):0)-lipS)*.45;const lsx=1+sp*(.4+2.1*lipS),lsy=lsx,lsg=1+(lsx-1)*.45; /* Kern atmet als Kreis: mit jedem Laut größer, dazwischen kleiner */ /* Mund: im Ruhestand ein flacher Kern, mit jedem Laut öffnet er sich nach oben und unten */
+    const thc=Math.max(th,cqS*.9),br=1+.07*Math.sin(t*.9),pulse=hr*(.5+.5*Math.sin(t*1.5)),ci=(.26*hr+.04*sp+.1*env+.16*thc)*br*(1-.6*sp),gr=R0*(.4+.4*hr+.12*ls+.18*sp+.12*env+.28*thc)*br,g=x.createRadialGradient(cx,cy,0,cx,cy,gr);
+    g.addColorStop(0,`rgba(${CO},${Math.min(.9,ci)})`);g.addColorStop(1,`rgba(${CO},0)`);x.save();x.translate(cx,cy);x.scale(lsg,lsg);x.translate(-cx,-cy);x.fillStyle=g;x.fillRect(cx-gr,cy-gr,gr*2,gr*2);x.restore();
+    const hw=R0*(.1+.08*hr+.07*env+.28*thc)*br,ha=Math.min(1,.22*hr+.05*sp+.14*env+.28*thc),g2=x.createRadialGradient(cx,cy,0,cx,cy,hw);
+    g2.addColorStop(0,`rgba(255,255,255,${ha})`);g2.addColorStop(.35,`rgba(200,236,255,${ha*.55})`);g2.addColorStop(1,`rgba(${CO},0)`);x.save();x.translate(cx,cy);x.scale(lsg,lsg);x.translate(-cx,-cy);x.fillStyle=g2;x.fillRect(cx-hw,cy-hw,hw*2,hw*2);x.restore();
+    /* Wirbel: die Kugel dreht sich oben und unten gegenläufig, wechselt langsam die Richtung */
+    swS+=((live*(.55+.4*Math.sin(t*.3)))-swS)*.02;
+    const tilt=.28+.12*Math.sin(t*.37)*live,cT=Math.cos(tilt),sT=Math.sin(tilt),
+      /* Wanderwelle: wandert als heller Gürtel über die Kugel, Richtung dreht sich */
+      wa=t*.31,wx=Math.cos(wa),wy=Math.sin(wa*1.3),wz=Math.sin(wa*.7),wl=Math.hypot(wx,wy,wz)||1,
+      wAmp=sp*sp*.8+hr*.12+ls*.04,wSpd=.8+.9*sp+.3*hr,wPh=t*wSpd;
+    const RAd=R0*.62,RA2=RAd*RAd; /* kleiner Wirkungskreis um die Maus */
+    const wr1=axOn?.2+1.15*(1-Math.pow(1-AU,3)):0,wa1=axOn?Math.pow(1-AU,1.4):0;
+    const NN=(!noX&&(th>.12||sp>.12))?N:N0;
+    for(let i=0;i<NN;i++){const p=P[i];
+      const d=(p.x*wx+p.y*wy+p.z*wz)/wl,wv=p.o?0:(p.q?1:1-sp)*Math.pow(Math.max(0,Math.sin(d*3.4-wPh)),3)*wAmp;WV[i]=wv;
+      let rr=(1-coh)*p.rv+coh*(1+(p.j-.5)*.07);const rl=rr;let trgv=0;
+      const Rp=p.q?R:R+(Rs-R)*sp,qs=p.q?1:1-sp;
+      /* Denken: viele Punkte ganz in der Mitte (weiß), wenige blaue darum herum, und ein Kreis aus Punkten außen */
+      const thb=Math.min(1,th*1.15),cw=(p.q||p.o)?(mode==='think'||mode==='speak'?Math.min(1,cqS*1.15):cqS):thb; /* Kernpunkte sehen beim Reden aus wie beim Nachdenken */
+      if(cw>.01||sp>.01){/* Zielradius in Pixeln (Anteil von R0), damit nichts über den Rand fliegt, solange die Kugel noch schrumpft */
+        const tp=p.o?1.36+.1*(p.j-.5):p.m<.34?.015+.1*p.j:p.m<.6?.12+.42*p.j:p.j<.3?.02+.15*(p.j/.3):.15+.4*((p.j-.3)/.2),trg=tp*R0/Math.max(.1*R0,Rp);trgv=trg;if(cw>.01)rr=rr*(1-cw)+trg*cw}
+      /* Zuhören: ein Teil der Punkte wird langsam in die Mitte gezogen und baut dort das Leuchten auf */
+      const spf=sp/(sp+hr+.001),amt=hr*hr*(3-2*hr)*.62,dph=.5-.5*Math.cos(t*.6+p.s*2),gp0=amt>p.m?.94*(dph*(1-spf)+(.78+.22*dph)*spf)*Math.min(1,(amt-p.m)/.08):0,gp=p.q?gp0*(1-Math.min(1,sp*1.5)):gp0;GP[i]=gp;WH[i]=Math.max(p.j<.28?0:Math.min(1,gp*1.3)*Math.min(1,sp*1.4),p.c?thb:0,p.q?Math.min(1,cqS*1.15):0); /* beim Reden bleiben ein paar blaue Punkte im Kern */
+      if(gp===0&&sp>.01&&!p.q&&!p.o){ /* Reden: heller Kern, dünner blauer Schleier darum (das „Gehirn“), die übrigen Punkte außen */
+        /* Übergang Denken -> Reden: direkt vom Denk-Radius zum Rede-Radius, ohne Umweg über die große Zuhör-Kugel (sonst fliegen die Punkte erst hinaus und dann wieder zurück) */
+        const tS=p.m<.52?(p.m<.34?.1+.25*p.j:.12+.42*p.j)*R0/Math.max(.1*R0,Rp):.62+.55*rl,ws=sp*(p.m<.52?1:.8),wt=cw*(1-ws),wl=(1-cw)*(1-ws)*(1-Math.min(1,cw+sp));
+        rr=(wl*rl+wt*trgv+ws*tS)/Math.max(1e-6,wl+wt+ws)}
+      rr*=(1-gp)*(1+env*.12*gp);
+      rr*=1+(p.o?0:env*.1*qs)*(Math.sin(p.x*3.1+t*2.3)+Math.sin(p.y*2.7-t*1.9+1)+Math.sin(p.z*3.4+t*2.7+2))/3
+        +hr*.035*Math.sin(t*.7+p.s)+ls*.015*Math.sin(t*.6+p.s*3)+th*.02*Math.sin(t*2.5+p.s*7)
+        +wv*.045+(p.o?0:env*.02*qs)*Math.sin(p.z*6-t*2.4);
+      const a=rot+swS*p.y*.8+swS*.25*(rr-1)*2,ca=Math.cos(a),sa=Math.sin(a),
+        X=p.x*rr,Y=p.y*rr,Z=p.z*rr,x1=X*ca+Z*sa,z1=-X*sa+Z*ca,y2=Y*cT-z1*sT,z2=Y*sT+z1*cT,f=1.9/(1.9-z2*.5);
+      let wf=ak;if(bx0){const BU=(nowMs-bx0)/1300;if(BU>=1)bx0=0;else{const B=BU<.1?(u=>u*u*(3-2*u))(BU/.1):Math.pow(1-(BU-.1)/.9,2.2);wf*=1+B*(.35+1.1*p.j)}} /* Explosion: schnell nach außen, dann weich zurück */
+      /* Druckwelle: Punkte, die der Ring gerade passiert, werden ein Stück nach außen gedrückt */
+      PX[i]=cx+x1*Rp*f*wf;PY[i]=cy+y2*Rp*f*wf;PZ[i]=z2;
+      if(at>.01){const dx=mxA-PX[i],dy=myA-PY[i],d2=dx*dx+dy*dy;if(d2<RA2){const q=1-Math.sqrt(d2)/RAd,pl=p.j>.5?at*q*q*q*(.08+.3*(p.j-.5)):0; /* nur etwa jeder zweite Punkt, sanft */PX[i]+=dx*pl;PY[i]+=dy*pl}}
+      if(sp>.02&&(p.q||(p.m<.52&&!p.o))){const lw=p.q?1:.15;PX[i]=cx+(PX[i]-cx)*(1+(lsx-1)*lw);PY[i]=cy+(PY[i]-cy)*(1+(lsy-1)*lw)}
+    }
+    /* Fäden in Stapeln: hinten blass, vorne in vier Gruppen, die unterschiedlich flackern */
+    const w=Math.max(coh*coh,.3*act)*(1-th*.9);
+    if(w>.01){const maxL=R*.5,m2=maxL*maxL,aF=.2*w*(.6+.4*act)*(1+env*.9+hr*.3),aB=.06*w,fs=.5+live*.8;
+      for(let pass=0;pass<5;pass++){x.beginPath();
+        for(let e=0;e<E.length;e+=2){const i=E[e],j=E[e+1],front=PZ[i]+PZ[j]>0;if(pass===0?front:(!front||((e>>1)&3)!==pass-1))continue;
+          if(GP[i]>.12||GP[j]>.12)continue;const dx=PX[i]-PX[j],dy=PY[i]-PY[j];if(dx*dx+dy*dy>m2)continue;x.moveTo(PX[i],PY[i]);x.lineTo(PX[j],PY[j])}
+        const fl=pass?1-.3*live+.3*live*(.5+.5*Math.sin(t*fs+pass*1.9)):1;
+        x.strokeStyle=`rgba(${ORB},${pass?aF*fl*(1+.5*live):aB})`;x.lineWidth=pass?.95:.8;x.stroke()}} /* Testweise etwas fetter (vorher .5 / .42) */
+    const thL=cqS;if(thL>.04&&EO.length){x.beginPath();const mm=R0*R0*.3;for(let e=0;e<EO.length;e+=2){const i=EO[e],j=EO[e+1],dx=PX[i]-PX[j],dy=PY[i]-PY[j];if(dx*dx+dy*dy>mm)continue;x.moveTo(PX[i],PY[i]);x.lineTo(PX[j],PY[j])}
+      x.strokeStyle=`rgba(${ORB},${.26*Math.min(1,thL*1.15)})`;x.lineWidth=.95;x.stroke();
+      x.beginPath();for(const i of SPK){x.moveTo(PX[i],PY[i]);x.lineTo(cx,cy)}x.strokeStyle=`rgba(${ORB},${.1*Math.min(1,thL*1.15)})`;x.lineWidth=.85;x.stroke()}
+    /* Punkte, nach Helligkeit gebündelt (wenige Zeichenaufrufe statt tausender) */
+    const base=(1.12-.12*act)*(1+hr*.2),NB=8,NC=7,bk=Array.from({length:NB*NC},()=>[]); /* Farbstufen von Blau bis Weiß: kein Umspringen mehr zwischen drei Farben */
+    const xt=noX?0:Math.max(Math.min(1,Math.max(0,(th-.15)/.6)),Math.min(1,Math.max(0,(sp-.15)/.6)));
+    for(let i=0;i<N;i++){if(i>=N0&&xt<.02)continue;const p=P[i],wh=WHS[i]+=(WH[i]-WHS[i])*.045*Math.min(3,DT), /* Weiß-Anteil gleitet je Punkt weich (Nachdenken <-> Zuhören) */d=Math.max(0,Math.min(1,(PZ[i]+1)/2)),al=(i>=N0?xt:1)*(.1+.6*d)*base*(1+.3*Math.sin(t*1.4+p.s*5)+live*.2*Math.sin(t*1.1+p.s*9))*(1+((P[i].q||P[i].o)?Math.min(1,cqS*1.15):th)*(.9*wh+(p.o?0:.55)))*(p.o?1+.75*Math.min(1,cqS*1.15):1)+WV[i]*.5+GP[i]*1.1+wh*.35;
+      bk[Math.min(NC-1,Math.round(Math.min(1,wh/.8)*(NC-1)))*NB+Math.min(NB-1,Math.max(0,Math.floor(al*NB*.95)))].push(i)}
+    for(let qq=0;qq<NB*NC;qq++){const q=qq%NB,L=bk[qq];if(!L.length)continue;x.beginPath();
+      for(let n=0;n<L.length;n++){const i=L[n],d=Math.max(0,Math.min(1,(PZ[i]+1)/2)),r=(.38+.62*d)*P[i].k*(1+env*.1*(P[i].q?1:1-sp)+WV[i]*.15+GP[i]*.4)*(P[i].o?1-.12*Math.min(1,cqS*1.15):1);if(r<1)x.rect(PX[i]-r,PY[i]-r,r*2,r*2);else{x.moveTo(PX[i]+r,PY[i]);x.arc(PX[i],PY[i],r,0,6.283)}}
+      x.fillStyle=`rgba(${CLS[(qq/NB)|0]},${Math.min(1,(q+.6)/(NB*.95))})`;x.fill()}
+    /* Funken: kleine helle Lichtpunkte, die an den Fäden entlang laufen (mehr, je lebendiger die Kugel ist) */
+    const ns=sp>.04?Math.round(3+16*sp*(1-th)):0;
+    if(ns>0){const gl=[];
+      for(let k=0;k<ns;k++){const s=SP[k];s.u+=s.v*(.08+sp*.08);
+        if(s.u>=1){s.u=0;s.a=s.b;const nb=ADJ[s.a];s.b=nb.length?nb[(Math.random()*nb.length)|0]:((Math.random()*N)|0)}
+        const sx=PX[s.a]+(PX[s.b]-PX[s.a])*s.u,sy=PY[s.a]+(PY[s.b]-PY[s.a])*s.u,sz=PZ[s.a]+(PZ[s.b]-PZ[s.a])*s.u;
+        if(sz<-.2)continue;const fa=Math.sin(s.u*3.1416)*(.5+.5*Math.max(0,sz));gl.push(sx,sy,fa);}
+      for(let pass=0;pass<2;pass++){x.beginPath();for(let n=0;n<gl.length;n+=3){const rr=pass?.9+gl[n+2]*.5:2.6+gl[n+2]*1.6;x.moveTo(gl[n]+rr,gl[n+1]);x.arc(gl[n],gl[n+1],rr,0,6.283)}
+        const sa2=Math.min(1,sp*1.6);x.fillStyle=pass?`rgba(235,250,255,${.85*sa2})`:`rgba(${ORB},${.12*sa2})`;x.fill()}}
+    /* Denken: helle Funken kreisen um den Lichtball */
+    if(th>.05){x.beginPath();for(let k=0;k<14;k++){const ph=t*(2.2+k*.11)+k*.9,rad=R0*(.2+.22*((k*37)%10)/10)*(1+.12*Math.sin(t*3+k)),ex=Math.cos(ph)*rad,ey=Math.sin(ph)*rad*(.45+.35*Math.sin(k*1.7)),rt=k*.55,xx=cx+ex*Math.cos(rt)-ey*Math.sin(rt),yy=cy+ex*Math.sin(rt)+ey*Math.cos(rt);x.moveTo(xx+1.6,yy);x.arc(xx,yy,1.6,0,6.283)}
+      x.fillStyle=`rgba(165,212,255,${.8*th})`;x.fill()}
+    /* Aktion ausgeführt: Druckwelle wie beim Überschallknall. Ein durchsichtiger, weicher Ring (keine weiße Linie) läuft aus der Mitte nach außen: davor eine scharfe, glasklare Kante, dahinter ein breiter, schwach leuchtender Schweif; ein zweiter, feinerer Ring folgt */
+    if(axOn){const e1=1-Math.pow(1-AU,3),fa=Math.max(0,1-AU/.22),fr=fa*fa,a1=Math.pow(1-AU,1.5);
+      if(fr>.01){const rg=R0*(.22+.4*AU),g3=x.createRadialGradient(cx,cy,0,cx,cy,rg);g3.addColorStop(0,`rgba(185,225,255,${.5*fr})`);g3.addColorStop(1,`rgba(${CO},0)`);x.fillStyle=g3;x.fillRect(cx-rg,cy-rg,rg*2,rg*2)}
+      const wave=(r,wd,k)=>{if(r<2||k<.005)return;const r0=Math.max(0,r-wd*2.6),r2=r+wd*.5,g=x.createRadialGradient(cx,cy,r0,cx,cy,r2),q=(r-r0)/(r2-r0);
+        g.addColorStop(0,`rgba(${CO},0)`);g.addColorStop(q*.45,`rgba(${CO},${.05*k})`);g.addColorStop(q*.82,`rgba(170,215,255,${.14*k})`);g.addColorStop(q*.95,`rgba(205,236,255,${.36*k})`);g.addColorStop(q,`rgba(190,228,255,${.22*k})`);g.addColorStop(1,`rgba(${CO},0)`);
+        x.fillStyle=g;x.beginPath();x.arc(cx,cy,r2,0,6.283);x.fill()};
+      /* Aus dem Kern fliegen Punkte nach außen und blenden aus (sie kommen nicht zurück); in der Mitte entstehen gleichzeitig neue Punkte */
+      {const eb=1-Math.pow(1-AU,3),h=k=>{const v=Math.sin(k*12.9898+3.1)*43758.5453;return v-Math.floor(v)};
+        for(let k=0;k<340;k++){const an=h(k*1.7+5)*6.2832,rr=R0*(.04+(.4+.8*h(k+3))*eb*1.25),al=Math.pow(1-AU,1.2)*(.4+.6*h(k+9))*Math.min(1,AU*30);if(al<.01)continue;
+          const sz=.9+1.3*h(k+5);x.fillStyle=`rgba(200,232,255,${.75*al})`;x.beginPath();x.arc(cx+Math.cos(an)*rr,cy+Math.sin(an)*rr,sz,0,6.283);x.fill()}
+        const sm=u=>{u=Math.max(0,Math.min(1,u));return u*u*(3-2*u)},sa=sm((AU-.02)/.22)*(1-sm((AU-.7)/.3));
+        if(sa>.01)for(let k=0;k<46;k++){const an=k*2.39996+1.1,rd=R0*.24*Math.pow(h(k+21),.7),jx=Math.sin(t*3+k)*1.2,jy=Math.cos(t*2.6+k*1.7)*1.2;
+          x.fillStyle=`rgba(190,226,255,${.8*sa*(.5+.5*h(k+33))})`;x.beginPath();x.arc(cx+Math.cos(an)*rd+jx,cy+Math.sin(an)*rd+jy,1+.7*h(k+13),0,6.283);x.fill()}}
+      }
+    x.globalCompositeOperation='source-over';
+    requestAnimationFrame(frame);
+  }
+  frame();
+};
 // ---------- Jarvis im Cockpit: Frage über das Daten-Repo (jarvis/f_<id>.json) an den Mac, Antwort kommt als jarvis/a_<id>.json ----------
 var GHJ = GH.replace('daten.json', 'jarvis/'), jv = { laeuft: false, erk: null, ctx: null, quelle: null, stumm: false };
 try { jv.stumm = localStorage.getItem('cockpit_jvstumm') === '1'; } catch (x) {}
 function jvKopf() { return { Authorization: 'Bearer ' + daten.einst.token, Accept: 'application/vnd.github+json' }; }
-function jvZustand(z, t) { $('jvOrb').className = 'jvorb ' + z; if (t != null) $('jvStatus').textContent = t; }
+function jvZustand(z, t) { jv.z = z; try { if (window.setJarvisHear) setJarvisHear(z === 'hoert'); if (window.setJarvisMode) setJarvisMode({ schlaf: 'idle', hoert: 'listen', denkt: 'think', spricht: 'speak' }[z] || 'idle'); } catch (x) {} if (t != null) $('jvStatus').textContent = t; }
 function jvZeile(wer, t, fehler) {
   var v = daten.jarvisVerlauf = (daten.jarvisVerlauf || []); v.push({ wer: wer, t: t, f: !!fehler, z: Date.now() }); if (v.length > 40) v.splice(0, v.length - 40); sichern(true); jvVerlaufZeichnen();
 }
@@ -1337,6 +1531,7 @@ function jvOeffnen(von) {
   jvVerlaufZeichnen(); jvChipsZeichnen(); $('jvLeise').classList.toggle('stumm', jv.stumm);
   jvZustand('schlaf', (daten.jarvisVerlauf || []).length ? '' : 'Was kann ich für dich tun, Meister?');
   bl.classList.remove('auf'); bl.classList.add('offen'); void bl.offsetWidth; requestAnimationFrame(function () { bl.classList.add('auf'); });
+  if (!jv.kern) { jv.kern = 1; try { jvKernStart(); } catch (x) {} jvZustand(jv.z || 'schlaf'); } else { try { window.__orbWake && __orbWake(); } catch (x) {} }
 }
 function jvChipsZeichnen() {
   var c = ['Wie läuft mein Depot?', 'Wo arbeite ich morgen?', 'Stunden diesen Monat', 'Nächster Geburtstag', 'Resturlaub', 'Meine Notizen', 'Laufende Kosten'];
@@ -1390,7 +1585,8 @@ function jvSprechen(text, audioB64) {
   if (audioB64 && jv.ctx) {
     try {
       var bin = atob(audioB64), buf = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
-      jv.ctx.decodeAudioData(buf.buffer, function (ab) { jvStopp(); var q = jv.ctx.createBufferSource(); q.buffer = ab; q.connect(jv.ctx.destination); q.onended = fertig; jv.quelle = q; jvZustand('spricht', ''); q.start(0); }, function () { jvTts(text, fertig); });
+      jv.ctx.decodeAudioData(buf.buffer, function (ab) { jvStopp(); var q = jv.ctx.createBufferSource(), an = jv.ctx.createAnalyser(); an.fftSize = 512; q.buffer = ab; q.connect(an); an.connect(jv.ctx.destination); q.onended = fertig; jv.quelle = q; jvZustand('spricht', ''); q.start(0);
+        var dat = new Uint8Array(an.fftSize); (function pegel() { if (jv.quelle !== q) return; an.getByteTimeDomainData(dat); var s2 = 0; for (var k = 0; k < dat.length; k++) { var v = (dat[k] - 128) / 128; s2 += v * v; } try { window.setJarvisVoice && setJarvisVoice(Math.min(1, Math.sqrt(s2 / dat.length) * 4)); } catch (x) {} requestAnimationFrame(pegel); })(); }, function () { jvTts(text, fertig); });
       return;
     } catch (x) {}
   }
@@ -1399,12 +1595,12 @@ function jvSprechen(text, audioB64) {
 function jvTts(text, fertig) {
   if (!window.speechSynthesis) return fertig();
   var u = new SpeechSynthesisUtterance(text); u.lang = 'de-DE'; var st = speechSynthesis.getVoices().filter(function (v) { return /^de/i.test(v.lang); }); if (st.length) u.voice = st.find(function (v) { return /premium|enhanced|anna|markus/i.test(v.name); }) || st[0];
-  u.onend = fertig; u.onerror = fertig; jvZustand('spricht', ''); speechSynthesis.cancel(); speechSynthesis.speak(u);
+  u.onend = fertig; u.onerror = fertig; u.onboundary = function () { try { window.jarvisKick && jarvisKick(); } catch (x) {} }; jvZustand('spricht', ''); speechSynthesis.cancel(); speechSynthesis.speak(u);
 }
 function jvSenden(text) {
   text = (text || '').trim(); if (!text || jv.laeuft) return;
   var lok = null; try { lok = jvLokal(text); } catch (x) {}
-  if (lok) { jvEntsperren(); jvZeile('ich', text); $('jvText').value = ''; jvZustand('denkt', ''); setTimeout(function () { jvZeile('er', lok); jvSprechen(lok, null); if (!$('start').classList.contains('aus')) startZeichnen(true); }, 450); return; }
+  if (lok) { try { /^(notier|merk dir|schreib auf|notiz)/i.test(text.trim()) ? window.jarvisBurst && jarvisBurst() : 0; } catch (x) {} jvEntsperren(); jvZeile('ich', text); $('jvText').value = ''; jvZustand('denkt', ''); setTimeout(function () { jvZeile('er', lok); jvSprechen(lok, null); if (!$('start').classList.contains('aus')) startZeichnen(true); }, 450); return; }
   if (!daten.einst.token) { toast('Kein GitHub-Schlüssel in den Einstellungen'); return; }
   jvEntsperren(); jv.laeuft = true; jvZeile('ich', text); $('jvText').value = ''; jvZustand('denkt', 'Jarvis denkt nach …');
   var id = Date.now() + '-' + Math.random().toString(36).slice(2, 6), kopf = jvKopf(), fsha = null, start = Date.now();
