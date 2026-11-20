@@ -194,7 +194,7 @@ body.istoffline .sstand{color:#ff6b61}
 .toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translateX(-50%);background:rgba(37,37,37,.95);border:1px solid var(--rand);padding:10px 16px;border-radius:14px;z-index:20;font-size:14px;display:none;white-space:nowrap}
 </style>
 </head>
-<body>
+<body style="background:#000;margin:0">
 <div id="splash"><div class="logo"><i></i><i></i><i></i><i class="r"></i></div><div class="name">Cockpit</div></div>
 <script>(function(){var y=Math.round(screen.height*.4*100)/100+'px',s=document.getElementById('splash');s.querySelector('.logo').style.top=y;s.querySelector('.name').style.top=y;})();</script>
 <div class="kopf">
@@ -305,7 +305,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.68';
+var VERSION = '1.69';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
