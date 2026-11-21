@@ -282,7 +282,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .dprow .n{font-size:15px;font-weight:600}.dprow .s{font-size:12px;color:var(--grau);margin-top:2px}
 .dprow .r{text-align:right;position:relative;flex-shrink:0;min-width:84px}.dprow .r b{display:block;font-size:19px;font-weight:700;letter-spacing:-.2px}.dprow .r b .pxb.kl .ps{font-size:.74em;opacity:.8} /* (2.36) Beträge größer */.dprow .r small{display:block;font-size:12px;font-weight:600;margin-top:2px}
 .dprow .r .dpkt{right:0;top:0}
-.dprow .mini{width:86px;height:36px;flex-shrink:0;margin-left:auto}.dprow .mini path{fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.dprow .mini .ref{stroke:rgba(255,255,255,.2);stroke-dasharray:2 3;stroke-width:1}.verdeckt .dprow .mini{opacity:0}
+.dprow .mini{width:96px;height:48px;flex-shrink:0;margin-left:auto}.dprow .mini path{fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.dprow .mini .ref{stroke:rgba(255,255,255,.2);stroke-dasharray:2 3;stroke-width:1}.verdeckt .dprow .mini{opacity:0}
 .dpt.sort{cursor:pointer;-webkit-tap-highlight-color:transparent;display:flex;justify-content:space-between;align-items:center}.dpt.sort span{font-weight:600;color:#cfcfcf}
 .dprow{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .15s}.dprow:active{opacity:.6}.dprow.fest{cursor:default}.dprow.fest:active{opacity:1}
 .pkopf{font-size:13px;color:var(--grau)}
@@ -514,7 +514,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.47';
+var VERSION = '2.48';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2290,7 +2290,7 @@ function depotMenge(p) { var q = +p.q; return p.k === 'krypto' ? q.toLocaleStrin
 function posMini(key, kurs) {
   var kv = daten.depotKurven && daten.depotKurven.k && daten.depotKurven.k[key], t = kv && kv['1d']; if (!t || !t.today || !t.today.length) return '';
   var V = (t.prev || []).slice(-60), He = t.today.concat(kurs != null ? [kurs] : []), ref = t.base || (V.length ? V[V.length - 1] : null); if (He.length < 2) return '';
-  var W = 86, H = 36, alle = V.concat(He).concat(ref != null ? [ref] : []), mn = Math.min.apply(null, alle), mx = Math.max.apply(null, alle), sp = (mx - mn) || 1, y = function (v) { return (H - 2 - (v - mn) / sp * (H - 4)).toFixed(1); };
+  var W = 96, H = 48, alle = V.concat(He).concat(ref != null ? [ref] : []), mn = Math.min.apply(null, alle), mx = Math.max.apply(null, alle), sp = (mx - mn) || 1, y = function (v) { return (H - 2 - (v - mn) / sp * (H - 4)).toFixed(1); };
   var xb = V.length ? W / 6 : 0, pv = V.map(function (v, i) { return (i ? 'L' : 'M') + (V.length > 1 ? i / (V.length - 1) * xb : 0).toFixed(1) + ' ' + y(v); }).join(''), ph = He.map(function (v, i) { return (i ? 'L' : 'M') + (xb + i / (He.length - 1) * (W - xb)).toFixed(1) + ' ' + y(v); }).join('');
   var up = ref != null ? He[He.length - 1] >= ref : He[He.length - 1] >= He[0];
   return '<svg class="mini" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + (ref != null ? '<path class="ref" d="M' + xb.toFixed(1) + ' ' + y(ref) + 'H' + W + '"/>' : '') + (pv ? '<path d="' + pv + 'L' + xb.toFixed(1) + ' ' + y(He[0]) + '" style="stroke:rgba(255,255,255,.35)"/>' : '') + '<path d="' + ph + '" style="stroke:' + (up ? 'var(--ok)' : 'var(--rot)') + '"/></svg>';
