@@ -514,7 +514,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.49';
+var VERSION = '2.50';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2303,7 +2303,7 @@ var DSORT = { wert: 'nach Wert', heute: 'nach heute', kauf: 'nach Gewinn seit Ka
 function depotRest(d) { var r = +d.fest || 0; (d.ex || []).forEach(function (x) { r -= +x.v || 0; }); return r; }
 function depotRenteHtml(d, zeile) {
   var E = (d.ex || []).filter(function (x) { return x.v > 0; }); if (!E.length) return '';
-  return '<div class="wltr">Rente</div>' + E.map(function (x) { var pc = x.p > 0 ? (x.v / x.p - 1) * 100 : null; return zeile(/allianz/i.test(x.n) ? 'Allianz-Rente' : depotKurz(x.n), x.p > 0 ? 'eingezahlt ' + euro(x.p) : 'Stand vom Mac', x.v, pc, null); }).join('');
+  return '<div class="wltr" style="margin-top:6px">Rente</div>' + E.map(function (x) { var pc = x.p > 0 ? (x.v / x.p - 1) * 100 : null; return zeile(/allianz/i.test(x.n) ? 'Allianz-Rente' : depotKurz(x.n), x.p > 0 ? 'eingezahlt ' + euro(x.p) : 'Stand vom Mac', x.v, pc, null); }).join('');
 }
 function depotPosHtml(d) {
   if (!d.pos || !d.pos.length) return '';
@@ -2318,7 +2318,7 @@ function depotPosHtml(d) {
   };
   var zz = function (p) { return zeile(depotKurz(p.n), depotMenge(p), p.w, depotSort === 'kauf' ? p.kp : p.pct, p.isin || p.sym, posMini(p.isin || p.sym, p.kurs || (p.q ? p.w / p.q : null))); };
   var LK = L.filter(function (p) { return p.k === 'krypto'; }), LW = L.filter(function (p) { return p.k !== 'krypto'; }); // (2.47) wie im Dashboard: zuerst Krypto, dann der Rest (je Gruppe sortiert)
-  return '<div class="dpos"><div class="dpt sort" id="dSort">Positionen<span>' + DSORT[depotSort] + ' ⇅</span></div>' + (LK.length ? '<div class="wltr" style="margin-top:6px">Krypto</div>' + LK.map(zz).join('') : '') + (LW.length ? '<div class="wltr">Aktien &amp; ETFs</div>' + LW.map(zz).join('') : '') + depotRenteHtml(d, zeile) +
+  return '<div class="dpos"><div class="dpt sort" id="dSort">Positionen<span>' + DSORT[depotSort] + ' ⇅</span></div>' + depotRenteHtml(d, zeile) + (LK.length ? '<div class="wltr"' + ((d.ex || []).length ? '' : ' style="margin-top:6px"') + '>Krypto</div>' + LK.map(zz).join('') : '') + (LW.length ? '<div class="wltr">Aktien &amp; ETFs</div>' + LW.map(zz).join('') : '') + /* (2.50) Allianz ganz oben */
     (depotRest(d) > 0.5 ? zeile((d.ex && d.ex.length ? 'Tagesgeld & eigene Werte' : 'Rente, Tagesgeld & eigene Werte'), 'Stand vom Mac', depotRest(d), null) : '') + '</div>';
 }
 // Weicher Übergang zwischen den Linien (Zeitraum, € / ±, neue Kurse): alte und neue Linie werden auf gleich viele Punkte gebracht und ineinander überblendet
