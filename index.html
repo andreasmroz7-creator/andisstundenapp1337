@@ -156,6 +156,14 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 #start.ordnen .sgrid .kachel:nth-child(2n){animation-delay:-.16s!important}
 #start.ordnen .sgrid .kachel:active{transform:none}
 #start.ordnen .sgrid .kachel .pfeil{opacity:0}
+/* (2.60) Kacheln in drei Größen: normal, breit (ganze Zeile), klein (halbe Höhe, nur Symbol und Zahl); Knopf oben rechts beim Anordnen */
+.sgrid{grid-auto-rows:minmax(69px,auto);grid-auto-flow:row dense}.sgrid .kachel{grid-row:span 2;min-height:0}
+.sgrid .kachel.klein{grid-row:span 1;flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;padding:12px 14px}
+.sgrid .kachel.klein .ic{width:36px;height:36px;flex-shrink:0}.sgrid .kachel.klein>div:last-child{min-width:0;flex:1}
+.sgrid .kachel.klein .t,.sgrid .kachel.klein .u,.sgrid .kachel.klein .pfeil{display:none}.sgrid .kachel.klein .w{font-size:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.kgr{display:none;position:absolute;right:10px;top:10px;z-index:3;width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(40,40,40,.9);color:#fff;align-items:center;justify-content:center;padding:0}
+.kgr svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+#start.ordnen .kgr{display:flex}
 .sgrid .kachel.zieht{animation:none!important;z-index:5;transition:none!important;box-shadow:0 22px 50px rgba(0,0,0,.6);opacity:.96}
 @keyframes wackeln{from{transform:rotate(-1.1deg)}to{transform:rotate(1.1deg)}}
 .ordfertig{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 22px);transform:translate(-50%,30px);opacity:0;pointer-events:none;z-index:9;background:#fff;color:#000;border:0;border-radius:999px;padding:12px 30px;font:inherit;font-weight:700;font-size:15px;box-shadow:0 10px 30px rgba(0,0,0,.5);transition:transform .35s cubic-bezier(.2,.8,.2,1),opacity .25s}
@@ -518,7 +526,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.59';
+var VERSION = '2.60';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1357,11 +1365,13 @@ function startZeichnen(still) {
   k('watchlist', IC.stern, 'linear-gradient(135deg,#a8a8a8,#5c5c5c)', 'Watchlist', wlTop ? '<span class="wltop">' + esc(wlTop.n) + '</span>' : '–', wlTop ? '<b class="' + (wlTop.p >= 0 ? 'dplus' : 'dminus') + '" style="font-size:17px">' + pzK(wlTop.p) + '</b> <span>heute</span>' : wlL.length ? 'Kurse kommen gleich' : 'kommt vom Mac, sobald er an ist', '', false);
   var tmL = tmListe(), tm0 = tmL[0];
   k('termine', IC.kalender, 'linear-gradient(135deg,#9e9e9e,#585858)', 'Termine', tm0 ? tmTagKurz(tm0) : '–', tm0 ? esc(tm0.ti) + (tm0.g ? '' : ' · ' + tmUhr(tm0)) + (tmL[1] ? '<br>danach ' + tmTagKurz(tmL[1]) + ': ' + esc(tmL[1].ti) : '') : 'kommt vom Mac, sobald er an ist', '', false);
-  var kr = kachelReihe(kdef); kr.forEach(function (z, i) { h += kk[z](.12 + i * .06).replace('class="kachel rein', 'class="kachel rein' + (kr.length % 2 && i === kr.length - 1 ? ' breit' : '')); });
-  h += '</div><div class="ordtipp">Kachel ziehen zum Verschieben</div><button class="ordfertig" id="ordfertig">Fertig</button>';
+  var kr = kachelReihe(kdef), KG = kachelGroessen(), KB = kachelAutoBreit(kr, KG); kr.forEach(function (z, i) { h += kk[z](.12 + i * .06).replace('class="kachel rein', 'class="kachel rein' + (KG[z] === 'b' || KB === z ? ' breit' : KG[z] === 'k' ? ' klein' : '')).replace('<span class="pfeil">', '<button type="button" class="kgr" aria-label="Größe ändern"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button><span class="pfeil">'); });
+  h += '</div><div class="ordtipp">Kachel ziehen zum Verschieben · ⤢ ändert die Größe</div><button class="ordfertig" id="ordfertig">Fertig</button>';
   $('start').innerHTML = '<div class="ptr" id="ptr"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>' + h + '<div class="sversion">Cockpit ' + VERSION + '</div>';
   [].forEach.call($('start').querySelectorAll('[data-ziel]'), function (el) { el.onclick = function (ev) { if (window.ordnen && (ordnen.an || ordnen.klickSperre)) return; welle(el, ev); setTimeout(function () { startZiel(el.dataset.ziel); }, 160); }; });
   $('ordfertig').onclick = function () { ordnenAus(); };
+  kachelLuecke($('start').querySelector('.sgrid'));
+  [].forEach.call($('start').querySelectorAll('.kgr'), function (b) { b.onclick = function (ev) { ev.stopPropagation(); kachelGroesseWechseln(b.closest('.kachel')); }; });
   jvMiniStart();
   var jh = $('jvHinweis'); if (jh) jh.onclick = function (ev) { var r = jh.querySelector('i').getBoundingClientRect(); jv.ursprung = { x: r.left + r.width / 2, y: r.top + r.height / 2 }; jvOeffnen(); };
   if (window.ordnen && ordnen.an) $('start').classList.add('ordnen');
@@ -1373,6 +1383,27 @@ function kachelReihe(def) {
   r = r.filter(function (z) { return def.indexOf(z) >= 0; });
   def.forEach(function (z) { if (r.indexOf(z) < 0) r.push(z); });
   return r;
+}
+function kachelGroessen() { try { return JSON.parse(localStorage.getItem('cockpit_kgroesse') || '{}') || {}; } catch (e) { return {}; } }
+function kachelAutoBreit() { return null; } // (2.60) Lücke wird nach dem Aufbau gemessen (kachelLuecke)
+function kachelLuecke(grid) { // letzte Kachel ohne eigene Größe allein in ihrer Zeile → über die ganze Breite
+  if (!grid) return; var kids = [].slice.call(grid.children); if (!kids.length) return;
+  kids.forEach(function (c) { if (c.classList.contains('autob')) c.classList.remove('autob', 'breit'); });
+  var l = kids.reduce(function (a, c) { return c.offsetTop > a.offsetTop ? c : a; }); // unterste Kachel (durch das dichte Auffüllen nicht unbedingt die letzte im Code)
+  if (kachelGroessen()[l.dataset.ziel]) return;
+  var o = l.offsetTop, u = o + l.offsetHeight, allein = !kids.some(function (c) { return c !== l && c.offsetTop < u - 4 && c.offsetTop + c.offsetHeight > o + 4; });
+  if (allein && !l.classList.contains('breit')) l.classList.add('breit', 'autob');
+}
+function kachelGroesseAnwenden(grid) {
+  var KG = kachelGroessen(), kids = [].slice.call(grid.children), KB = kachelAutoBreit(kids.map(function (c) { return c.dataset.ziel; }), KG);
+  kids.forEach(function (c) { var g = KG[c.dataset.ziel]; c.classList.toggle('breit', g === 'b' || KB === c.dataset.ziel); c.classList.toggle('klein', g === 'k'); });
+}
+function kachelGroesseWechseln(k) { // normal → breit → klein → normal
+  var KG = kachelGroessen(), z = k.dataset.ziel, g = KG[z]; KG[z] = !g ? 'b' : g === 'b' ? 'k' : ''; if (!KG[z]) delete KG[z];
+  try { localStorage.setItem('cockpit_kgroesse', JSON.stringify(KG)); } catch (e) {}
+  var grid = k.parentNode, kids = [].slice.call(grid.children), alt = kids.map(function (c) { return c.getBoundingClientRect(); });
+  kachelGroesseAnwenden(grid); kachelLuecke(grid);
+  kids.forEach(function (c, i) { var n = c.getBoundingClientRect(), mx = alt[i].left - n.left, my = alt[i].top - n.top; if (Math.abs(mx) < 1 && Math.abs(my) < 1) return; c.style.transition = 'none'; c.style.translate = mx + 'px ' + my + 'px'; void c.offsetWidth; c.style.transition = 'translate .3s cubic-bezier(.2,.8,.2,1)'; c.style.translate = ''; setTimeout(function () { c.style.transition = ''; }, 320); });
 }
 function ordnenAus() {
   ordnen.an = false; $('start').classList.remove('ordnen');
@@ -1396,7 +1427,7 @@ function ordnenAus() {
     if (!ordnen.an) { ordnen.an = true; s.classList.add('ordnen'); }
   }
   s.addEventListener('touchstart', function (ev) {
-    var k = ev.target.closest && ev.target.closest('.sgrid .kachel'); if (!k || ev.touches.length > 1) return;
+    var k = ev.target.closest && ev.target.closest('.sgrid .kachel'); if (!k || ev.touches.length > 1 || ev.target.closest('.kgr')) return;
     x0 = ev.touches[0].clientX; y0 = ev.touches[0].clientY; dx = dy = 0;
     if (ordnen.an) { starte(k); return; }
     clearTimeout(t); t = setTimeout(function () { t = null; starte(k); if (navigator.vibrate) navigator.vibrate(12); }, 450);
@@ -1424,7 +1455,7 @@ function ordnenAus() {
     clearTimeout(t); t = null; if (!zieht) return; zieht = false; ordnen.zieht = false;
     var e = el; e.style.transition = 'translate .3s cubic-bezier(.2,.8,.2,1),scale .3s'; e.style.translate = ''; e.style.scale = '';
     setTimeout(function () { e.classList.remove('zieht'); e.style.transition = ''; }, 300);
-    var kids = [].slice.call(e.parentNode.children); kids.forEach(function (c, i) { c.classList.toggle('breit', !!(kids.length % 2 && i === kids.length - 1)); });
+    kachelGroesseAnwenden(e.parentNode); kachelLuecke(e.parentNode);
     var r = [].map.call(e.parentNode.children, function (c) { return c.dataset.ziel; }); try { localStorage.setItem('cockpit_kacheln', JSON.stringify(r)); } catch (x) {}
     setTimeout(function () { ordnen.klickSperre = false; }, 350); el = null;
   }
