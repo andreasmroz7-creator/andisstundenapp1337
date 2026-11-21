@@ -517,7 +517,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.56';
+var VERSION = '2.57';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2406,6 +2406,7 @@ function tmZeichnen() {
 }
 // (2.41) Detail-Ansicht einer Position: Wert, heute, seit Kauf, Kennzahlen, Kursverlauf (1T/1M/1J), Käufe und Verkäufe
 var posKey = null, posZr = '1d', posAlt = null, posMorphR = 0, posBin = {};
+var posAendC = {};
 function posOeffnen(key) { posKey = key; posZr = key === 'rente' ? 'max' : '1d'; posAlt = null; posZeichnen(); var b = $('blattP'); b.classList.add('offen'); }
 function posDaten() {
   var d = depotEff();
@@ -2499,7 +2500,7 @@ function posZeichnen() {
   var h = '<div class="dbox' + (zu ? ' verdeckt' : '') + '">' +
     '<div class="pkopf">' + esc(m.n) + '<br>' + esc([m.ty || (m.k === 'krypto' ? 'Kryptowährung' : ''), m.isin || m.sym].filter(Boolean).join(' · ')) + '</div>' +
     '<div class="dgross" id="pGross"><span class="dpkt">••••••</span><span class="dw">' + (kk < 1 ? kk.toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' €' : pxEuro(kk)) + '</span></div>' +
-    '<div class="dheute" id="pAend">' + (P.pct != null ? '<span class="dpkt">•••</span><span class="dw ' + (P.pct >= 0 ? 'dplus' : 'dminus') + '">' + (heuteE >= 0 ? '+' : '') + euroH(heuteE) + ' (' + pz(P.pct) + ') <span class="dwann">' + (m.k === 'krypto' ? 'seit 6 Uhr' : P.rente ? 'letzter Handelstag, ohne Einzahlung' : 'letzter Handelstag') + '</span></span>' : '<span class="dwann">Tagesveränderung kommt mit den nächsten Kursen</span>') + '</div>';
+    '<div class="dheute" id="pAend">' + (posZr !== '1d' && posAendC[posKey + '|' + posZr] ? posAendC[posKey + '|' + posZr] : posZr !== '1d' ? '<span class="dwann">&nbsp;</span>' : P.pct != null ? '<span class="dpkt">•••</span><span class="dw ' + (P.pct >= 0 ? 'dplus' : 'dminus') + '">' + (heuteE >= 0 ? '+' : '') + euroH(heuteE) + ' (' + pz(P.pct) + ') <span class="dwann">' + (m.k === 'krypto' ? 'seit 6 Uhr' : P.rente ? 'letzter Handelstag, ohne Einzahlung' : 'letzter Handelstag') + '</span></span>' : '<span class="dwann">Tagesveränderung kommt mit den nächsten Kursen</span>') + '</div>';
   var altC = $('pChartBox') && $('blattP').classList.contains('offen') ? $('pChartBox').innerHTML : ''; // beim Live-Update bleibt das Diagramm stehen, bis das neue da ist
   h += '<div id="pChartBox">' + (altC || '<div class="dchart"><svg class="dlinie gross" viewBox="0 0 300 170"></svg></div>') + '</div>';
   h += '<div class="dzr" id="pZr">' + [['1d', '1T'], ['1w', '1W'], ['1m', '1M'], ['1y', '1J']].concat(P.rente ? [['max', 'Max']] : []).map(function (z) { return '<button type="button" data-r="' + z[0] + '" class="' + (z[0] === posZr ? 'an' : '') + '">' + z[1] + '</button>'; }).join('') + '</div>';
@@ -2536,8 +2537,16 @@ function posZeichnen() {
   var zr0 = posZr, key0 = posKey;
   posReihe(P, function (S) {
     if (zr0 !== posZr || key0 !== posKey || !$('pChartBox')) return;
-    if (!S || !S.heute || S.heute.length < 2) { $('pChartBox').innerHTML = '<p class="hinweis" style="margin-top:22px">Für diesen Zeitraum ist noch kein Verlauf da' + (m.k === 'krypto' ? '.' : ' (kommt vom Mac).') + '</p>'; posAlt = null; return; }
+    if (!S || !S.heute || S.heute.length < 2) { $('pChartBox').innerHTML = '<p class="hinweis" style="margin-top:22px">Für diesen Zeitraum ist noch kein Verlauf da' + (m.k === 'krypto' ? '.' : ' (kommt vom Mac).') + '</p>'; posAlt = null; if (posZr !== '1d' && $('pAend')) $('pAend').innerHTML = '<span class="dwann">Veränderung kommt mit dem Verlauf</span>'; return; }
     var up = S.ref != null ? S.heute[S.heute.length - 1] >= S.ref : S.heute[S.heute.length - 1] >= S.heute[0];
+    if (posZr !== '1d') { // (2.57) Veränderung passend zum gewählten Zeitraum (nicht mehr immer der Vortag)
+      var a0 = S.heute[0], a1 = S.heute[S.heute.length - 1], ein = 0, RI2 = P.rente && daten.depotKurven && daten.depotKurven.rente;
+      if (RI2 && RI2.ein && S.ht && S.ht[0]) RI2.ein.forEach(function (e2) { if (Date.parse(e2[0] + 'T12:00:00') / 1000 > S.ht[0]) ein += e2[1]; }); // Allianz: Einzahlungen im Zeitraum sind kein Gewinn
+      var ch = a1 - a0 - ein, pc = a0 ? ch / (a0 + ein) * 100 : 0, txt = { '1w': 'seit 1 Woche', '1m': 'seit 1 Monat', '1y': 'seit 1 Jahr', max: 'seit Beginn' }[posZr] + (ein ? ', ohne Einzahlungen' : '');
+      up = ch >= 0;
+      var hA = '<span class="dpkt">•••</span><span class="dw ' + (ch >= 0 ? 'dplus' : 'dminus') + '">' + (ch >= 0 ? '+' : '') + euroH(ch) + ' (' + pz(pc) + ') <span class="dwann">' + txt + '</span></span>';
+      posAendC[posKey + '|' + posZr] = hA; if ($('pAend')) $('pAend').innerHTML = hA;
+    }
     $('pChartBox').innerHTML = posGrafik(S, up); posMorph(); posFinger(P, S);
   });
 }
