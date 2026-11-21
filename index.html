@@ -515,7 +515,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.53';
+var VERSION = '2.54';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2497,7 +2497,7 @@ function posZeichnen() {
   var h = '<div class="dbox' + (zu ? ' verdeckt' : '') + '">' +
     '<div class="pkopf">' + esc(m.n) + '<br>' + esc([m.ty || (m.k === 'krypto' ? 'Kryptowährung' : ''), m.isin || m.sym].filter(Boolean).join(' · ')) + '</div>' +
     '<div class="dgross" id="pGross"><span class="dpkt">••••••</span><span class="dw">' + (P.watch && w < 1 ? w.toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' €' : pxEuro(w)) + '</span></div>' +
-    '<div class="dheute" id="pAend">' + (P.pct != null ? '<span class="dpkt">•••</span><span class="dw ' + (P.pct >= 0 ? 'dplus' : 'dminus') + '">' + (heuteE >= 0 ? '+' : '') + euroH(heuteE) + ' (' + pz(P.pct) + ') <span class="dwann">' + (m.k === 'krypto' ? 'seit 6 Uhr' : P.rente ? 'seit gestern, ohne Einzahlung' : 'letzter Handelstag') + '</span></span>' : '<span class="dwann">Tagesveränderung kommt mit den nächsten Kursen</span>') + '</div>';
+    '<div class="dheute" id="pAend">' + (P.pct != null ? '<span class="dpkt">•••</span><span class="dw ' + (P.pct >= 0 ? 'dplus' : 'dminus') + '">' + (heuteE >= 0 ? '+' : '') + euroH(heuteE) + ' (' + pz(P.pct) + ') <span class="dwann">' + (m.k === 'krypto' ? 'seit 6 Uhr' : P.rente ? 'letzter Handelstag, ohne Einzahlung' : 'letzter Handelstag') + '</span></span>' : '<span class="dwann">Tagesveränderung kommt mit den nächsten Kursen</span>') + '</div>';
   var altC = $('pChartBox') && $('blattP').classList.contains('offen') ? $('pChartBox').innerHTML : ''; // beim Live-Update bleibt das Diagramm stehen, bis das neue da ist
   h += '<div id="pChartBox">' + (altC || '<div class="dchart"><svg class="dlinie gross" viewBox="0 0 300 170"></svg></div>') + '</div>';
   h += '<div class="dzr" id="pZr">' + [['1d', '1T'], ['1w', '1W'], ['1m', '1M'], ['1y', '1J']].concat(P.rente ? [['max', 'Max']] : []).map(function (z) { return '<button type="button" data-r="' + z[0] + '" class="' + (z[0] === posZr ? 'an' : '') + '">' + z[1] + '</button>'; }).join('') + '</div>';
