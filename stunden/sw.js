@@ -1,5 +1,5 @@
 // Offline-Speicher der einfachen Stunden-App. Bei jeder neuen Version die Nummer hochzählen.
-var CACHE = 'stunden-einfach-3.18';
+var CACHE = 'stunden-einfach-3.19';
 var DATEIEN = ['./', 'index.html', 'pdf.js', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return Promise.all(DATEIEN.map(function (f) { return fetch(f, { cache: 'no-store' }).then(function (r) { return c.put(f, r); }); })); }));

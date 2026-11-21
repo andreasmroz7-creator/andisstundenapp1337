@@ -79,6 +79,13 @@ button{font:inherit;color:inherit}
 .kal .zelle.leerz{cursor:default;background:none}.kal .zelle.fremd{opacity:.4}
 .kal .zelle.we .n{color:#b4b4b4}
 .kal .zelle.hat{background:#34c759;border-color:#34c759}.kal .zelle.hat .n,.kal .zelle.hat .s{color:#062b12}
+/* (3.19) Urlaub in Lagunen-Türkis */
+.zelle.hat.url{background:linear-gradient(160deg,#5ee7f0,#1fb6d4);border-color:#3fd0e4}
+.zelle.hat.url .n,.kal .zelle.hat.url .s{color:#032a33}
+.zelle.gew.url{background:#ededed;border-color:#3fd0e4}
+.zelle.gew.url .n,.kal .zelle.gew.url .s{color:#000}
+.tag.url{border-color:rgba(63,208,228,.45)}
+.tag.url .h,.tag.url .info .z1{color:#4fdcec}
 .kal .zelle.heute{border:2px solid #fff}.kal .zelle{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
 .kal .gitter{position:relative}.kwrand{position:absolute;border:2px solid #9a9a9a;border-radius:15px;pointer-events:none}
 .woche.wvor>div:first-child{animation:wvor .3s ease}.woche.wzur>div:first-child{animation:wzur .3s ease}@keyframes wvor{from{opacity:.2;transform:translateX(24px)}}@keyframes wzur{from{opacity:.2;transform:translateX(-24px)}}
@@ -179,7 +186,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.18';
+var VERSION = '3.19';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -264,11 +271,11 @@ function zeichneEcht() {
     var g = '';
     // (3.17) Tage vom Vor- und Folgemonat in der ersten/letzten Reihe zeigen (blasser), damit jede KW Mo–So vollständig zu sehen ist
     var fremd = function (dt) { var fs = iso(dt), fm = 0, fh = false; var fu = true; daten.eintraege.forEach(function (e) { if (e.d === fs) { fm += dauer(e); fh = true; if (!istUrlaub(e)) fu = false; } }); var wd2 = (dt.getDay() + 6) % 7;
-      return '<div class="zelle fremd' + (fh ? ' hat' : '') + (wd2 >= 5 ? ' we' : '') + '" data-d="' + fs + '"><span class="n">' + dt.getDate() + '</span>' + (fh ? '<span class="s">' + (fu ? 'U' : hm(fm)) + '</span>' : '') + '</div>'; };
+      return '<div class="zelle fremd' + (fh ? ' hat' : '') + (fh && fu ? ' url' : '') + (wd2 >= 5 ? ' we' : '') + '" data-d="' + fs + '"><span class="n">' + dt.getDate() + '</span>' + (fh ? '<span class="s">' + (fu ? 'U' : hm(fm)) + '</span>' : '') + '</div>'; };
     for (var i = 0; i < versatz; i++) g += fremd(new Date(ansicht.j, ansicht.m, 1 - versatz + i));
     for (var t = 1; t <= nTage; t++) {
       var ds = iso(new Date(ansicht.j, ansicht.m, t)), wd = (versatz + t - 1) % 7, m = proTag[ds], nurUrl = m != null && L.filter(function (e) { return e.d === ds; }).every(istUrlaub);
-      g += '<div class="zelle' + (m != null ? ' hat' : '') + (wd >= 5 ? ' we' : '') + (ds === hi ? ' heute' : '') + (ds === gewaehlt ? ' gew' : '') + '" data-d="' + ds + '"><span class="n">' + t + '</span>' + (m != null ? '<span class="s">' + (nurUrl ? 'U' : hm(m)) + '</span>' : '') + '</div>';
+      g += '<div class="zelle' + (m != null ? ' hat' : '') + (nurUrl ? ' url' : '') + (wd >= 5 ? ' we' : '') + (ds === hi ? ' heute' : '') + (ds === gewaehlt ? ' gew' : '') + '" data-d="' + ds + '"><span class="n">' + t + '</span>' + (m != null ? '<span class="s">' + (nurUrl ? 'U' : hm(m)) + '</span>' : '') + '</div>';
     }
     for (var r = 1, rest = (7 - (versatz + nTage) % 7) % 7; r <= rest; r++) g += fremd(new Date(ansicht.j, ansicht.m + 1, r));
     $('kalender').innerHTML = '<div class="kal"><div class="wk"><span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span></div><div class="gitter">' + g + '</div></div>';
@@ -284,7 +291,7 @@ function zeichneEcht() {
 }
 function eintragHtml(e) {
   var d = new Date(e.d + 'T12:00:00');
-  return '<div class="tag" data-id="' + e.id + '"><div class="d"><b>' + d.getDate() + '</b><span>' + WT[d.getDay()] + '</span></div><div class="info"><div class="z1">' + (istUrlaub(e) ? 'Urlaub' + (e.n && !/^urlaub$/i.test(e.n) ? ' · ' + esc(e.n) : '') : e.std === 0 ? esc(e.n || 'Frei') : (e.std != null ? 'Stunden' : e.b + ' – ' + e.e + ' Uhr') + (e.n ? ' · ' + esc(e.n) : '')) + '</div>' + (istUrlaub(e) ? 'ganzer Tag' : e.std === 0 ? 'ohne Stunden' : e.std != null ? 'direkt eingetragen' : +e.p ? 'Pause ' + e.p + ' Min.' : 'ohne Pause') + '</div><div class="h">' + (istUrlaub(e) ? (urlaubMin() ? hm(urlaubMin()) : '–') : e.std === 0 ? '–' : hm(dauer(e))) + '</div></div>';
+  return '<div class="tag' + (istUrlaub(e) ? ' url' : '') + '" data-id="' + e.id + '"><div class="d"><b>' + d.getDate() + '</b><span>' + WT[d.getDay()] + '</span></div><div class="info"><div class="z1">' + (istUrlaub(e) ? 'Urlaub' + (e.n && !/^urlaub$/i.test(e.n) ? ' · ' + esc(e.n) : '') : e.std === 0 ? esc(e.n || 'Frei') : (e.std != null ? 'Stunden' : e.b + ' – ' + e.e + ' Uhr') + (e.n ? ' · ' + esc(e.n) : '')) + '</div>' + (istUrlaub(e) ? 'ganzer Tag' : e.std === 0 ? 'ohne Stunden' : e.std != null ? 'direkt eingetragen' : +e.p ? 'Pause ' + e.p + ' Min.' : 'ohne Pause') + '</div><div class="h">' + (istUrlaub(e) ? (urlaubMin() ? hm(urlaubMin()) : '–') : e.std === 0 ? '–' : hm(dauer(e))) + '</div></div>';
 }
 function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 // Fenster
