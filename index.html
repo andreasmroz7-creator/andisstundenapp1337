@@ -320,6 +320,20 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .tmk{display:inline-block;font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.1);color:#cfcfcf;margin-right:6px;vertical-align:2px}.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}
 .pgrid>div{background:var(--karte);border:1px solid var(--rand);border-radius:16px;padding:12px 14px;position:relative}.pgrid small{display:block;color:var(--grau);font-size:12px;margin-bottom:3px}.pgrid b{font-size:18px;font-weight:700}
 .lbox{margin-top:4px}
+.htkarte{background:var(--karte);border:1px solid var(--rand);border-radius:20px;padding:16px;margin-bottom:12px}
+.htkarte.erst{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.18)}
+.htkopf{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--grau);font-weight:600}
+.htkopf em{font-style:normal}
+.htort{font-size:24px;font-weight:700;margin:6px 0 12px;line-height:1.15}
+.htort small{display:block;font-size:13px;font-weight:500;color:var(--grau);margin-top:2px}
+.htnr{display:flex;align-items:center;gap:10px;width:100%;border:1px solid var(--rand);background:rgba(0,0,0,.25);color:#fff;border-radius:14px;padding:12px 14px;font:inherit;text-align:left;cursor:pointer;transition:background .2s,border-color .2s}
+.htnr span{color:var(--grau);font-size:13px;flex:none}
+.htnr b{font-size:26px;font-weight:800;letter-spacing:.5px;flex:1;text-align:right;font-variant-numeric:tabular-nums}
+.htnr i{font-style:normal;font-size:12px;color:var(--grau);flex:none;min-width:58px;text-align:right}
+.htnr.kopiert{border-color:rgba(52,199,89,.6);background:rgba(52,199,89,.12)}.htnr.kopiert i{color:var(--ok)}
+.htnr.leer{cursor:default}
+.htzeile{font-size:14px;color:var(--grau);margin-top:10px}
+.htleer{text-align:center;padding:40px 10px;font-size:17px;font-weight:600}.htleer small{display:block;color:var(--grau);font-weight:400;font-size:14px;margin-top:6px}
 .lgross.ubminus{color:var(--rot)}
 .ubrech{background:var(--karte);border:1px solid var(--rand);border-radius:18px;padding:6px 16px 14px;margin:16px 0 4px}
 .ubrech>div:not(.ubanteil):not(.ublegende){display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--rand);font-size:15px}
@@ -532,6 +546,10 @@ body.istoffline .sstand{color:#ff6b61}
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattT" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Termine</b></div></div>
   <div class="koerper" id="tKoerper"></div>
 </div></div>
+<div class="blatt" id="blattHt"><div class="innen">
+  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattHt" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Nächste Läden</b></div></div>
+  <div class="koerper" id="htKoerper"></div>
+</div></div>
 <div class="blatt" id="blattUb"><div class="innen">
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattUb" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Was übrig bleibt</b></div></div>
   <div class="koerper" id="ubKoerper"></div>
@@ -594,7 +612,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.70';
+var VERSION = '2.71';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1575,7 +1593,10 @@ function startZeigen(sofort) {
 }
 function startZiel(z) {
   if (z === 'stunden') { document.body.classList.remove('versteckt'); var d = new Date(); ansicht.j = d.getFullYear(); ansicht.m = d.getMonth(); zeichne(); window.scrollTo(0, 0); startWeg(); }
-  else if (z === 'heute') { var hi = iso2(new Date()), eh = daten.eintraege.find(function (x) { return x.datum === hi; }); startWeg(); setTimeout(function () { oeffne(eh || neuerEintrag(hi), !eh); }, 250); }
+  else if (z === 'heute') { // (2.71) „Heute“ öffnet die nächsten Läden mit Marktnummer; Stunden eintragen über den Knopf darin
+    var s0 = $('start'); s0.classList.add('oben'); void s0.offsetWidth; s0.classList.add('weg'); setTimeout(function () { s0.classList.add('aus'); s0.classList.remove('oben'); }, 420);
+    $('blattHt').dataset.vonstart = '1'; document.body.classList.add('versteckt'); htZeichnen(); $('blattHt').classList.add('offen');
+  }
   else {
     var id = { kosten: 'blattF', nachweis: 'blattN', jahr: 'blattJ', notizen: 'blattNo', urlaub: 'blattU', geburtstage: 'blattG', jarvis: 'blattJv', depot: 'blattD', watchlist: 'blattW', termine: 'blattT', lohn: 'blattL', uebrig: 'blattUb' }[z]; if (!id) return;
     var s = $('start'); s.classList.add('oben'); void s.offsetWidth; s.classList.add('weg'); setTimeout(function () { s.classList.add('aus'); s.classList.remove('oben'); }, 420);
@@ -2550,6 +2571,39 @@ function lohnErfasst(k) { // Stunden, die im Cockpit für diesen Monat eingetrag
 }
 function lohnVz(n) { return '<span class="vzb"><i>' + (n >= 0 ? '+' : '−') + '</i>' + euroH(Math.abs(n)) + '</span>'; } // (2.64) Vorzeichen mittig neben dem Betrag
 function lohnZ(t, w, sub, kl) { return '<div class="lz' + (kl ? ' ' + kl : '') + '"><div>' + t + (sub ? '<small>' + sub + '</small>' : '') + '</div><div class="r">' + w + '</div></div>'; }
+// ---------- (2.71) Nächste Läden: bis 9 Uhr 1. und 2. Laden von heute, ab 9 Uhr rückt alles eins weiter (der 1. Laden ist dann fertig) ----------
+var LADENART = { NMD: 'Netto', GM: 'Getränkemarkt', NC: 'Netto City' };
+function htFolge(jetzt) {
+  var d = jetzt || new Date(), hi = iso2(d), n = daten.nachweis, out = []; if (!n || !n.tage) return out;
+  n.tage.filter(function (x) { return x.datum >= hi && !x.nurReise && (x.laeden || []).length; }).sort(function (a, b) { return a.datum < b.datum ? -1 : 1; }).forEach(function (x) {
+    x.laeden.forEach(function (l, i) { if (x.datum === hi && i === 0 && d.getHours() >= 9) return; out.push({ tag: x, l: l, i: i, n: x.laeden.length }); });
+  });
+  return out;
+}
+function htTagName(datum) {
+  var d = new Date(datum + 'T12:00:00'), h = new Date(); h.setHours(12, 0, 0, 0); var t = Math.round((d - h) / 864e5);
+  return t === 0 ? 'Heute' : t === 1 ? 'Morgen' : t === 2 ? 'Übermorgen' : ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'][d.getDay()] + ', ' + d.getDate() + '.' + (d.getMonth() + 1) + '.';
+}
+function htZeichnen() {
+  var F = htFolge(), hi = iso2(new Date()), eh = daten.eintraege.find(function (x) { return x.datum === hi; }), h = '';
+  if (!daten.nachweis) h += '<p class="hinweis">Die Einsatzpläne sind noch nicht geladen. Einmal abgleichen.</p>';
+  else if (!F.length) h += '<div class="htleer">Keine Läden mehr im Einsatzplan.<small>Sobald ein neuer Plan per Mail kommt, steht er hier.</small></div>';
+  F.slice(0, 2).forEach(function (f, k) {
+    var l = f.l, art = LADENART[l.art] || l.art || '', adr = (l.str || '') + (l.plz ? ', ' + l.plz + ' ' + (l.ort || '') : '');
+    h += '<div class="htkarte' + (k === 0 ? ' erst' : '') + '"><div class="htkopf"><span>' + htTagName(f.tag.datum) + '</span><em>' + (f.n > 1 ? (f.i + 1) + '. Laden' : 'Ein Laden') + '</em></div>' +
+      '<div class="htort">' + esc(l.ort || '–') + (art ? '<small>' + esc(art) + '</small>' : '') + '</div>' +
+      (l.fil ? '<button type="button" class="htnr" data-nr="' + esc(l.fil) + '"><span>Marktnummer</span><b>' + esc(l.fil) + '</b><i>kopieren</i></button>' : '<div class="htnr leer"><span>Marktnummer</span><b>–</b></div>') +
+      (adr ? '<div class="htzeile">' + esc(adr) + '</div>' : '') + (f.i === 0 && f.tag.tp ? '<div class="htzeile">Treffpunkt ' + esc(f.tag.tp) + '</div>' : '') + '</div>';
+  });
+  h += '<button type="button" class="lknopf" id="htStunden">' + (eh ? 'Stunden von heute ansehen' : 'Stunden für heute eintragen') + '</button>';
+  h += '<p class="hinweis" style="margin-top:14px">Bis 9 Uhr stehen oben der 1. und der 2. Laden von heute. Ab 9 Uhr rückt alles eins weiter: der 2. Laden oben, darunter der nächste Laden. Marktnummer antippen kopiert sie.</p>';
+  $('htKoerper').innerHTML = h;
+  [].forEach.call(document.querySelectorAll('#htKoerper .htnr[data-nr]'), function (b) { b.onclick = function () { var nr = b.dataset.nr;
+    var ok = function () { b.classList.add('kopiert'); b.querySelector('i').textContent = 'kopiert ✓'; setTimeout(function () { b.classList.remove('kopiert'); b.querySelector('i').textContent = 'kopieren'; }, 1500); };
+    try { navigator.clipboard.writeText(nr).then(ok, function () { toast('Marktnummer ' + nr); }); } catch (x) { toast('Marktnummer ' + nr); } }; });
+  $('htStunden').onclick = function () { $('blattHt').classList.remove('offen'); delete $('blattHt').dataset.vonstart; document.body.classList.remove('versteckt'); setTimeout(function () { oeffne(eh || neuerEintrag(hi), !eh); }, 120); };
+}
+setInterval(function () { if (!document.hidden && $('blattHt') && $('blattHt').classList.contains('offen')) htZeichnen(); }, 60000); // um 9 Uhr von selbst weiterrücken
 // ---------- (2.68) Was übrig bleibt: ausgezahlter Lohn minus laufende Kosten und Sparpläne, je Monat ----------
 var ubJahr = null;
 function ubKosten(mon) { // mon = 'JJJJ-MM'; zählt alles, was in dem Monat lief (Ende nicht davor, Beginn nicht danach)
