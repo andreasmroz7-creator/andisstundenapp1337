@@ -152,7 +152,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.7';
+var VERSION = '2.8';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -352,11 +352,17 @@ $('sDatei').onchange = function () {
     try { var j = JSON.parse(r.result), d = j && j.daten; if (!d || !Array.isArray(d.eintraege)) throw 0;
       // (2.7) zusammenführen statt ersetzen: neue Einträge kommen dazu, schon vorhandene (gleicher Tag und gleiche Zeiten bzw. Stunden) werden übersprungen
       var schl = function (e) { return e.d + '|' + (e.std != null ? 's' + e.std : e.b + '-' + e.e); }, da = {}; daten.eintraege.forEach(function (e) { da[e.id] = 1; da[schl(e)] = 1; });
+      // (2.8) Einträge mit derselben Kennung werden durch die neue Fassung ersetzt (Korrekturen), „loeschen“ entfernt Einträge
+      var nachId = {}; daten.eintraege.forEach(function (e) { nachId[e.id] = e; });
+      var ersetzt = d.eintraege.filter(function (e) { return e && e.d && nachId[e.id] && JSON.stringify(nachId[e.id]) !== JSON.stringify(e); });
+      var weg = (Array.isArray(j.loeschen) ? j.loeschen : []).filter(function (id) { return nachId[id]; });
       var neu = d.eintraege.filter(function (e) { return e && e.d && !da[e.id] && !da[schl(e)]; });
-      if (!neu.length) { toast('Alle ' + d.eintraege.length + ' Einträge sind schon da'); return; }
-      if (!confirm(neu.length + ' Einträge hinzufügen?' + (neu.length < d.eintraege.length ? ' (' + (d.eintraege.length - neu.length) + ' sind schon da und werden übersprungen)' : '') + ' Deine bisherigen Einträge bleiben.')) return;
-      daten.eintraege = daten.eintraege.concat(neu); Object.keys(d.einst || {}).forEach(function (k) { if (daten.einst[k] == null || daten.einst[k] === '') daten.einst[k] = d.einst[k]; });
-      sichern(); zeichne(); toast(neu.length + ' Einträge geladen'); schliesse($('blattS'));
+      if (!neu.length && !ersetzt.length && !weg.length) { toast('Alle ' + d.eintraege.length + ' Einträge sind schon da'); return; }
+      var t = []; if (neu.length) t.push(neu.length + ' Einträge hinzufügen'); if (ersetzt.length) t.push(ersetzt.length + ' korrigieren'); if (weg.length) t.push(weg.length + ' entfernen');
+      if (!confirm(t.join(', ') + '? Deine übrigen Einträge bleiben.')) return;
+      var neuId = {}; ersetzt.forEach(function (e) { neuId[e.id] = e; });
+      daten.eintraege = daten.eintraege.filter(function (e) { return weg.indexOf(e.id) < 0; }).map(function (e) { return neuId[e.id] || e; }).concat(neu); Object.keys(d.einst || {}).forEach(function (k) { if (daten.einst[k] == null || daten.einst[k] === '') daten.einst[k] = d.einst[k]; });
+      sichern(); zeichne(); toast(t.join(', ').replace('hinzufügen', 'hinzugefügt').replace('korrigieren', 'korrigiert').replace('entfernen', 'entfernt')); schliesse($('blattS'));
     } catch (e) { toast('Das ist keine Stunden-Sicherung'); }
   };
   r.readAsText(f);
