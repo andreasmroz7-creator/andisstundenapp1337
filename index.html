@@ -269,7 +269,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 /* (2.33) Beträge wie im Dashboard / bei Scalable: Euro groß, Cent klein oben, € darunter (.s = Cent und € klein daneben, für Listen) */
 .pxb{display:inline-flex;align-items:flex-start;gap:.1em;letter-spacing:inherit;font-weight:inherit}.pxb .pi{color:inherit;line-height:1}
 .pxb .ps{display:flex;flex-direction:column;align-items:flex-start;font-size:.42em;font-weight:600;line-height:1.12;color:var(--grau);letter-spacing:0;margin-top:.1em}
-.pxb.s{gap:.1em;vertical-align:top}.pxb.s .ps{flex-direction:row;gap:.2em;font-size:.7em;margin-top:.04em;color:inherit;opacity:.72}
+.pxb.kl{gap:.1em;vertical-align:top}.pxb.kl .ps{flex-direction:row;gap:.2em;font-size:.7em;margin-top:.04em;color:inherit;opacity:.72}
 .dkopf{display:flex;align-items:center;justify-content:space-between;gap:10px}.dkopf .hinweis{margin-top:0}
 .dart{position:relative;display:inline-grid;grid-template-columns:1fr 1fr;padding:3px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 .dart::before{content:"";position:absolute;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);border-radius:999px;background:rgba(255,255,255,.2);transition:transform .38s cubic-bezier(.3,.8,.3,1)}
@@ -279,7 +279,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .dpos{margin-top:26px}.dpos .dpt{font-size:13px;color:var(--grau);font-weight:600;margin-bottom:4px}
 .dprow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--rand)}
 .dprow .n{font-size:15px;font-weight:600}.dprow .s{font-size:12px;color:var(--grau);margin-top:2px}
-.dprow .r{text-align:right;position:relative;flex-shrink:0;min-width:90px}.dprow .r b{display:block;font-size:15px;font-weight:700}.dprow .r small{display:block;font-size:12px;font-weight:600;margin-top:2px}
+.dprow .r{text-align:right;position:relative;flex-shrink:0;min-width:90px}.dprow .r b{display:block;font-size:19px;font-weight:700;letter-spacing:-.2px}.dprow .r b .pxb.kl .ps{font-size:.74em;opacity:.8} /* (2.36) Beträge größer */.dprow .r small{display:block;font-size:12px;font-weight:600;margin-top:2px}
 .dprow .r .dpkt{right:0;top:0}
 .fkheld{background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.03));border:1px solid var(--rand);border-radius:22px;padding:18px 18px 16px;margin:12px 0 12px;animation:auftauchen .45s cubic-bezier(.2,.8,.2,1) backwards}
 .fkheld small{color:var(--grau);font-size:12.5px;text-transform:uppercase;letter-spacing:.5px}
@@ -488,7 +488,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.35';
+var VERSION = '2.36';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -657,7 +657,7 @@ function fahrFelder() {
 }
 function pxEuro(n, klein) { // (2.33) Betrag im Dashboard-/Scalable-Stil
   var t = (Math.round(n * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), k = t.lastIndexOf(',');
-  return '<span class="pxb' + (klein ? ' s' : '') + '" aria-label="' + t + ' €"><span class="pi">' + t.slice(0, k) + '</span><span class="ps"><span class="pd">' + t.slice(k + 1) + '</span><span class="pc">€</span></span></span>';
+  return '<span class="pxb' + (klein ? ' kl' : '') + '" aria-label="' + t + ' €"><span class="pi">' + t.slice(0, k) + '</span><span class="ps"><span class="pd">' + t.slice(k + 1) + '</span><span class="pc">€</span></span></span>';
 }
 function euroH(n) { return pxEuro(+n || 0, true); } // (2.35) überall im Cockpit: Cent und € klein daneben (wie Listen im Dashboard)
 function euro(n) { return n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
