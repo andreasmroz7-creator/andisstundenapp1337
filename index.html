@@ -357,7 +357,7 @@ body.istoffline .sstand{color:#ff6b61}
 <div class="suche"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="suche" placeholder="Ort oder Filiale suchen" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="weg" id="sucheWeg" aria-label="Suche leeren">×</button></div>
 <div id="liste"></div>
 <div id="start"></div><button class="jvfab weg" id="jvFab" aria-label="Jarvis" style="display:none"></button><button id="jvGriff" aria-label="Jarvis rufen"><i></i></button><div id="jvFang"></div><div class="jvunter" id="jvUnter"></div><input type="text" id="jvTipp" placeholder="Frag Jarvis …" autocomplete="off" enterkeyhint="send"><div class="jvkern weg" id="jvOrb"><canvas id="jvCore" aria-hidden="true"></canvas></div>
-<div id="sperre"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><div style="font-size:20px;font-weight:700">Cockpit gesperrt</div><button class="btn" id="entsperren" style="max-width:280px">Mit Face ID entsperren</button><div class="hinweis" id="sperreInfo"></div></div>
+<div id="sperre"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><div style="font-size:20px;font-weight:700">Cockpit gesperrt</div><div class="hinweis" id="sperreInfo"></div></div>
 <button class="kugel plus" id="plus" aria-label="Stunden hinzufügen"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
 
 <!-- Eintrag -->
@@ -471,7 +471,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.17';
+var VERSION = '2.18';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1140,13 +1140,18 @@ function sperreId() { try { return localStorage.getItem(SPK); } catch (x) { retu
 function b64u(buf) { return btoa(String.fromCharCode.apply(null, new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
 function ub64(s) { s = s.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; var b = atob(s), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); return a; }
 function zufall(n) { var a = new Uint8Array(n); crypto.getRandomValues(a); return a; }
-function sperreZeigen() { if (sperreId()) { $('sperre').classList.add('an'); $('sperreInfo').textContent = ''; } }
-$('entsperren').onclick = function () {
+// (2.18) Face ID kommt von selbst, sobald das Cockpit aufgeht; klappt das nicht (iOS will manchmal erst eine Berührung), reicht ein Tipp irgendwo
+var sperreLaeuft = false;
+function sperreZeigen() { if (sperreId()) { $('sperre').classList.add('an'); $('sperreInfo').textContent = ''; setTimeout(function () { sperreLos(true); }, 250); } }
+function sperreLos(auto) {
+  if (sperreLaeuft || !$('sperre').classList.contains('an')) return;
   if (!window.PublicKeyCredential) { $('sperreInfo').textContent = 'Face ID wird hier nicht unterstützt.'; return; }
-  navigator.credentials.get({ publicKey: { challenge: zufall(32), allowCredentials: [{ type: 'public-key', id: ub64(sperreId()) }], userVerification: 'required', timeout: 60000 } })
-    .then(function () { $('sperre').classList.remove('an'); })
-    .catch(function () { $('sperreInfo').textContent = 'Nicht erkannt. Noch mal tippen (geht auch mit dem Gerätecode).'; });
-};
+  sperreLaeuft = true;
+  navigator.credentials.get({ publicKey: { challenge: zufall(32), allowCredentials: [{ type: 'public-key', id: ub64(sperreId()), transports: ['internal'] }], userVerification: 'required', timeout: 60000 } })
+    .then(function () { sperreLaeuft = false; $('sperre').classList.remove('an'); })
+    .catch(function () { sperreLaeuft = false; $('sperreInfo').textContent = auto ? 'Tippen zum Entsperren' : 'Nicht erkannt. Noch mal tippen (geht auch mit dem Gerätecode).'; });
+}
+$('sperre').onclick = function () { sperreLos(false); };
 function swSperreZeichnen() { $('swSperre').classList.toggle('an', !!sperreId()); }
 $('swSperre').onclick = function () {
   if (sperreId()) { if (confirm('App-Sperre ausschalten?')) { localStorage.removeItem(SPK); swSperreZeichnen(); toast('App-Sperre aus'); } return; }
