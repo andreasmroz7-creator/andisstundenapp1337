@@ -159,14 +159,14 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 /* (2.60) Kacheln in drei Größen: normal, breit (ganze Zeile), klein (halbe Höhe, nur Symbol und Zahl); Knopf oben rechts beim Anordnen */
 .sgrid{grid-auto-rows:minmax(69px,auto);grid-auto-flow:row dense}.sgrid .kachel{grid-row:span 2;min-height:0}
 .sgrid .kachel.klein{grid-row:span 1;flex-direction:row;align-items:center;justify-content:flex-start;gap:12px;padding:12px 14px}
-.sgrid .kachel.klein .ic{width:36px;height:36px;flex-shrink:0}.sgrid .kachel.klein>div:last-child{min-width:0;flex:1}
+.sgrid .kachel.klein .ic{width:36px;height:36px;flex-shrink:0}.sgrid .kachel.klein>div:not(.glanz):not(.ic){min-width:0;flex:1}
 .sgrid .kachel.klein .t,.sgrid .kachel.klein .u,.sgrid .kachel.klein .pfeil{display:none}.sgrid .kachel.klein .w{font-size:20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kgr{display:none;position:absolute;right:10px;top:10px;z-index:3;width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(40,40,40,.9);color:#fff;align-items:center;justify-content:center;padding:0}
 .kgr svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 #start.ordnen .kgr{display:flex}
 /* (2.61) breite Depot-Kachel: Betrag rechts oben neben dem Symbol, Diagramm groß über die ganze Breite */
 .sgrid .kachel.breit[data-ziel=depot]{display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-content:start}
-.sgrid .kachel.breit[data-ziel=depot]>div:last-child,.sgrid .kachel.breit[data-ziel=depot] .u,.sgrid .kachel.breit[data-ziel=depot] .u>.dbox{display:contents!important}
+.sgrid .kachel.breit[data-ziel=depot]>div:not(.glanz):not(.ic),.sgrid .kachel.breit[data-ziel=depot] .u,.sgrid .kachel.breit[data-ziel=depot] .u>.dbox{display:contents!important}
 .sgrid .kachel.breit[data-ziel=depot] .pfeil{display:none}
 .sgrid .kachel.breit[data-ziel=depot] .ic{grid-column:1;grid-row:1 / 4;align-self:start}
 .sgrid .kachel.breit[data-ziel=depot] .t{grid-column:2;grid-row:1;justify-self:end;margin-top:0}
@@ -536,7 +536,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.61';
+var VERSION = '2.62';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
