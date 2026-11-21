@@ -268,6 +268,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .dzr button.an{background:rgba(255,255,255,.14);color:#fff}
 .dwann{color:var(--grau);font-weight:500}
 /* (2.33) Beträge wie im Dashboard / bei Scalable: Euro groß, Cent klein oben, € darunter (.s = Cent und € klein daneben, für Listen) */
+.wltop{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .wlk{display:flex;flex-direction:column;gap:6px;margin-top:4px}.wlk>div{display:flex;align-items:baseline;justify-content:space-between;gap:8px}.wlk .n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--hell,#e8e8e8)}.wlk b{flex-shrink:0;font-weight:700}
 .mgeld.kz{column-gap:6px;row-gap:4px;margin-top:2px}
 .mgeld{display:grid;grid-template-columns:auto auto auto;justify-content:start;column-gap:8px;row-gap:6px;align-items:center;line-height:1.1;margin-top:6px}.mgeld .pxb{vertical-align:middle}.mgeld>span:nth-child(3n+1){color:var(--grau);margin-right:6px}.mgeld>i{font-style:normal;color:var(--grau)}.mgeld>span:nth-child(3n){justify-self:end}.mgeld .nt{font-weight:700;color:inherit!important}
@@ -517,7 +518,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.57';
+var VERSION = '2.58';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1349,7 +1350,11 @@ function startZeichnen(still) {
   // (2.42) Watchlist- und Termine-Kachel
   var wlL = wlListe(), wlW = wlL.map(function (x) { return { x: x, v: wlWert(x) }; }).filter(function (a) { return a.v.pct != null; }).sort(function (a, b) { return b.v.pct - a.v.pct; });
   var pzK = function (v) { return (v >= 0 ? '+' : '') + (Math.round(v * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %'; };
-  k('watchlist', IC.stern, 'linear-gradient(135deg,#a8a8a8,#5c5c5c)', 'Watchlist', wlL.length ? wlL.length + ' Werte' : '–', wlW.length ? '<div class="wlk">' + [wlW[0], wlW[wlW.length - 1]].map(function (a, i) { return '<div><span class="n">' + esc(depotKurz(a.x.n)) + '</span><b class="' + (a.v.pct >= 0 ? 'dplus' : 'dminus') + '">' + pzK(a.v.pct) + '</b></div>'; }).join('') + '</div>' : wlL.length ? 'Kurse kommen gleich' : 'kommt vom Mac, sobald er an ist', '', false);
+  // (2.58) nur der Wert, der heute am stärksten gestiegen ist; gemerkt, damit beim Neustart nicht erst ein falscher (halb geladener) Stand erscheint
+  var wlBereit = wlL.length && wlW.length === wlL.length && wlL.every(function (x) { return x.k !== 'krypto' ? (wlOnvFertig || !!wlWert(x).live) : (depotSechs.ts === depotSechsTs() && depotSechs.k && depotSechs.k[x.sym + 'USDT']); });
+  var wlTop = null; try { wlTop = JSON.parse(localStorage.getItem('cockpit_wltop') || 'null'); } catch (x) {}
+  if (wlBereit) { wlTop = { n: depotKurz(wlW[0].x.n), p: wlW[0].v.pct }; try { localStorage.setItem('cockpit_wltop', JSON.stringify(wlTop)); } catch (x) {} }
+  k('watchlist', IC.stern, 'linear-gradient(135deg,#a8a8a8,#5c5c5c)', 'Watchlist', wlTop ? '<span class="wltop">' + esc(wlTop.n) + '</span>' : '–', wlTop ? '<b class="' + (wlTop.p >= 0 ? 'dplus' : 'dminus') + '" style="font-size:17px">' + pzK(wlTop.p) + '</b> <span>heute</span>' : wlL.length ? 'Kurse kommen gleich' : 'kommt vom Mac, sobald er an ist', '', false);
   var tmL = tmListe(), tm0 = tmL[0];
   k('termine', IC.kalender, 'linear-gradient(135deg,#9e9e9e,#585858)', 'Termine', tm0 ? tmTagKurz(tm0) : '–', tm0 ? esc(tm0.ti) + (tm0.g ? '' : ' · ' + tmUhr(tm0)) + (tmL[1] ? '<br>danach ' + tmTagKurz(tmL[1]) + ': ' + esc(tmL[1].ti) : '') : 'kommt vom Mac, sobald er an ist', '', false);
   var kr = kachelReihe(kdef); kr.forEach(function (z, i) { h += kk[z](.12 + i * .06).replace('class="kachel rein', 'class="kachel rein' + (kr.length % 2 && i === kr.length - 1 ? ' breit' : '')); });
@@ -2109,9 +2114,9 @@ var depotKopf = null, depotLive = null;
 var depotSechs = { ts: 0, k: {} };
 function depotSechsTs() { var n = new Date(), b = new Date(n.getFullYear(), n.getMonth(), n.getDate(), 6); if (n < b) b.setDate(b.getDate() - 1); return b.getTime(); }
 function depotSechsHolen(kr) {
-  var ts = depotSechsTs(); if (depotSechs.ts !== ts) depotSechs = { ts: ts, k: {}, t: 0 };
-  var fehlt = ['EURUSDT'].concat(kr.map(function (s) { return s + 'USDT'; })).filter(function (sy) { return !depotSechs.k[sy]; });
-  if (!fehlt.length || Date.now() - (depotSechs.t || 0) < 60e3) return null; depotSechs.t = Date.now();
+  var ts = depotSechsTs(), jz = Date.now(); if (depotSechs.ts !== ts) depotSechs = { ts: ts, k: {}, v: {} }; depotSechs.v = depotSechs.v || {};
+  var fehlt = ['EURUSDT'].concat(kr.map(function (s) { return s + 'USDT'; })).filter(function (sy) { return !depotSechs.k[sy] && jz - (depotSechs.v[sy] || 0) > 60e3; }); // (2.58) Sperre je Kürzel: sonst wartete die Watchlist bis zu 1 Min., weil das Depot gerade abgefragt hatte
+  if (!fehlt.length) return null; fehlt.forEach(function (sy) { depotSechs.v[sy] = jz; });
   return Promise.all(fehlt.map(function (sy) { return fetch('https://api.binance.com/api/v3/klines?symbol=' + sy + '&interval=1h&startTime=' + ts + '&limit=1', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (a) { if (a && a[0] && depotSechs.ts === ts) depotSechs.k[sy] = +a[0][1]; }).catch(function () {}); }));
 }
 var depotPosLive = null, ONV = 'https://api.onvista.de/api/v1/instruments/', depotOnv = {}, depotOnvT = 0, depotBin = null, depotBinO = {}, depotBinT = 0, depotKJ = null, depotKJT = 0, depotLiveBusy = false;
@@ -2369,8 +2374,9 @@ function wlLiveRechnen(stark) {
   var onv = holeO ? (wlOnvT = jetzt, onvHolen(wp)) : null;
   var bin = holeB ? (wlBinT = jetzt, fetch('https://api.binance.com/api/v3/ticker/24hr?type=MINI&symbols=' + encodeURIComponent(JSON.stringify(['EURUSDT'].concat(kr.map(function (s) { return s + 'USDT'; })))), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (a) { if (a && a.length) { wlBin = {}; wlBinO = {}; a.forEach(function (x) { wlBin[x.symbol] = +x.lastPrice; wlBinO[x.symbol] = +x.openPrice; }); } }).catch(function () {})) : null;
   var s6 = kr.length ? depotSechsHolen(kr) : null;
-  return Promise.all([onv, bin, s6]).then(function () { wlBusy = false; wlNeuZeigen(); }, function () { wlBusy = false; });
+  return Promise.all([onv, bin, s6]).then(function () { wlBusy = false; if (onv) wlOnvFertig = true; wlNeuZeigen(); }, function () { wlBusy = false; });
 }
+var wlOnvFertig = false; // (2.58) erst nach dem ersten Live-Abruf der Aktien gilt der Watchlist-Stand als fertig
 function wlNeuZeigen() {
   if ($('blattW').classList.contains('offen') && !$('blattW').classList.contains('zugeht')) wlZeichnen();
   if ($('blattP').classList.contains('offen') && /^w:/.test(posKey || '')) posZeichnen();
