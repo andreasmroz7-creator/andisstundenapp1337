@@ -489,7 +489,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.38';
+var VERSION = '2.39';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2034,6 +2034,15 @@ var depotKopf = null, depotLive = null;
 //  - Aktien/ETFs/Silber: gettex-Kurs (Mitte aus Geld/Brief) von Onvista = derselbe Kurs, mit dem Scalable rechnet; zur Börsenzeit alle 10 s, sonst alle 2 Min.
 //  - Krypto: Binance alle 5 s.  - Fällt Onvista aus: wie bisher kurse.json (GitHub, Yahoo-Veränderung).  - Rente, Tagesgeld, eigene Werte: Mac-Stand.
 // Eigene Live-Punkte (alle 30 s, nur heute) verlängern die Tageslinie hinter dem letzten Mac-Punkt.
+// (2.39) Tagesveränderung der Positionen ab 6 Uhr (wie im Dashboard): vor 6 Uhr zählt ab 6 Uhr am Vortag
+var depotSechs = { ts: 0, k: {} };
+function depotSechsTs() { var n = new Date(), b = new Date(n.getFullYear(), n.getMonth(), n.getDate(), 6); if (n < b) b.setDate(b.getDate() - 1); return b.getTime(); }
+function depotSechsHolen(kr) {
+  var ts = depotSechsTs(); if (depotSechs.ts !== ts) depotSechs = { ts: ts, k: {}, t: 0 };
+  var fehlt = ['EURUSDT'].concat(kr.map(function (s) { return s + 'USDT'; })).filter(function (sy) { return !depotSechs.k[sy]; });
+  if (!fehlt.length || Date.now() - (depotSechs.t || 0) < 60e3) return null; depotSechs.t = Date.now();
+  return Promise.all(fehlt.map(function (sy) { return fetch('https://api.binance.com/api/v3/klines?symbol=' + sy + '&interval=1h&startTime=' + ts + '&limit=1', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (a) { if (a && a[0] && depotSechs.ts === ts) depotSechs.k[sy] = +a[0][1]; }).catch(function () {}); }));
+}
 var depotPosLive = null, ONV = 'https://api.onvista.de/api/v1/instruments/', depotOnv = {}, depotOnvT = 0, depotBin = null, depotBinO = {}, depotBinT = 0, depotKJ = null, depotKJT = 0, depotLiveBusy = false;
 var onvTyp = (function () { try { return JSON.parse(localStorage.getItem('cockpit_onvtyp') || '{}'); } catch (x) { return {}; } })();
 function boerseOffen() { var n = new Date(), d = n.getDay(), h = n.getHours(); return d >= 1 && d <= 5 && h >= 8 && h < 22; } // gettex Mo–Fr 8–22 Uhr
@@ -2052,7 +2061,7 @@ function onvHolen(pos) {
       return fetch(ONV + t + '/ISIN:' + p.isin + '/quote?codeMarket=_TRO', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
         if (!j || j.isoCurrency !== 'EUR' || !j.market || j.market.codeMarket !== '_TRO') return;
         var m = (j.bid > 0 && j.ask > 0) ? (j.bid + j.ask) / 2 : j.last;
-        if (m > 0) depotOnv[p.isin] = { k: m, t: Date.now(), z: Date.parse(j.datetimeBid || j.datetimeLast) || Date.now(), vt: j.previousLast > 0 ? j.previousLast : null };
+        if (m > 0) depotOnv[p.isin] = { k: m, t: Date.now(), z: Date.parse(j.datetimeBid || j.datetimeLast) || Date.now(), vt: j.previousLast > 0 ? j.previousLast : null, dl: Date.parse(j.datetimeLast) || 0 };
       });
     }).catch(function () {});
   }));
@@ -2075,15 +2084,18 @@ function depotLiveRechnen(stark) {
   var bin = holeBin ? fetch('https://api.binance.com/api/v3/ticker/24hr?type=MINI&symbols=' + encodeURIComponent(JSON.stringify(['EURUSDT'].concat(kr.map(function (s) { return s + 'USDT'; })))), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (a) { if (a && a.length) { depotBin = {}; depotBinO = {}; a.forEach(function (x) { depotBin[x.symbol] = +x.lastPrice; depotBinO[x.symbol] = +x.openPrice; }); depotBinT = Date.now(); } }).catch(function () {}) : null; // (2.32) 24-Std.-Ticker: aktueller Kurs + Kurs vor 24 Std. (Veränderung je Position)
   var onv = holeOnv ? (depotOnvT = jetzt, onvHolen(d.pos)) : null;
   var kj = holeKJ ? (depotKJT = jetzt, fetch(GH.replace('daten.json', 'kurse.json') + '?t=' + jetzt, { headers: depotKopf, cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) depotKJ = JSON.parse(b64dec(j.content) || '{}'); }).catch(function () {})) : null;
-  return Promise.all([bin, onv, kj]).then(function () {
+  var sechs = kr.length ? depotSechsHolen(kr) : null;
+  return Promise.all([bin, onv, kj, sechs]).then(function () {
     var B = (depotBin && Date.now() - depotBinT < 120e3) ? depotBin : {}, K = (depotKJ && depotKJ.k) || {};
     var sum = +d.fest, neuW = 0, neuK = 0, tW = 0, alleW = 0, PL = [], BO = depotBinO || {};
     d.pos.forEach(function (p) {
       var w = p.v, o = p.isin && depotOnv[p.isin], pct = null;
       if (p.k === 'krypto' && B.EURUSDT && B[p.sym + 'USDT']) { w = p.q * B[p.sym + 'USDT'] / B.EURUSDT; neuK++;
-        if (BO[p.sym + 'USDT'] && BO.EURUSDT) pct = ((B[p.sym + 'USDT'] / B.EURUSDT) / (BO[p.sym + 'USDT'] / BO.EURUSDT) - 1) * 100; }
+        var S6 = depotSechs.ts === depotSechsTs() ? depotSechs.k : {};
+        if (S6[p.sym + 'USDT'] && S6.EURUSDT) pct = ((B[p.sym + 'USDT'] / B.EURUSDT) / (S6[p.sym + 'USDT'] / S6.EURUSDT) - 1) * 100; // seit 6 Uhr
+        else if (BO[p.sym + 'USDT'] && BO.EURUSDT) pct = ((B[p.sym + 'USDT'] / B.EURUSDT) / (BO[p.sym + 'USDT'] / BO.EURUSDT) - 1) * 100; }
       else if (p.k === 'wp') { alleW++;
-        if (o && Date.now() - o.t < 15 * 60e3) { w = p.q * o.k; neuW++; tW = Math.max(tW, o.t / 1000); if (o.vt) pct = (o.k / o.vt - 1) * 100; }
+        if (o && Date.now() - o.t < 15 * 60e3) { w = p.q * o.k; neuW++; tW = Math.max(tW, o.t / 1000); if (o.vt) { var tag0 = new Date(depotSechsTs()); tag0.setHours(0, 0, 0, 0); pct = o.dl >= tag0.getTime() ? (o.k / o.vt - 1) * 100 : 0; } } // seit 6 Uhr: ohne Handel seit dem Morgen 0 %
         else if (macAlt && p.y && p.y_sym && K[p.y_sym] && K[p.y_sym][1] * 1000 > new Date(d.stand) - 15 * 60e3) { w = p.q * (p.p_y || p.p) * K[p.y_sym][0] / p.y; neuW++; tW = Math.max(tW, K[p.y_sym][1]); }
       }
       PL.push({ n: p.n, k: p.k, q: p.q, sym: p.sym, w: w, pct: pct });
@@ -2215,21 +2227,23 @@ function depotPosHtml(d) {
 var depotAltLinie = null, depotMorphR = 0;
 function depotMorph() {
   var c = $('dChart'), Z = depotGrafik.ziel; if (!c || !Z) { depotAltLinie = null; return; }
-  var pl = c.querySelector('path.l'), pr = c.querySelector('path.ref'), A = depotAltLinie;
+  var pl = c.querySelector('path.l'), pr = c.querySelector('path.ref'), ptg = c.querySelector('path.tg'), g1 = c.querySelector('stop.g1'), g2 = c.querySelector('stop.g2'), A = depotAltLinie;
   cancelAnimationFrame(depotMorphR);
   if (!A || !pl || matchMedia('(prefers-reduced-motion:reduce)').matches) { depotAltLinie = Z; return; }
   var N = Math.min(240, Math.max(A.p.length, Z.p.length)), an = function (P, f) { var x = f * (P.length - 1), i = Math.floor(x), k = x - i, a = P[i], b = P[Math.min(P.length - 1, i + 1)]; return a + (b - a) * k; };
   var W = Z.W, gx = function (Q) { return Q.x && Q.x.length === Q.p.length ? Q.x : Q.p.map(function (y, i) { return Q.p.length > 1 ? i / (Q.p.length - 1) * W : 0; }); };
   var ax_ = gx(A), zx_ = gx(Z), a = [], b = [], xa = [], xz = [], i; for (i = 0; i < N; i++) { var f = N > 1 ? i / (N - 1) : 0; a.push(an(A.p, f)); b.push(an(Z.p, f)); xa.push(an(ax_, f)); xz.push(an(zx_, f)); }
-  var ra = A.ref != null ? A.ref : Z.ref, rb = Z.ref, t0 = performance.now(), DU = 650, rx = Z.xb || 0;
+  var ra = A.ref != null ? A.ref : Z.ref, rb = Z.ref, t0 = performance.now(), DU = 650, ba = A.xb || 0, bz = Z.xb || 0;
+  var grenze = function (bx) { var o = (bx / W).toFixed(4); if (g1) g1.setAttribute('offset', o); if (g2) g2.setAttribute('offset', o); if (ptg) { ptg.setAttribute('d', 'M' + bx.toFixed(1) + ' 0V' + (Z.H || 180)); ptg.style.opacity = Math.min(1, bx / 8); } };
   var bild = function (P, X) { return P.map(function (y, i) { return (i ? 'L' : 'M') + X[i].toFixed(1) + ' ' + y.toFixed(1); }).join(''); };
   var schritt = function (jetzt) {
     var q = Math.min(1, (jetzt - t0) / DU), e = q < .5 ? 4 * q * q * q : 1 - Math.pow(-2 * q + 2, 3) / 2, P = a.map(function (y, i) { return y + (b[i] - y) * e; }), X = xa.map(function (x, i) { return x + (xz[i] - x) * e; });
-    pl.setAttribute('d', bild(P, X)); if (pr && ra != null && rb != null) pr.setAttribute('d', 'M' + rx.toFixed(1) + ' ' + (ra + (rb - ra) * e).toFixed(1) + 'H' + W);
-    depotAltLinie = { p: P, x: X, ref: ra != null && rb != null ? ra + (rb - ra) * e : rb, W: W, xb: Z.xb };
-    if (q < 1) depotMorphR = requestAnimationFrame(schritt); else { pl.setAttribute('d', Z.d); depotAltLinie = Z; }
+    var bx = ba + (bz - ba) * e;
+    pl.setAttribute('d', bild(P, X)); grenze(bx); if (pr && ra != null && rb != null) pr.setAttribute('d', 'M' + bx.toFixed(1) + ' ' + (ra + (rb - ra) * e).toFixed(1) + 'H' + W);
+    depotAltLinie = { p: P, x: X, ref: ra != null && rb != null ? ra + (rb - ra) * e : rb, W: W, H: Z.H, xb: bx };
+    if (q < 1) depotMorphR = requestAnimationFrame(schritt); else { pl.setAttribute('d', Z.d); grenze(bz); depotAltLinie = Z; }
   };
-  pl.setAttribute('d', bild(a, xa)); depotMorphR = requestAnimationFrame(schritt);
+  pl.setAttribute('d', bild(a, xa)); grenze(ba); depotMorphR = requestAnimationFrame(schritt);
 }
 function depotAend(eur, pct, txt) { return '<span class="dpkt">•••</span><span class="dw ' + (eur >= 0 ? 'dplus' : 'dminus') + '">' + (eur >= 0 ? '+' : '') + euroH(eur) + ' (' + (pct >= 0 ? '+' : '') + String((Math.round(pct * 100) / 100)).replace('.', ',') + ' %) <span class="dwann">' + txt + '</span></span>'; }
 function depotGrafik(R) {
@@ -2237,10 +2251,14 @@ function depotGrafik(R) {
   var W = 300, H = 180, TX = R.r === '1d' && R.vl ? depotTagX(R.ax, R.vor, R.t, W) : null, mm = (rf != null ? l.concat([rf]) : l).concat(TX ? R.vl : []), mn = Math.min.apply(null, mm), mx = Math.max.apply(null, mm), sp = (mx - mn) || 1;
   var y = function (v) { return (H - 4 - (v - mn) / sp * (H - 8)); }, x = function (i) { return (TX ? TX.xh[i] : i / (l.length - 1) * W).toFixed(1); };
   var pf = l.map(function (v, i) { return (i ? 'L' : 'M') + x(i) + ' ' + y(v).toFixed(1); }).join('');
-  var neu = TX && !(depotAltLinie && depotAltLinie.xb) ? ' neu' : '';
-  var gr = TX ? '<path class="tg' + neu + '" d="M' + TX.xb.toFixed(1) + ' 0V' + H + '" vector-effect="non-scaling-stroke"/><path class="vt' + neu + '" d="' + R.vl.map(function (v, i) { return (i ? 'L' : 'M') + TX.xv[i].toFixed(1) + ' ' + y(v).toFixed(1); }).join('') + 'L' + x(0) + ' ' + y(l[0]).toFixed(1) + '" vector-effect="non-scaling-stroke"/>' : '';
-  depotGrafik.y = y; depotGrafik.H = H; depotGrafik.ziel = { p: l.map(function (v) { return y(v); }), x: l.map(function (v, i) { return +x(i); }), ref: rf != null ? y(rf) : null, W: W, d: pf, xb: TX ? TX.xb : 0 };
-  return '<div class="dchart" id="dChart"><svg class="dlinie gross" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + gr + (rf != null ? '<path class="ref" d="M' + (TX ? TX.xb.toFixed(1) : 0) + ' ' + y(rf).toFixed(1) + 'H' + W + '"/>' : '') + '<path class="l" d="' + pf + '" style="stroke:' + (R.eur >= 0 ? 'var(--ok)' : 'var(--rot)') + '" vector-effect="non-scaling-stroke"/><path class="f" d="M0 ' + (H / 2) + 'H' + W + '" vector-effect="non-scaling-stroke"/></svg><i class="dcur" id="dCur"></i><i class="ddot" id="dDot"></i></div>';
+  // (2.39) grauer Vortag und heutiger Verlauf sind EINE Linie (wie im Dashboard); die Farbe wechselt an der Grenze (Farbverlauf), beim Wechsel wandert die Grenze mit
+  var xb = TX ? TX.xb : 0, gp = TX ? R.vl.map(function (v) { return y(v); }) : [], gx = TX ? TX.xv.slice() : [];
+  var AP = gp.concat(l.map(function (v) { return y(v); })), AX = gx.concat(l.map(function (v, i) { return +x(i); }));
+  var pfa = AP.map(function (yy, i) { return (i ? 'L' : 'M') + AX[i].toFixed(1) + ' ' + yy.toFixed(1); }).join('');
+  var farbe = R.eur >= 0 ? 'var(--ok)' : 'var(--rot)', of = (xb / W).toFixed(4);
+  var grad = '<defs><linearGradient id="dGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="' + W + '" y2="0"><stop offset="0" style="stop-color:rgba(255,255,255,.38)"/><stop class="g1" offset="' + of + '" style="stop-color:rgba(255,255,255,.38)"/><stop class="g2" offset="' + of + '" style="stop-color:' + farbe + '"/><stop offset="1" style="stop-color:' + farbe + '"/></linearGradient></defs>';
+  depotGrafik.y = y; depotGrafik.H = H; depotGrafik.ziel = { p: AP, x: AX, k0: gp.length, ref: rf != null ? y(rf) : null, W: W, H: H, d: pfa, xb: xb };
+  return '<div class="dchart" id="dChart"><svg class="dlinie gross" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + grad + '<path class="tg" d="M' + xb.toFixed(1) + ' 0V' + H + '" style="opacity:' + (TX ? 1 : 0) + '" vector-effect="non-scaling-stroke"/>' + (rf != null ? '<path class="ref" d="M' + xb.toFixed(1) + ' ' + y(rf).toFixed(1) + 'H' + W + '"/>' : '') + '<path class="l" d="' + pfa + '" style="stroke:url(#dGrad)" vector-effect="non-scaling-stroke"/><path class="f" d="M0 ' + (H / 2) + 'H' + W + '" vector-effect="non-scaling-stroke"/></svg><i class="dcur" id="dCur"></i><i class="ddot" id="dDot"></i></div>';
 }
 function depotZeit(t, r) {
   var d = new Date(t * 1000);
@@ -2270,7 +2288,7 @@ function depotZeichnen() {
 function depotFinger(d, R) {
   var c = $('dChart'); if (!c || R.v.length < 2) return; var l = R.l || R.g || R.v, n = l.length, aktiv = false, letzt = -1;
   var zeig = function (cx) {
-    var b = c.getBoundingClientRect(), ZX = depotGrafik.ziel && depotGrafik.ziel.x && depotGrafik.ziel.x.length === n ? depotGrafik.ziel.x : null, i;
+    var b = c.getBoundingClientRect(), GZ = depotGrafik.ziel, ZX = GZ && GZ.x && GZ.x.length - (GZ.k0 || 0) === n ? GZ.x.slice(GZ.k0 || 0) : null, i;
     if (ZX) { var fx = (cx - b.left) / b.width * depotGrafik.ziel.W, bi = 0; ZX.forEach(function (xx, k) { if (Math.abs(xx - fx) < Math.abs(ZX[bi] - fx)) bi = k; }); i = bi; } else i = Math.max(0, Math.min(n - 1, Math.round((cx - b.left) / b.width * (n - 1))));
     if (i === letzt) return; letzt = i;
     var px = ZX ? ZX[i] / depotGrafik.ziel.W * b.width : i / (n - 1) * b.width, py = depotGrafik.y(l[i]) / depotGrafik.H * b.height;
@@ -2279,11 +2297,11 @@ function depotFinger(d, R) {
     if (R.g) { chg = R.g[i]; base = v - chg; } else { chg = v - R.ref; base = R.ref; }
     $('dGross').innerHTML = '<span class="dpkt">••••••</span><span class="dw">' + pxEuro(v) + '</span>';
     $('dAend').innerHTML = depotAend(chg, i === n - 1 ? R.pct : base > 0 ? chg / base * 100 : 0, R.t ? depotZeit(R.t[i], R.r) : (i === n - 1 ? R.txt : ''));
-    var st = c.querySelector('path.l'); if (st) st.style.stroke = chg >= 0 ? 'var(--ok)' : 'var(--rot)';
+    var st = c.querySelector('stop.g2'), st2 = st && st.nextElementSibling; if (st) { st.style.stopColor = chg >= 0 ? 'var(--ok)' : 'var(--rot)'; if (st2) st2.style.stopColor = st.style.stopColor; }
   };
   var ende = function () { if (!aktiv) return; aktiv = false; letzt = -1; c.classList.remove('zieht');
     $('dGross').innerHTML = '<span class="dpkt">••••••</span><span class="dw">' + pxEuro(d.gesamt) + '</span>'; $('dAend').innerHTML = depotAend(R.eur, R.pct, R.txt);
-    var st = c.querySelector('path.l'); if (st) st.style.stroke = R.eur >= 0 ? 'var(--ok)' : 'var(--rot)'; };
+    var st = c.querySelector('stop.g2'), st2 = st && st.nextElementSibling; if (st) { st.style.stopColor = R.eur >= 0 ? 'var(--ok)' : 'var(--rot)'; if (st2) st2.style.stopColor = st.style.stopColor; } };
   c.addEventListener('pointerdown', function (e) { if (!depotSicht) return; aktiv = true; c.classList.add('zieht'); try { c.setPointerCapture(e.pointerId); } catch (x) {} zeig(e.clientX); });
   c.addEventListener('pointermove', function (e) { if (aktiv) zeig(e.clientX); });
   c.addEventListener('pointerup', ende); c.addEventListener('pointercancel', ende); c.addEventListener('lostpointercapture', ende);
