@@ -268,6 +268,8 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .dzr button.an{background:rgba(255,255,255,.14);color:#fff}
 .dwann{color:var(--grau);font-weight:500}
 /* (2.33) Beträge wie im Dashboard / bei Scalable: Euro groß, Cent klein oben, € darunter (.s = Cent und € klein daneben, für Listen) */
+.wlk{display:flex;flex-direction:column;gap:6px;margin-top:4px}.wlk>div{display:flex;align-items:baseline;justify-content:space-between;gap:8px}.wlk .n{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--hell,#e8e8e8)}.wlk b{flex-shrink:0;font-weight:700}
+.mgeld.kz{column-gap:6px;row-gap:4px;margin-top:2px}
 .mgeld{display:grid;grid-template-columns:auto auto auto;justify-content:start;column-gap:8px;row-gap:6px;align-items:center;line-height:1.1;margin-top:6px}.mgeld .pxb{vertical-align:middle}.mgeld>span:nth-child(3n+1){color:var(--grau);margin-right:6px}.mgeld>i{font-style:normal;color:var(--grau)}.mgeld>span:nth-child(3n){justify-self:end}.mgeld .nt{font-weight:700;color:inherit!important}
 .pxb{display:inline-flex;align-items:flex-start;gap:.1em;letter-spacing:inherit;font-weight:inherit}.pxb .pi{color:inherit;line-height:1}
 .pxb .ps{display:flex;flex-direction:column;align-items:flex-start;font-size:.42em;font-weight:600;line-height:1.12;color:var(--grau);letter-spacing:0;margin-top:.1em}
@@ -515,7 +517,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.54';
+var VERSION = '2.55';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1332,12 +1334,12 @@ function startZeichnen(still) {
   };
   var kk = {}, kdef = ['stunden', 'kosten', 'nachweis', 'jahr', 'urlaub', 'notizen', 'geburtstage', 'depot', 'watchlist', 'termine'];
   var k = function (ziel, ic, farbe, titel, wert, unter, extra, breit) { kk[ziel] = function (delay) { return k0(ziel, ic, farbe, titel, wert, unter, extra, breit, delay); }; };
-  k('stunden', IC.uhr, 'linear-gradient(135deg,#b4b4b4,#737373)', 'Stunden ' + MONATE[d.getMonth()], z(std.s), std.n + (std.n === 1 ? ' Tag' : ' Tage') + ' · ≈ ' + euroH(std.s * lohn) + ' brutto<br>≈ ' + euroH(netto(std.s * lohn)) + ' netto', '', false, .12);
-  k('kosten', IC.geld, 'linear-gradient(135deg,#b0b0b0,#5a5a5a)', 'Laufende Kosten', f ? pxEuro(fk) : '–', f ? 'pro Monat · ' + nfk + ' Posten' + (naechste ? '<br>nächste: ' + esc(naechste.p.name.split(' (')[0]) + ' am ' + naechste.p.tag + '.' : '') : 'noch nicht geladen', '', false, .18);
-  k('nachweis', IC.koffer, 'linear-gradient(135deg,#a6a6a6,#909090)', 'Arbeitsnachweis ' + hi.slice(0, 4), nt + ' Tage', 'Verpflegung erhalten ' + euroH(vp) + (nx ? '<br>nächster Einsatz: ' + WT[new Date(nx.datum + 'T12:00').getDay()] + ' ' + +nx.datum.slice(8) + '.' + +nx.datum.slice(5, 7) + '. ' + esc(nx.laeden[0].ort) : ''), '', false, .24);
+  k('stunden', IC.uhr, 'linear-gradient(135deg,#b4b4b4,#737373)', 'Stunden ' + MONATE[d.getMonth()], z(std.s), std.s ? '<div class="mgeld kz"><span>Brutto</span><i>=</i><span>' + euroH(std.s * lohn) + '</span><span class="nt">Netto</span><i class="nt">≈</i><span class="nt">' + euroH(netto(std.s * lohn)) + '</span></div>' : '', '', false, .12); // (2.55) ohne Tage, Beträge sauber untereinander
+  k('kosten', IC.geld, 'linear-gradient(135deg,#b0b0b0,#5a5a5a)', 'Laufende Kosten', f ? pxEuro(fk) : '–', f ? (naechste ? 'nächste: ' + esc(naechste.p.name.split(' (')[0]) + ' am ' + naechste.p.tag + '.' : '') : 'noch nicht geladen', '', false, .18);
+  k('nachweis', IC.koffer, 'linear-gradient(135deg,#a6a6a6,#909090)', 'Arbeitsnachweis ' + hi.slice(0, 4), nt + ' Tage', '', '', false, .24); // (2.55) nur die große Zahl
   k('jahr', IC.balken, 'linear-gradient(135deg,#7a7a7a,#666666)', 'Jahresübersicht', 'Jahr ›', 'Stunden, Brutto und Verpflegung pro Monat', '', false, .30);
   var uk = urlaubKonto(+hi.slice(0, 4));
-  k('urlaub', IC.sonne, 'linear-gradient(135deg,#a0a0a0,#606060)', (uk.anspruch != null ? 'Resturlaub ' : 'Urlaub ') + hi.slice(0, 4), uk.anspruch != null ? tg(uk.rest) : tg(uk.genommen), uk.anspruch != null ? String(uk.genommen) + ' genommen' + (uk.geplant ? ' · ' + uk.geplant + ' geplant' : '') + '<br>von ' + String(uk.gesamt).replace('.', ',') + ' Tagen' : 'genommen · Anspruch noch nicht eingetragen', '', false);
+  k('urlaub', IC.sonne, 'linear-gradient(135deg,#a0a0a0,#606060)', (uk.anspruch != null ? 'Resturlaub ' : 'Urlaub ') + hi.slice(0, 4), uk.anspruch != null ? tg(uk.rest) : tg(uk.genommen), uk.anspruch != null ? '' : 'genommen · Anspruch noch nicht eingetragen', '', false); // (2.55) nur der Resturlaub
   var no = (daten.notizen || []).filter(function (x) { return !x.erledigt; }).sort(function (a, b) { return (b.erstellt || 0) - (a.erstellt || 0); });
   k('notizen', IC.notiz, 'linear-gradient(135deg,#9a9a9a,#5c5c5c)', 'Notizen', no.length ? no.length + ' offen' : 'Keine', no.length ? esc(no[0].text.split('\n')[0]).slice(0, 70) + (no.length > 1 ? '<br>' + esc(no[1].text.split('\n')[0]).slice(0, 70) : '') : 'Tippen, um etwas aufzuschreiben', '', false);
   var gbl = gbSortiert(), g0 = gbl[0];
@@ -1347,7 +1349,7 @@ function startZeichnen(still) {
   // (2.42) Watchlist- und Termine-Kachel
   var wlL = wlListe(), wlW = wlL.map(function (x) { return { x: x, v: wlWert(x) }; }).filter(function (a) { return a.v.pct != null; }).sort(function (a, b) { return b.v.pct - a.v.pct; });
   var pzK = function (v) { return (v >= 0 ? '+' : '') + (Math.round(v * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %'; };
-  k('watchlist', IC.stern, 'linear-gradient(135deg,#a8a8a8,#5c5c5c)', 'Watchlist', wlL.length ? wlL.length + ' Werte' : '–', wlW.length ? '<span class="' + (wlW[0].v.pct >= 0 ? 'dplus' : 'dminus') + '">▲ ' + esc(depotKurz(wlW[0].x.n)) + ' ' + pzK(wlW[0].v.pct) + '</span><br><span class="' + (wlW[wlW.length - 1].v.pct >= 0 ? 'dplus' : 'dminus') + '">▼ ' + esc(depotKurz(wlW[wlW.length - 1].x.n)) + ' ' + pzK(wlW[wlW.length - 1].v.pct) + '</span>' : wlL.length ? 'Kurse kommen gleich' : 'kommt vom Mac, sobald er an ist', '', false);
+  k('watchlist', IC.stern, 'linear-gradient(135deg,#a8a8a8,#5c5c5c)', 'Watchlist', wlL.length ? wlL.length + ' Werte' : '–', wlW.length ? '<div class="wlk">' + [wlW[0], wlW[wlW.length - 1]].map(function (a, i) { return '<div><span class="n">' + esc(depotKurz(a.x.n)) + '</span><b class="' + (a.v.pct >= 0 ? 'dplus' : 'dminus') + '">' + pzK(a.v.pct) + '</b></div>'; }).join('') + '</div>' : wlL.length ? 'Kurse kommen gleich' : 'kommt vom Mac, sobald er an ist', '', false);
   var tmL = tmListe(), tm0 = tmL[0];
   k('termine', IC.kalender, 'linear-gradient(135deg,#9e9e9e,#585858)', 'Termine', tm0 ? tmTagKurz(tm0) : '–', tm0 ? esc(tm0.ti) + (tm0.g ? '' : ' · ' + tmUhr(tm0)) + (tmL[1] ? '<br>danach ' + tmTagKurz(tmL[1]) + ': ' + esc(tmL[1].ti) : '') : 'kommt vom Mac, sobald er an ist', '', false);
   var kr = kachelReihe(kdef); kr.forEach(function (z, i) { h += kk[z](.12 + i * .06).replace('class="kachel rein', 'class="kachel rein' + (kr.length % 2 && i === kr.length - 1 ? ' breit' : '')); });
