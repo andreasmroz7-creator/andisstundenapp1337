@@ -319,7 +319,22 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .tmz .ti{font-size:15px;font-weight:600}.tmz .no{font-size:12px;color:var(--grau);margin-top:3px}
 .tmk{display:inline-block;font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.1);color:#cfcfcf;margin-right:6px;vertical-align:2px}.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}
 .pgrid>div{background:var(--karte);border:1px solid var(--rand);border-radius:16px;padding:12px 14px;position:relative}.pgrid small{display:block;color:var(--grau);font-size:12px;margin-bottom:3px}.pgrid b{font-size:18px;font-weight:700}
-.lbox{margin-top:4px}.lbox .lgross{font-size:40px;font-weight:800;letter-spacing:-1px;line-height:1.05}.lbox small{color:var(--grau);font-size:13px}
+.lbox{margin-top:4px}
+.lgross.ubminus{color:var(--rot)}
+.ubrech{background:var(--karte);border:1px solid var(--rand);border-radius:18px;padding:6px 16px 14px;margin:16px 0 4px}
+.ubrech>div:not(.ubanteil):not(.ublegende){display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--rand);font-size:15px}
+.ubrech>div>span{color:var(--grau)}
+.ubrech>div>b{font-weight:600}
+.ubrech .ubsum{border-bottom:0!important}
+.ubrech .ubsum span{color:var(--txt)!important;font-weight:600}
+.ubrech .ubsum b{font-size:19px;font-weight:700}
+.ubanteil{display:flex;height:10px;border-radius:6px;overflow:hidden;background:#e8e8e8;margin-top:4px}
+.ubanteil i{display:block;height:100%}
+.ubanteil .k{background:#5a5a5a}.ubanteil .s{background:#9a9a9a}
+.ublegende{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--grau)}
+.ublegende i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;background:#e8e8e8}
+.ublegende i.k{background:#5a5a5a}.ublegende i.s{background:#9a9a9a}
+.lbalken button.neg i{background:linear-gradient(180deg,#ff6b61,#a12a22)}.lbox .lgross{font-size:40px;font-weight:800;letter-spacing:-1px;line-height:1.05}.lbox small{color:var(--grau);font-size:13px}
 .lbox .lschnitt{display:block;margin-top:4px;font-size:14px}
 .lbox .lschnitt b{color:var(--txt);font-weight:600}
 .ljahr{display:flex;gap:8px;margin:2px 0 16px}.ljahr button{flex:1;border:0;border-radius:12px;padding:9px 0;font:inherit;font-weight:700;background:var(--karte);color:var(--grau)}.ljahr button.an{background:rgba(255,255,255,.16);color:#fff}
@@ -508,6 +523,10 @@ body.istoffline .sstand{color:#ff6b61}
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattT" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Termine</b></div></div>
   <div class="koerper" id="tKoerper"></div>
 </div></div>
+<div class="blatt" id="blattUb"><div class="innen">
+  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattUb" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Was übrig bleibt</b></div></div>
+  <div class="koerper" id="ubKoerper"></div>
+</div></div>
 <div class="blatt" id="blattL"><div class="innen">
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattL" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Lohn</b></div></div>
   <div class="koerper" id="lKoerper"></div>
@@ -566,7 +585,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.67';
+var VERSION = '2.68';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1382,7 +1401,7 @@ function startZeichnen(still) {
   var k0 = function (ziel, ic, farbe, titel, wert, unter, extra, breit, delay) {
     return '<div class="kachel rein' + (breit ? ' breit' : '') + '" data-ziel="' + ziel + '" style="animation-delay:' + delay + 's"><div class="glanz" style="background:' + farbe + '"></div><span class="pfeil">›</span><div class="ic" style="background:' + farbe + '">' + ic + '</div><div><div class="t">' + titel + '</div><div class="w">' + wert + '</div><div class="u">' + unter + '</div>' + (extra || '') + '</div></div>';
   };
-  var kk = {}, kdef = ['stunden', 'kosten', 'nachweis', 'jahr', 'urlaub', 'notizen', 'geburtstage', 'depot', 'watchlist', 'termine', 'lohn'];
+  var kk = {}, kdef = ['stunden', 'kosten', 'nachweis', 'jahr', 'urlaub', 'notizen', 'geburtstage', 'depot', 'watchlist', 'termine', 'lohn', 'uebrig'];
   var k = function (ziel, ic, farbe, titel, wert, unter, extra, breit) { kk[ziel] = function (delay) { return k0(ziel, ic, farbe, titel, wert, unter, extra, breit, delay); }; };
   k('stunden', IC.uhr, 'linear-gradient(135deg,#b4b4b4,#737373)', 'Stunden ' + MONATE[d.getMonth()], z(std.s), std.s ? '<div class="mgeld kz"><span>Brutto</span><i>=</i><span>' + euroH(std.s * lohn) + '</span><span class="nt">Netto</span><i class="nt">≈</i><span class="nt">' + euroH(netto(std.s * lohn)) + '</span></div>' : '', '', false, .12); // (2.55) ohne Tage, Beträge sauber untereinander
   k('kosten', IC.geld, 'linear-gradient(135deg,#b0b0b0,#5a5a5a)', 'Laufende Kosten', f ? pxEuro(fk) : '–', f ? (naechste ? 'nächste: ' + esc(naechste.p.name.split(' (')[0]) + ' am ' + naechste.p.tag + '.' : '') : 'noch nicht geladen', '', false, .18);
@@ -1407,6 +1426,8 @@ function startZeichnen(still) {
   var tmL = tmListe(), tm0 = tmL[0];
   var LO = lohnDaten(), lo0 = LO && LO.m.length ? LO.m[LO.m.length - 1] : null; // (2.63) Lohn-Kachel: letzte Abrechnung
   k('lohn', IC.lohn, 'linear-gradient(135deg,#b0b0b0,#5a5a5a)', 'Lohn', lo0 ? pxEuro(lo0.au) : '–', lo0 ? 'ausgezahlt · ' + lohnMonat(lo0.m) : 'kommt vom Mac, sobald er an ist', '', false);
+  var UB = ubMonate(), ub0 = UB.length ? UB[UB.length - 1] : null; // (2.68) Was übrig bleibt: letzte Abrechnung minus laufende Kosten und Sparpläne
+  k('uebrig', IC.geld.replace('M3 10h18M16 14.5h2', 'M3 10h18M12 13v4M10 15h4'), 'linear-gradient(135deg,#b4b4b4,#5c5c5c)', 'Übrig', ub0 ? '<span class="' + (ub0.ue < 0 ? 'dminus' : '') + '">' + pxEuro(ub0.ue) + '</span>' : '–', ub0 ? lohnMonat(ub0.m) + ' · nach Kosten und Sparplänen' : !lohnDaten() ? 'kommt mit den Lohnabrechnungen' : 'laufende Kosten noch nicht geladen', '', false);
   k('termine', IC.kalender, 'linear-gradient(135deg,#9e9e9e,#585858)', 'Termine', tm0 ? tmTagKurz(tm0) : '–', tm0 ? esc(tm0.ti) + (tm0.g ? '' : ' · ' + tmUhr(tm0)) + (tmL[1] ? '<br>danach ' + tmTagKurz(tmL[1]) + ': ' + esc(tmL[1].ti) : '') : 'kommt vom Mac, sobald er an ist', '', false);
   var kr = kachelReihe(kdef), KG = kachelGroessen(), KB = kachelAutoBreit(kr, KG); kr.forEach(function (z, i) { h += kk[z](.12 + i * .06).replace('class="kachel rein', 'class="kachel rein' + (KG[z] === 'b' || KB === z ? ' breit' : KG[z] === 'k' ? ' klein' : '')).replace('<span class="pfeil">', '<button type="button" class="kgr" aria-label="Größe ändern"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button><span class="pfeil">'); });
   h += '</div><div class="ordtipp">Kachel ziehen zum Verschieben · ⤢ ändert die Größe</div><button class="ordfertig" id="ordfertig">Fertig</button>';
@@ -1547,7 +1568,7 @@ function startZiel(z) {
   if (z === 'stunden') { document.body.classList.remove('versteckt'); var d = new Date(); ansicht.j = d.getFullYear(); ansicht.m = d.getMonth(); zeichne(); window.scrollTo(0, 0); startWeg(); }
   else if (z === 'heute') { var hi = iso2(new Date()), eh = daten.eintraege.find(function (x) { return x.datum === hi; }); startWeg(); setTimeout(function () { oeffne(eh || neuerEintrag(hi), !eh); }, 250); }
   else {
-    var id = { kosten: 'blattF', nachweis: 'blattN', jahr: 'blattJ', notizen: 'blattNo', urlaub: 'blattU', geburtstage: 'blattG', jarvis: 'blattJv', depot: 'blattD', watchlist: 'blattW', termine: 'blattT', lohn: 'blattL' }[z]; if (!id) return;
+    var id = { kosten: 'blattF', nachweis: 'blattN', jahr: 'blattJ', notizen: 'blattNo', urlaub: 'blattU', geburtstage: 'blattG', jarvis: 'blattJv', depot: 'blattD', watchlist: 'blattW', termine: 'blattT', lohn: 'blattL', uebrig: 'blattUb' }[z]; if (!id) return;
     var s = $('start'); s.classList.add('oben'); void s.offsetWidth; s.classList.add('weg'); setTimeout(function () { s.classList.add('aus'); s.classList.remove('oben'); }, 420);
     $(id).dataset.vonstart = '1'; document.body.classList.add('versteckt');
     if (z === 'kosten') { fixZeichnen(); $('blattF').classList.add('offen'); }
@@ -1557,6 +1578,7 @@ function startZiel(z) {
     else if (z === 'watchlist') { wlZeichnen(); $('blattW').classList.add('offen'); wlLiveRechnen(true); }
     else if (z === 'termine') { tmZeichnen(); $('blattT').classList.add('offen'); }
     else if (z === 'lohn') { lohnJahr = null; lohnZeichnen(); $('blattL').classList.add('offen'); }
+    else if (z === 'uebrig') { ubJahr = null; ubZeichnen(); $('blattUb').classList.add('offen'); }
     else if (z === 'urlaub') { urlaubZeichnen(); $('blattU').classList.add('offen'); }
     else if (z === 'notizen') { notizenZeichnen(); $('blattNo').classList.add('offen'); }
     else if (z === 'nachweis') $('nwknopf').onclick();
@@ -2519,6 +2541,32 @@ function lohnErfasst(k) { // Stunden, die im Cockpit für diesen Monat eingetrag
 }
 function lohnVz(n) { return '<span class="vzb"><i>' + (n >= 0 ? '+' : '−') + '</i>' + euroH(Math.abs(n)) + '</span>'; } // (2.64) Vorzeichen mittig neben dem Betrag
 function lohnZ(t, w, sub, kl) { return '<div class="lz' + (kl ? ' ' + kl : '') + '"><div>' + t + (sub ? '<small>' + sub + '</small>' : '') + '</div><div class="r">' + w + '</div></div>'; }
+// ---------- (2.68) Was übrig bleibt: ausgezahlter Lohn minus laufende Kosten und Sparpläne, je Monat ----------
+var ubJahr = null;
+function ubKosten(mon) { // mon = 'JJJJ-MM'; zählt alles, was in dem Monat lief (Ende nicht davor, Beginn nicht danach)
+  var f = daten.fixkosten, a = mon + '-01', e = mon + '-31', k = 0, sp = 0; if (!f) return null;
+  (f.posten || []).forEach(function (p) { if (p.ende && p.ende < a) return; var b = p.start || p.beginn; if (b && b > e) return; k += proMonat(p); });
+  (f.sparplaene || []).forEach(function (p) { if (p.ende && p.ende < a) return; var b = p.start || p.beginn; if (b && b > e) return; sp += proMonat(p); });
+  return { k: k, sp: sp };
+}
+function ubMonate() { var L = lohnDaten(); if (!L || !daten.fixkosten) return []; return L.m.map(function (x) { var c = ubKosten(x.m); return { m: x.m, au: x.au, k: c.k, sp: c.sp, ue: Math.round((x.au - c.k - c.sp) * 100) / 100 }; }); }
+function ubZeichnen() {
+  var A = ubMonate(); if (!A.length) { $('ubKoerper').innerHTML = '<p class="hinweis">' + (!lohnDaten() ? 'Die Lohnabrechnungen kommen vom Mac, sobald er an ist.' : 'Die laufenden Kosten sind noch nicht geladen. Einmal abgleichen.') + '</p>'; return; }
+  var J = []; A.forEach(function (x) { var j = x.m.slice(0, 4); if (J.indexOf(j) < 0) J.push(j); }); J.sort().reverse(); if (!ubJahr || J.indexOf(ubJahr) < 0) ubJahr = J[0];
+  var M = A.filter(function (x) { return x.m.slice(0, 4) === ubJahr; }), x0 = M[M.length - 1], sum = M.reduce(function (a, x) { return a + x.ue; }, 0);
+  var h = J.length > 1 ? '<div class="ljahr">' + J.map(function (j) { return '<button type="button" data-j="' + j + '" class="' + (j === ubJahr ? 'an' : '') + '">' + j + '</button>'; }).join('') + '</div>' : '';
+  h += '<div class="lbox"><small>Übrig im ' + lohnMonat(x0.m) + '</small><div class="lgross' + (x0.ue < 0 ? ' ubminus' : '') + '">' + pxEuro(x0.ue) + '</div><small class="lschnitt">Ø <b>' + euro(sum / M.length) + '</b> pro Monat · ' + ubJahr + ' zusammen <b>' + euro(sum) + '</b></small></div>';
+  h += '<div class="ubrech"><div><span>Ausgezahlt</span><b>' + euroH(x0.au) + '</b></div><div><span>Laufende Kosten</span><b>− ' + euroH(x0.k) + '</b></div>' + (x0.sp ? '<div><span>Sparpläne</span><b>− ' + euroH(x0.sp) + '</b></div>' : '') + '<div class="ubsum"><span>Bleibt übrig</span><b>' + euroH(x0.ue) + '</b></div>' +
+    '<div class="ubanteil"><i class="k" style="width:' + Math.min(100, x0.k / x0.au * 100).toFixed(1) + '%"></i><i class="s" style="width:' + Math.max(0, Math.min(100 - x0.k / x0.au * 100, x0.sp / x0.au * 100)).toFixed(1) + '%"></i></div>' +
+    '<div class="ublegende"><span><i class="k"></i>Kosten ' + Math.round(x0.k / x0.au * 100) + ' %</span>' + (x0.sp ? '<span><i class="s"></i>Sparpläne ' + Math.round(x0.sp / x0.au * 100) + ' %</span>' : '') + '<span><i></i>übrig ' + Math.round(Math.max(0, x0.ue) / x0.au * 100) + ' %</span></div></div>';
+  var mx = Math.max.apply(null, M.map(function (x) { return Math.abs(x.ue); })) || 1;
+  h += '<div class="lbalken">' + M.map(function (x) { return '<button type="button" data-m="' + x.m + '" class="' + (x === x0 ? 'max' : '') + (x.ue < 0 ? ' neg' : '') + '"><i style="height:' + Math.max(4, Math.abs(x.ue) / mx * 92) + 'px"></i>' + lohnMonat(x.m, true).slice(0, 1) + '</button>'; }).join('') + '</div>';
+  h += '<div class="lsek"><div class="dpt">Monate</div>' + M.slice().reverse().map(function (x) {
+    return '<div class="lz"><div>' + lohnMonat(x.m) + '<small>ausgezahlt ' + euro(x.au) + ' · Kosten ' + euro(x.k + x.sp) + '</small></div><div class="r"><b class="' + (x.ue < 0 ? 'dminus' : '') + '">' + euroH(x.ue) + '</b><small>übrig</small></div></div>'; }).join('') + '</div>';
+  h += '<p class="hinweis" style="margin-top:14px">Gerechnet mit dem ausgezahlten Lohn aus deinen Abrechnungen minus den laufenden Kosten und Sparplänen, die in dem Monat liefen (jährliche Kosten auf 12 Monate verteilt).</p>';
+  $('ubKoerper').innerHTML = h;
+  [].forEach.call(document.querySelectorAll('#ubKoerper .ljahr button'), function (b) { b.onclick = function () { ubJahr = b.dataset.j; ubZeichnen(); }; });
+}
 function lohnZeichnen() {
   var L = lohnDaten(); if (!L) { $('lKoerper').innerHTML = '<p class="hinweis">Die Lohnabrechnungen kommen vom Mac, sobald er an ist.</p>'; return; }
   var J = []; L.m.forEach(function (x) { var j = x.m.slice(0, 4); if (J.indexOf(j) < 0) J.push(j); }); J.sort().reverse(); if (!lohnJahr || J.indexOf(lohnJahr) < 0) lohnJahr = J[0];
