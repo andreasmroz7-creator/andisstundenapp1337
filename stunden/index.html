@@ -154,7 +154,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.6';
+var VERSION = '1.7';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -172,8 +172,8 @@ function lohn() { var l = parseFloat(String(daten.einst.lohn || '').replace(',',
 function vertrag() { var v = parseFloat(String(daten.einst.vertrag || '').replace(',', '.')); return isFinite(v) && v > 0 ? v * 60 : 0; } // Minuten pro Woche
 function wocheIst(mo) { var so = new Date(mo); so.setDate(mo.getDate() + 6); var a0 = iso(mo), a1 = iso(so), m = 0; daten.eintraege.forEach(function (e) { if (e.d >= a0 && e.d <= a1) m += dauer(e); }); return m; }
 // Wochen eines Monats = alle Wochen, deren Montag im Monat liegt (bis zur laufenden Woche)
-function monatsWochen(j, mo) { var L = [], hm0 = wocheVon(new Date()), d = new Date(j, mo, 1); while (d.getDay() !== 1) d.setDate(d.getDate() + 1);
-  for (; d.getMonth() === mo && d <= hm0; d.setDate(d.getDate() + 7)) { var von = new Date(d), bis = new Date(d); bis.setDate(d.getDate() + 6); L.push({ von: von, bis: bis, ist: wocheIst(von), laeuft: iso(von) === iso(hm0) }); }
+function monatsWochen(j, mo, alle) { var L = [], hm0 = wocheVon(new Date()), d = new Date(j, mo, 1); while (d.getDay() !== 1) d.setDate(d.getDate() + 1);
+  for (; d.getMonth() === mo && (alle || d <= hm0); d.setDate(d.getDate() + 7)) { var von = new Date(d), bis = new Date(d); bis.setDate(d.getDate() + 6); L.push({ von: von, bis: bis, ist: wocheIst(von), laeuft: iso(von) === iso(hm0) }); }
   return L; }
 function pm(min) { return (min >= 0 ? '+' : '−') + hm(Math.abs(min)); }
 function wocheVon(d) { var m = new Date(d.getFullYear(), d.getMonth(), d.getDate()); m.setDate(m.getDate() - (m.getDay() + 6) % 7); return m; }
@@ -379,12 +379,14 @@ function pdfKalender() {
   for (var k = 0; k <= 8; k++) { var gx = k < 8 ? x0 + k * spW : W - x0; doc.line(gx, y0, gx, yE, k === 7 ? 1 : 0.5, 0.6); }
   for (var r = 0; r <= zeilen.length; r++) doc.line(x0, y0 + kopfH + r * zH, W - x0, y0 + kopfH + r * zH, 0.5, 0.6);
   doc.line(x0, y0, W - x0, y0, 0.5, 0.6);
-  var yS = yE + 24;
-  doc.text(x0, yS, 'Summe ' + MONATE[ansicht.m] + ': ' + hm(summeMonat) + ' Std.', 12, true);
-  var info = [];
-  if (V) { var WO = monatsWochen(ansicht.j, ansicht.m), ist = WO.reduce(function (a, w) { return a + w.ist; }, 0); if (WO.length) info.push('Wochen (Mo–So, eine Woche zählt zum Monat ihres Montags): ' + hm(ist) + ' von ' + hm(V * WO.length) + ' Std. Soll (' + pm(ist - V * WO.length).replace('−', '-') + ')'); }
-  if (l) info.push('Brutto: ' + euro(summeMonat / 60 * l) + ' (' + euro(l) + ' pro Stunde)');
-  info.forEach(function (t, i) { doc.text(x0, yS + 18 + i * 14, t, 9); });
+  // unten nur: Soll des Monats, Ist und Differenz (alle Wochen, deren Montag im Monat liegt, je ganze Woche)
+  var yS = yE + 26, MW = monatsWochen(ansicht.j, ansicht.m, true), istM = MW.reduce(function (a, w) { return a + w.ist; }, 0);
+  if (V) {
+    var sollM = V * MW.length, df = istM - sollM;
+    doc.text(x0, yS, 'Soll ' + MONATE[ansicht.m] + ':', 11); doc.text(x0 + 190, yS, hm(sollM) + ' Std.', 11, false, 'r');
+    doc.text(x0, yS + 17, 'Gearbeitet:', 11); doc.text(x0 + 190, yS + 17, hm(istM) + ' Std.', 11, false, 'r');
+    doc.text(x0, yS + 36, df >= 0 ? 'Plus:' : 'Minus:', 12, true); doc.text(x0 + 190, yS + 36, pm(df).replace('−', '-') + ' Std.', 12, true, 'r');
+  } else doc.text(x0, yS, 'Gearbeitet im ' + MONATE[ansicht.m] + ': ' + hm(summeMonat) + ' Std.', 11, true);
   doc.text(x0, 575, 'Erstellt am ' + new Date().toLocaleDateString('de-DE'), 8);
   teile('Stunden-Kalender ' + MONATE[ansicht.m] + ' ' + ansicht.j + '.pdf', new Blob([doc.bytes()], { type: 'application/pdf' }));
 }
