@@ -80,6 +80,8 @@ button{font:inherit;color:inherit}
 .kal .zelle.we .n{color:#b4b4b4}
 .kal .zelle.hat{background:#34c759;border-color:#34c759}.kal .zelle.hat .n,.kal .zelle.hat .s{color:#062b12}
 .kal .zelle.heute{border:2px solid #fff}
+.kal .gitter{position:relative}.kwrand{position:absolute;border:2px solid #0a84ff;border-radius:15px;pointer-events:none;box-shadow:0 0 0 1px rgba(10,132,255,.25)}
+.woche.wvor>div:first-child{animation:wvor .3s ease}.woche.wzur>div:first-child{animation:wzur .3s ease}@keyframes wvor{from{opacity:.2;transform:translateX(24px)}}@keyframes wzur{from{opacity:.2;transform:translateX(-24px)}}
 .kal .zelle.gew{background:#ededed}.kal .zelle.gew .n,.kal .zelle.gew .s{color:#000}
 .tagkopf{display:flex;justify-content:space-between;align-items:baseline;margin:2px 4px 8px;font-size:15px;font-weight:600}
 .tagkopf span{color:var(--grau);font-weight:500;font-size:13px}
@@ -177,7 +179,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.6';
+var VERSION = '3.7';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -236,9 +238,10 @@ function zeichneEcht() {
     $('sollBox').style.display = ''; $('sollStd').textContent = hm(soll);
     $('sollGeldBox').style.display = lohn() ? '' : 'none'; $('sollGeld').textContent = euro(sbr); $('sollNetto').textContent = euro(netto(sbr));
   } else $('sollBox').style.display = 'none';
+  var aw = anzeigeWoche(); // (3.7) gewählte Woche (in der Kachel wischbar), im Kalender umrandet
   if (V) {
-    var mo = wocheVon(heute), so = new Date(mo); so.setDate(mo.getDate() + 6); var wi = wocheIst(mo), ws = V;
-    $('woche').style.display = ''; $('wTitel').textContent = 'Diese Woche (' + mo.getDate() + '.' + (mo.getMonth() + 1) + '. – ' + so.getDate() + '.' + (so.getMonth() + 1) + '.)';
+    var mo = aw, so = new Date(mo); so.setDate(mo.getDate() + 6); var wi = wocheIst(mo), ws = V, jetzt = iso(mo) === iso(wocheVon(heute));
+    $('woche').style.display = ''; $('wTitel').textContent = (jetzt ? 'Diese Woche' : 'KW ' + kwNr(mo)) + ' (' + mo.getDate() + '.' + (mo.getMonth() + 1) + '. – ' + so.getDate() + '.' + (so.getMonth() + 1) + '.)';
     $('wIst').textContent = hm(wi) + ' von ' + hm(ws); $('wSoll').textContent = '';
     $('wDiff').textContent = pm(wi - ws); $('wDiff').className = 'diff ' + (wi - ws >= 0 ? 'plusw' : 'minusw');
   } else $('woche').style.display = 'none';
@@ -254,6 +257,7 @@ function zeichneEcht() {
       g += '<div class="zelle' + (m != null ? ' hat' : '') + (wd >= 5 ? ' we' : '') + (ds === hi ? ' heute' : '') + (ds === gewaehlt ? ' gew' : '') + '" data-d="' + ds + '"><span class="n">' + t + '</span>' + (m != null ? '<span class="s">' + (nurUrl ? 'Urlaub' : hm(m)) + '</span>' : '') + '</div>';
     }
     $('kalender').innerHTML = '<div class="kal"><div class="wk"><span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span></div><div class="gitter">' + g + '</div></div>';
+    if (V) wocheRahmen(aw);
     var TL = L.filter(function (e) { return e.d === gewaehlt; }), ts = TL.reduce(function (a, e) { return a + dauer(e); }, 0);
     $('liste').innerHTML = '<div class="tagkopf">' + datumText(gewaehlt).replace(/ \d{4}$/, '') + '<span>' + (TL.length ? hm(ts) + ' Std.' : '') + '</span></div>' +
       (TL.length ? TL.map(eintragHtml).join('') : '<div class="leer" style="padding:16px 10px">Nichts eingetragen. Tippe auf +</div>');
@@ -361,7 +365,7 @@ function geisterSpaeter(ms) { clearTimeout(geistTimer); geistTimer = setTimeout(
   }
   document.addEventListener('touchstart', function (ev) {
     fingerDrauf = true; an = false;
-    if (laeuft || document.querySelector('.blatt.offen') || ev.touches.length > 1 || ev.touches[0].clientX <= 24 || (ev.target.closest && ev.target.closest('input,textarea,select,.plus'))) return;
+    if (laeuft || document.querySelector('.blatt.offen') || ev.touches.length > 1 || ev.touches[0].clientX <= 24 || (ev.target.closest && ev.target.closest('input,textarea,select,.plus,#woche'))) return;
     an = true; richtung = 0; v = 0;
     sx = lx = ev.touches[0].clientX; sy = ev.touches[0].clientY; lt = Date.now();
     var ziel = ev.target;
@@ -380,7 +384,33 @@ function geisterSpaeter(ms) { clearTimeout(geistTimer); geistTimer = setTimeout(
   document.addEventListener('touchend', function (ev) { if (!an && !ev.touches.length) los(0); }, { passive: true });
   document.addEventListener('touchcancel', function () { if (!an) los(0); }, { passive: true });
 })();
-function monatSchrittStill(n) { ansicht.m += n; if (ansicht.m < 0) { ansicht.m = 11; ansicht.j--; } if (ansicht.m > 11) { ansicht.m = 0; ansicht.j++; } zeichneEcht(); }
+function monatSchrittStill(n) { ansicht.m += n; if (ansicht.m < 0) { ansicht.m = 11; ansicht.j--; } if (ansicht.m > 11) { ansicht.m = 0; ansicht.j++; } wocheMo = anzeigeWoche(); zeichneEcht(); }
+// (3.7) Woche in der Kachel „Diese Woche“: links/rechts wischen = Woche zurück/vor (KW 47, 46, 45 …); im Kalender ist sie umrandet.
+// Liegt die neue Woche ganz in einem anderen Monat, springt der Kalender mit. Wischen außerhalb der Kachel wechselt wie bisher den Monat.
+var wocheMo = null, wocheGewischt = 0;
+function kwNr(d) { var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())), n = (t.getUTCDay() + 6) % 7; t.setUTCDate(t.getUTCDate() - n + 3); var j1 = new Date(Date.UTC(t.getUTCFullYear(), 0, 4)); return 1 + Math.round(((t - j1) / 864e5 - 3 + (j1.getUTCDay() + 6) % 7) / 7); }
+function wocheImMonat(mo, j, m) { var so = new Date(mo); so.setDate(mo.getDate() + 6); return mo <= new Date(j, m + 1, 0, 23) && so >= new Date(j, m, 1); }
+function anzeigeWoche() { // gewählte Woche, wenn sie im angezeigten Monat liegt; sonst die laufende Woche (aktueller Monat) bzw. die Woche mit dem 1.
+  if (wocheMo && wocheImMonat(wocheMo, ansicht.j, ansicht.m)) return new Date(wocheMo);
+  var h = wocheVon(new Date()); if (wocheImMonat(h, ansicht.j, ansicht.m)) return h; return wocheVon(new Date(ansicht.j, ansicht.m, 1));
+}
+function wocheRahmen(mo) { // Rahmen um die Tage der Woche, die in diesem Monat liegen
+  var gi = document.querySelector('#kalender .gitter'); if (!gi) return; var a = iso(mo), so = new Date(mo); so.setDate(mo.getDate() + 6); var b = iso(so);
+  var Z = [].filter.call(gi.querySelectorAll('.zelle[data-d]'), function (z) { return z.dataset.d >= a && z.dataset.d <= b; }); if (!Z.length) return;
+  var f = Z[0], l = Z[Z.length - 1], r = document.createElement('div'); r.className = 'kwrand';
+  r.style.left = (f.offsetLeft - 4) + 'px'; r.style.top = (f.offsetTop - 4) + 'px'; r.style.width = (l.offsetLeft + l.offsetWidth - f.offsetLeft + 8) + 'px'; r.style.height = (f.offsetHeight + 8) + 'px'; gi.appendChild(r);
+}
+function wocheSchritt(n) {
+  var mo = anzeigeWoche(); mo.setDate(mo.getDate() + 7 * n); wocheMo = mo;
+  if (!wocheImMonat(mo, ansicht.j, ansicht.m)) { ansicht.j = mo.getFullYear(); ansicht.m = mo.getMonth(); if (n > 0 && !wocheImMonat(mo, ansicht.j, ansicht.m)) { var so = new Date(mo); so.setDate(mo.getDate() + 6); ansicht.j = so.getFullYear(); ansicht.m = so.getMonth(); } }
+  zeichne(); var w = $('woche'); w.classList.remove('wvor', 'wzur'); void w.offsetWidth; w.classList.add(n > 0 ? 'wvor' : 'wzur');
+}
+(function () {
+  var sx = 0, sy = 0, an = false;
+  $('woche').addEventListener('touchstart', function (e) { if (e.touches.length !== 1) return; an = true; sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  $('woche').addEventListener('touchend', function (e) { if (!an) return; an = false; var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) { wocheGewischt = Date.now(); wocheSchritt(dx < 0 ? 1 : -1); } }, { passive: true });
+})();
 // Einstellungen
 $('einstKnopf').onclick = function () { $('sName').value = daten.einst.name || ''; $('sLohn').value = daten.einst.lohn || ''; $('sPause').value = daten.einst.pause || ''; $('sUrlaub').value = daten.einst.urlaubStd != null && daten.einst.urlaubStd !== '' ? hm(+daten.einst.urlaubStd) : ''; $('sVertrag').value = daten.einst.vertrag || ''; nurStdZeigen(); $('sLetzte').textContent = daten.einst.gesichert ? 'Letzte Sicherung: ' + new Date(daten.einst.gesichert).toLocaleString('de-DE', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr' : 'Noch keine Sicherung gemacht.'; oeffne('blattS'); };
 $('sName').onchange = function () { daten.einst.name = this.value.trim(); sichern(); zeichne(); };
@@ -430,7 +460,7 @@ var jahrAnsicht = new Date().getFullYear(), vonJahr = false;
 // zurück zur Jahresübersicht (Knopf links oben oder vom linken Rand wischen); danach verschwindet der Knopf wieder
 function zurueckZumJahr() { if (!vonJahr) return; vonJahr = false; $('zurJahr').style.display = 'none'; jahrZeichnen(); oeffne('blattJ'); }
 $('zurJahr').onclick = zurueckZumJahr;
-$('summe').onclick = function () { jahrAnsicht = ansicht.j; jahrZeichnen(); oeffne('blattJ'); };
+$('summe').onclick = function () { if (Date.now() - wocheGewischt < 600) return; jahrAnsicht = ansicht.j; jahrZeichnen(); oeffne('blattJ'); };
 function jahrZeichnen() {
   var J = jahrAnsicht, V = vertrag(), l = lohn(), jahre = {}, hj = new Date().getFullYear();
   daten.eintraege.forEach(function (e) { jahre[e.d.slice(0, 4)] = 1; }); jahre[hj] = 1; jahre[J] = 1;
