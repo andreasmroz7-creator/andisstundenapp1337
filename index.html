@@ -514,7 +514,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.46';
+var VERSION = '2.47';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2309,7 +2309,9 @@ function depotPosHtml(d) {
     return '<div class="dprow' + (key ? '' : ' fest') + '"' + (key ? ' data-key="' + esc(key) + '"' : '') + '><div><div class="n">' + esc(n) + '</div>' + (s ? '<div class="s">' + s + '</div>' : '') + '</div>' + (mini || '') + '<div class="r"><span class="dpkt">•••</span><span class="dw"><b>' + euroH(w) + '</b>' +
       (pct != null ? '<small class="' + (pct >= 0 ? 'dplus' : 'dminus') + '">' + (pct >= 0 ? '+' : '') + (Math.round(pct * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %</small>' : '') + '</span></div></div>';
   };
-  return '<div class="dpos"><div class="dpt sort" id="dSort">Positionen<span>' + DSORT[depotSort] + ' ⇅</span></div>' + L.map(function (p) { return zeile(depotKurz(p.n), depotMenge(p), p.w, depotSort === 'kauf' ? p.kp : p.pct, p.isin || p.sym, posMini(p.isin || p.sym, p.kurs || (p.q ? p.w / p.q : null))); }).join('') +
+  var zz = function (p) { return zeile(depotKurz(p.n), depotMenge(p), p.w, depotSort === 'kauf' ? p.kp : p.pct, p.isin || p.sym, posMini(p.isin || p.sym, p.kurs || (p.q ? p.w / p.q : null))); };
+  var LK = L.filter(function (p) { return p.k === 'krypto'; }), LW = L.filter(function (p) { return p.k !== 'krypto'; }); // (2.47) wie im Dashboard: zuerst Krypto, dann der Rest (je Gruppe sortiert)
+  return '<div class="dpos"><div class="dpt sort" id="dSort">Positionen<span>' + DSORT[depotSort] + ' ⇅</span></div>' + (LK.length ? '<div class="wltr" style="margin-top:6px">Krypto</div>' + LK.map(zz).join('') : '') + (LW.length ? '<div class="wltr">Aktien &amp; ETFs</div>' + LW.map(zz).join('') : '') +
     (d.fest ? zeile('Rente, Tagesgeld & eigene Werte', 'Stand vom Mac', +d.fest, null) : '') + '</div>';
 }
 // Weicher Übergang zwischen den Linien (Zeitraum, € / ±, neue Kurse): alte und neue Linie werden auf gleich viele Punkte gebracht und ineinander überblendet
