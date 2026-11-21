@@ -152,7 +152,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.5';
+var VERSION = '2.6';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -185,7 +185,7 @@ function zeichneEcht() {
   var L = monatsEintraege(), sum = 0, tage = {};
   L.forEach(function (e) { sum += dauer(e); tage[e.d] = 1; });
   $('sStd').textContent = hm(sum); var nt = Object.keys(tage).length; $('sTage').textContent = nt + (nt === 1 ? ' Tag' : ' Tage');
-  $('sGeld').textContent = lohn() ? '≈ ' + euro(sum / 60 * lohn()) : '';
+  $('sGeld').textContent = lohn() ? euro(Math.round(sum / 60 * lohn() * 100) / 100) : ''; if (lohn()) $('sTage').textContent += ' · brutto';
   var V = vertrag();
   if (V) {
     var mo = wocheVon(heute), so = new Date(mo); so.setDate(mo.getDate() + 6); var wi = wocheIst(mo), ws = V;
