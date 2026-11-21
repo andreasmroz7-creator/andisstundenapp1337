@@ -164,6 +164,16 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .kgr{display:none;position:absolute;right:10px;top:10px;z-index:3;width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(40,40,40,.9);color:#fff;align-items:center;justify-content:center;padding:0}
 .kgr svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 #start.ordnen .kgr{display:flex}
+.kweg{display:none;position:absolute;right:46px;top:10px;z-index:3;width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(40,40,40,.9);color:#fff;align-items:center;justify-content:center;padding:0}
+.kweg svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2.6;stroke-linecap:round}
+#start.ordnen .kweg{display:flex}
+.sgrid .kachel.raus{transition:transform .25s ease-in,opacity .25s ease-in!important;transform:scale(.6)!important;opacity:0!important}
+.kzurueck{display:none;flex-wrap:wrap;gap:8px;justify-content:center;margin:14px 0 0}#start.ordnen .kzurueck{display:flex}
+.kzurueck small{width:100%;text-align:center;font-size:12px;color:var(--grau)}
+.kzurueck button{border:1px solid var(--rand);background:var(--karte);color:#fff;border-radius:999px;padding:7px 14px;font:inherit;font-size:14px}
+.kausliste .kaus{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid var(--rand);border-radius:14px;background:var(--karte);margin-top:8px;font-size:15px}
+.kausliste .kaus span{color:var(--grau);font-size:13px}
+
 /* (2.61) breite Depot-Kachel: Betrag rechts oben neben dem Symbol, Diagramm groß über die ganze Breite */
 .sgrid .kachel.breit[data-ziel=depot]{display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-content:start}
 .sgrid .kachel.breit[data-ziel=depot]>div:not(.glanz):not(.ic),.sgrid .kachel.breit[data-ziel=depot] .u,.sgrid .kachel.breit[data-ziel=depot] .u>.dbox{display:contents!important}
@@ -326,6 +336,9 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .htz+.htz{border-top:1px solid var(--rand)}
 .htz .hl{flex:1;min-width:0}
 .htz .hl small{display:block;font-size:12px;color:var(--grau)}
+.htroute{display:inline-flex;align-items:center;gap:5px;margin-top:3px;padding:0;border:0;background:none;color:#e0e0e0;font:inherit;font-size:13px;text-align:left;max-width:100%;cursor:pointer}
+.htroute span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.htroute i{font-style:normal;color:var(--grau);flex:none}
+.htroute svg{width:14px;height:14px;flex:none;stroke:#e0e0e0;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .htz .hl b{display:block;font-size:17px;font-weight:700;margin:1px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .htz:not(.erst){opacity:.75}
 .htnr{flex:none;display:flex;flex-direction:column;align-items:flex-end;border:1px solid var(--rand);background:rgba(0,0,0,.25);color:#fff;border-radius:12px;padding:6px 10px;font:inherit;cursor:pointer;transition:background .2s,border-color .2s}
@@ -587,6 +600,8 @@ body.istoffline .sstand{color:#ff6b61}
   <label class="l">Standard für neue Einträge</label>
   <div class="sw" data-s="tl"><div>Teamleiter-Stunde</div><div class="knopf"></div></div>
   <div class="sw" data-s="fahrer"><div>Ich bin Fahrer<small>in der Probezeit: aus</small></div><div class="knopf"></div></div>
+  <label class="l">Ausgeblendete Kacheln</label>
+  <div class="kausliste" id="kAusListe"></div>
   <label class="l">Sicherheit</label>
   <div class="sw" data-s="depotAuge" id="swAuge"><div>Depot-Beträge mit Auge verdecken<small>aus: Beträge immer sichtbar</small></div><div class="knopf"></div></div>
   <div class="sw" id="swSperre"><div>App-Sperre mit Face ID<small>beim Öffnen und nach 1 Min. im Hintergrund</small></div><div class="knopf"></div></div>
@@ -611,7 +626,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.72';
+var VERSION = '2.73';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1147,7 +1162,7 @@ $('einstknopf').onclick = function () {
   $('sZusatz').value = daten.einst.zusatz != null ? String(daten.einst.zusatz).replace('.', ',') : '';
   $('sLohn').value = daten.einst.lohn != null && daten.einst.lohn !== '' ? String(daten.einst.lohn).replace('.', ',') : ''; $('sPers').value = daten.einst.pers || '';
   [].forEach.call(document.querySelectorAll('.sw[data-s]'), function (s) { s.classList.toggle('an', !!daten.einst[s.dataset.s]); });
-  $('version').textContent = 'Version ' + VERSION; profListeZeichnen();
+  $('version').textContent = 'Version ' + VERSION; profListeZeichnen(); kachelAusListe();
   $('blattS').classList.add('offen');
 };
 $('sEleven').onchange = function () { daten.einst.elKey = this.value.trim(); sichern(true); toast(daten.einst.elKey ? 'Jarvis-Stimme gespeichert' : 'Jarvis-Stimme entfernt'); };
@@ -1455,13 +1470,15 @@ function startZeichnen(still) {
   var UB = ubMonate(), ub0 = UB.length ? UB[UB.length - 1] : null; // (2.68) Was übrig bleibt: letzte Abrechnung minus laufende Kosten und Sparpläne
   k('uebrig', IC.geld.replace('M3 10h18M16 14.5h2', 'M3 10h18M12 13v4M10 15h4'), 'linear-gradient(135deg,#b4b4b4,#5c5c5c)', 'Übrig', ub0 ? '<span class="' + (ub0.ue < 0 ? 'dminus' : '') + '">' + pxEuro(ub0.ue) + '</span>' : '–', ub0 ? lohnMonat(ub0.m) + (' · nach Kosten' + (ub0.sp ? (ubLeben() ? ', Sparen und Leben' : ' und Sparplänen') : ubLeben() ? ' und Leben' : '')) : !lohnDaten() ? 'kommt mit den Lohnabrechnungen' : 'laufende Kosten noch nicht geladen', '', false);
   k('termine', IC.kalender, 'linear-gradient(135deg,#9e9e9e,#585858)', 'Termine', tm0 ? tmTagKurz(tm0) : '–', tm0 ? esc(tm0.ti) + (tm0.g ? '' : ' · ' + tmUhr(tm0)) + (tmL[1] ? '<br>danach ' + tmTagKurz(tmL[1]) + ': ' + esc(tmL[1].ti) : '') : 'kommt vom Mac, sobald er an ist', '', false);
-  var kr = kachelReihe(kdef), KG = kachelGroessen(), KB = kachelAutoBreit(kr, KG); kr.forEach(function (z, i) { h += kk[z](.12 + i * .06).replace('class="kachel rein', 'class="kachel rein' + (KG[z] === 'b' || KB === z ? ' breit' : KG[z] === 'k' ? ' klein' : '')).replace('<span class="pfeil">', '<button type="button" class="kgr" aria-label="Größe ändern"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button><span class="pfeil">'); });
-  h += '</div><div class="ordtipp">Kachel ziehen zum Verschieben · ⤢ ändert die Größe</div><button class="ordfertig" id="ordfertig">Fertig</button>';
+  var kr = kachelReihe(kdef), KG = kachelGroessen(), KB = kachelAutoBreit(kr, KG); kr.forEach(function (z, i) { h += kk[z](.12 + i * .06).replace('class="kachel rein', 'class="kachel rein' + (KG[z] === 'b' || KB === z ? ' breit' : KG[z] === 'k' ? ' klein' : '')).replace('<span class="pfeil">', '<button type="button" class="kweg" aria-label="Ausblenden"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></button><button type="button" class="kgr" aria-label="Größe ändern"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button><span class="pfeil">'); });
+  h += '</div><div class="kzurueck" id="kzurueck"></div><div class="ordtipp">Kachel ziehen zum Verschieben · ⤢ ändert die Größe · – blendet aus</div><button class="ordfertig" id="ordfertig">Fertig</button>';
   $('start').innerHTML = '<div class="ptr" id="ptr"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>' + h + '<div class="sversion">Cockpit ' + VERSION + '</div>';
   [].forEach.call($('start').querySelectorAll('[data-ziel]'), function (el) { el.onclick = function (ev) { if (window.ordnen && ordnen.tipp) ordnen.tipp = null; if (window.ordnen && (ordnen.an || ordnen.klickSperre)) return; welle(el, ev); setTimeout(function () { startZiel(el.dataset.ziel); }, 160); }; });
   $('ordfertig').onclick = function () { ordnenAus(); };
   kachelLuecke($('start').querySelector('.sgrid'));
   [].forEach.call($('start').querySelectorAll('.kgr'), function (b) { b.onclick = function (ev) { ev.stopPropagation(); kachelGroesseWechseln(b.closest('.kachel')); }; });
+  [].forEach.call($('start').querySelectorAll('.kweg'), function (b) { b.onclick = function (ev) { ev.stopPropagation(); kachelAusblenden(b.closest('.kachel')); }; });
+  kachelZurueckZeichnen();
   jvMiniStart();
   var jh = $('jvHinweis'); if (jh) jh.onclick = function (ev) { var r = jh.querySelector('i').getBoundingClientRect(); jv.ursprung = { x: r.left + r.width / 2, y: r.top + r.height / 2 }; jvOeffnen(); };
   if (window.ordnen && ordnen.an) $('start').classList.add('ordnen');
@@ -1472,7 +1489,31 @@ function kachelReihe(def) {
   var r = []; try { r = JSON.parse(localStorage.getItem('cockpit_kacheln') || '[]'); } catch (e) {}
   r = r.filter(function (z) { return def.indexOf(z) >= 0; });
   def.forEach(function (z) { if (r.indexOf(z) < 0) r.push(z); });
-  return r;
+  var aus = kachelAus(); return r.filter(function (z) { return aus.indexOf(z) < 0; }); // (2.73) ausgeblendete Kacheln weglassen
+}
+// ---------- (2.73) Kacheln ausblenden: beim Anordnen „–“ oben links, zurückholen unten beim Anordnen oder in den Einstellungen ----------
+var KNAMEN = { stunden: 'Stunden', kosten: 'Laufende Kosten', nachweis: 'Arbeitsnachweis', jahr: 'Jahresübersicht', urlaub: 'Urlaub', notizen: 'Notizen', geburtstage: 'Geburtstage', depot: 'Depot', watchlist: 'Watchlist', termine: 'Termine', lohn: 'Lohn', uebrig: 'Was übrig bleibt' };
+function kachelAus() { try { var a = JSON.parse(localStorage.getItem('cockpit_kaus') || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+function kachelAusSetzen(a) { try { localStorage.setItem('cockpit_kaus', JSON.stringify(a)); } catch (e) {} }
+function kachelAusblenden(k) {
+  var z = k.dataset.ziel, grid = k.parentNode, a = kachelAus(); if (a.indexOf(z) < 0) a.push(z); kachelAusSetzen(a);
+  k.classList.add('raus');
+  setTimeout(function () {
+    var kids = [].slice.call(grid.children).filter(function (c) { return c !== k; }), alt = kids.map(function (c) { return c.getBoundingClientRect(); });
+    k.remove(); kachelGroesseAnwenden(grid); kachelLuecke(grid);
+    kids.forEach(function (c, i) { var n = c.getBoundingClientRect(), mx = alt[i].left - n.left, my = alt[i].top - n.top; if (Math.abs(mx) < 1 && Math.abs(my) < 1) return; c.style.transition = 'none'; c.style.translate = mx + 'px ' + my + 'px'; void c.offsetWidth; c.style.transition = 'translate .3s cubic-bezier(.2,.8,.2,1)'; c.style.translate = ''; setTimeout(function () { c.style.transition = ''; }, 320); });
+    var r = [].map.call(grid.children, function (c) { return c.dataset.ziel; }); try { localStorage.setItem('cockpit_kacheln', JSON.stringify(r)); } catch (x) {}
+    kachelZurueckZeichnen(); toast(KNAMEN[z] + ' ausgeblendet');
+  }, 240);
+}
+function kachelEinblenden(z) { kachelAusSetzen(kachelAus().filter(function (x) { return x !== z; })); }
+function kachelZurueckZeichnen() { var b = $('kzurueck'); if (!b) return; var a = kachelAus();
+  b.innerHTML = a.length ? '<small>Ausgeblendet – antippen zum Zurückholen</small>' + a.map(function (z) { return '<button type="button" data-z="' + z + '">+ ' + esc(KNAMEN[z] || z) + '</button>'; }).join('') : '';
+  [].forEach.call(b.querySelectorAll('button[data-z]'), function (x) { x.onclick = function (ev) { ev.stopPropagation(); kachelEinblenden(x.dataset.z); ordnen.klickSperre = true; startZeichnen(true); $('start').classList.add('ordnen'); setTimeout(function () { ordnen.klickSperre = false; }, 350); }; });
+}
+function kachelAusListe() { var el = $('kAusListe'); if (!el) return; var a = kachelAus();
+  el.innerHTML = a.length ? a.map(function (z) { return '<div class="kaus" data-z="' + z + '">' + esc(KNAMEN[z] || z) + '<span>Einblenden</span></div>'; }).join('') : '<div class="hinweis" style="margin-top:4px">Keine. Zum Ausblenden auf der Startseite eine Kachel gedrückt halten und auf „–“ tippen.</div>';
+  [].forEach.call(el.querySelectorAll('.kaus'), function (x) { x.onclick = function () { kachelEinblenden(x.dataset.z); kachelAusListe(); startZeichnen(true); toast((KNAMEN[x.dataset.z] || '') + ' wieder auf der Startseite'); }; });
 }
 function kachelGroessen() { try { return JSON.parse(localStorage.getItem('cockpit_kgroesse') || '{}') || {}; } catch (e) { return {}; } }
 function kachelAutoBreit() { return null; } // (2.60) Lücke wird nach dem Aufbau gemessen (kachelLuecke)
@@ -1517,7 +1558,7 @@ function ordnenAus() {
     if (!ordnen.an) { ordnen.an = true; s.classList.add('ordnen'); }
   }
   s.addEventListener('touchstart', function (ev) {
-    var k = ev.target.closest && ev.target.closest('.sgrid .kachel'); if (!k || ev.touches.length > 1 || ev.target.closest('.kgr')) return;
+    var k = ev.target.closest && ev.target.closest('.sgrid .kachel'); if (!k || ev.touches.length > 1 || ev.target.closest('.kgr') || ev.target.closest('.kweg')) return;
     x0 = ev.touches[0].clientX; y0 = ev.touches[0].clientY; dx = dy = 0; ts0 = ev.timeStamp; warAn = ordnen.an;
     // (2.67) Die Kacheln werden alle paar Sekunden mit neuen Kursen neu gezeichnet. Liegt der Finger dann auf einem Teil,
     // das ersetzt wird, kommt „Finger los“ nicht mehr bei #start an → der 450-ms-Zeitgeber startete das Anordnen.
@@ -1575,7 +1616,7 @@ function ordnenAus() {
   }
   s.addEventListener('touchend', ende); s.addEventListener('touchcancel', ende);
   // Tippen auf freie Fläche beendet das Anordnen
-  s.addEventListener('click', function (ev) { if (ordnen.an && !ordnen.klickSperre && !ev.target.closest('.sgrid .kachel') && !ev.target.closest('#ordfertig')) ordnenAus(); });
+  s.addEventListener('click', function (ev) { if (ordnen.an && !ordnen.klickSperre && !ev.target.closest('.sgrid .kachel') && !ev.target.closest('#ordfertig') && !ev.target.closest('#kzurueck')) ordnenAus(); });
 })();
 function welle(el, ev) { var r = el.getBoundingClientRect(), s = Math.max(r.width, r.height), w = document.createElement('span'); w.className = 'welle'; w.style.width = w.style.height = s + 'px'; w.style.left = ((ev.clientX || r.left + r.width / 2) - r.left - s / 2) + 'px'; w.style.top = ((ev.clientY || r.top + r.height / 2) - r.top - s / 2) + 'px'; el.appendChild(w); setTimeout(function () { w.remove(); }, 600); }
 function startWeg() {
@@ -2594,6 +2635,7 @@ function htZeichnen() {
     F.slice(0, 2).forEach(function (f, k) {
       var l = f.l, art = LADENART[l.art] || l.art || '';
       h += '<div class="htz' + (k === 0 ? ' erst' : '') + '"><div class="hl"><small>' + htTagName(f.tag.datum) + ' · ' + (f.n > 1 ? (f.i + 1) + '. Laden' : 'ein Laden') + (art ? ' · ' + esc(art) : '') + '</small><b>' + esc(l.ort || '–') + '</b>' +
+        (l.str || l.ort ? '<button type="button" class="htroute" data-ziel="' + esc([l.str, ((l.plz || '') + ' ' + (l.ort || '')).trim()].filter(Boolean).join(', ')) + '"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8z"/></svg><span>' + esc(l.str || l.ort) + '</span><i>Route ›</i></button>' : '') +
         (f.i === 0 && f.tag.tp ? '<small>Treffpunkt ' + esc(f.tag.tp) + '</small>' : '') + '</div>' +
         (l.fil ? '<button type="button" class="htnr" data-nr="' + esc(l.fil) + '"><b>' + esc(l.fil) + '</b><i>Markt-Nr.</i></button>' : '') + '</div>';
     });
@@ -2605,7 +2647,15 @@ function htZeichnen() {
   [].forEach.call(document.querySelectorAll('#htKoerper .htnr[data-nr]'), function (b) { b.onclick = function () { var nr = b.dataset.nr;
     var ok = function () { b.classList.add('kopiert'); b.querySelector('i').textContent = 'kopiert ✓'; setTimeout(function () { b.classList.remove('kopiert'); b.querySelector('i').textContent = 'Markt-Nr.'; }, 1500); };
     try { navigator.clipboard.writeText(nr).then(ok, function () { toast('Marktnummer ' + nr); }); } catch (x) { toast('Marktnummer ' + nr); } }; });
+  [].forEach.call(document.querySelectorAll('#htKoerper .htroute[data-ziel]'), function (b) { b.onclick = function () { htRoute(b.dataset.ziel); }; });
   $('htStunden').onclick = function () { $('blattHt').classList.remove('offen'); delete $('blattHt').dataset.vonstart; document.body.classList.remove('versteckt'); setTimeout(function () { oeffne(eh || neuerEintrag(hi), !eh); }, 120); };
+}
+// (2.73) Route mit Google Maps: zuerst die App (comgooglemaps://), ist sie nicht da, nach 1,5 s Google Maps im Browser
+function htRoute(ziel) {
+  var q = encodeURIComponent(ziel), web = 'https://www.google.com/maps/dir/?api=1&destination=' + q + '&travelmode=driving', weg = false;
+  var vis = function () { if (document.hidden) weg = true; }; document.addEventListener('visibilitychange', vis);
+  setTimeout(function () { document.removeEventListener('visibilitychange', vis); if (!weg && !document.hidden) window.open(web, '_blank'); }, 1500);
+  location.href = 'comgooglemaps://?daddr=' + q + '&directionsmode=driving';
 }
 setInterval(function () { if (!document.hidden && $('blattHt') && $('blattHt').classList.contains('offen')) htZeichnen(); }, 60000); // um 9 Uhr von selbst weiterrücken
 // ---------- (2.68) Was übrig bleibt: ausgezahlter Lohn minus laufende Kosten und Sparpläne, je Monat ----------
