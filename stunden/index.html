@@ -99,7 +99,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
   <div class="m" id="monat"></div>
   <button class="kugel" id="mVor" aria-label="Nächster Monat"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
 </div>
-<div class="summe"><div><small>Stunden</small><b id="sStd">0:00</b><div class="soll" id="sSoll"></div></div><div class="r"><small id="sTage">0 Tage</small><b id="sGeld"></b></div></div>
+<div class="summe"><div><small>Stunden</small><b id="sStd">0:00</b></div><div class="r"><small id="sTage">0 Tage</small><b id="sGeld"></b></div></div>
 <div class="umschalter" id="ansichtWahl"><button data-a="liste">Liste</button><button data-a="kal">Kalender</button></div>
 <div id="kalender"></div>
 <div id="liste"></div>
@@ -125,8 +125,8 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
     <label>Dein Name (steht im PDF)</label><input type="text" id="sName" placeholder="Vorname Nachname" autocomplete="off">
     <label>Stundenlohn brutto (€)</label><input type="text" id="sLohn" inputmode="decimal" placeholder="z. B. 13,90" autocomplete="off">
     <div class="hinweis">Leer lassen, wenn nur die Stunden gezählt werden sollen.</div>
-    <label>Vertragsstunden pro Monat</label><input type="text" id="sVertrag" inputmode="decimal" placeholder="z. B. 32" autocomplete="off">
-    <div class="hinweis">Damit siehst du oben, ob du in dieser Woche und im Monat im Plus oder Minus bist. Pro Woche zählt der Monatswert × 12 ÷ 52.</div>
+    <label>Vertragsstunden pro Woche</label><input type="text" id="sVertrag" inputmode="decimal" placeholder="z. B. 32" autocomplete="off">
+    <div class="hinweis">Oben siehst du dann, wie viele Stunden du diese Woche hast und ob du im Plus oder Minus bist. Jede Woche zählt ganz von Montag bis Sonntag, auch über den Monatswechsel.</div>
     <label>Standard-Pause (Minuten)</label><input type="number" id="sPause" inputmode="numeric" min="0" step="5" placeholder="0">
     <label>Sicherung</label>
     <div class="knopfreihe" style="margin-top:4px"><button class="btn" id="sSichern">In iCloud sichern</button><button class="btn" id="sLaden">Sicherung laden</button></div>
@@ -138,7 +138,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.4';
+var VERSION = '1.5';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -153,7 +153,12 @@ function minuten(t) { if (!t) return null; var p = t.split(':'); return +p[0] * 
 function dauer(e) { var b = minuten(e.b), z = minuten(e.e); if (b == null || z == null) return 0; var m = z - b; if (m <= 0) m += 1440; return Math.max(0, m - (+e.p || 0)); }
 function hm(min) { var h = Math.floor(min / 60), m = Math.round(min % 60); if (m === 60) { h++; m = 0; } return h + ':' + ('0' + m).slice(-2); }
 function lohn() { var l = parseFloat(String(daten.einst.lohn || '').replace(',', '.')); return isFinite(l) && l > 0 ? l : 0; }
-function vertrag() { var v = parseFloat(String(daten.einst.vertrag || '').replace(',', '.')); return isFinite(v) && v > 0 ? v * 60 : 0; } // Minuten pro Monat
+function vertrag() { var v = parseFloat(String(daten.einst.vertrag || '').replace(',', '.')); return isFinite(v) && v > 0 ? v * 60 : 0; } // Minuten pro Woche
+function wocheIst(mo) { var so = new Date(mo); so.setDate(mo.getDate() + 6); var a0 = iso(mo), a1 = iso(so), m = 0; daten.eintraege.forEach(function (e) { if (e.d >= a0 && e.d <= a1) m += dauer(e); }); return m; }
+// Wochen eines Monats = alle Wochen, deren Montag im Monat liegt (bis zur laufenden Woche)
+function monatsWochen(j, mo) { var L = [], hm0 = wocheVon(new Date()), d = new Date(j, mo, 1); while (d.getDay() !== 1) d.setDate(d.getDate() + 1);
+  for (; d.getMonth() === mo && d <= hm0; d.setDate(d.getDate() + 7)) { var von = new Date(d), bis = new Date(d); bis.setDate(d.getDate() + 6); L.push({ von: von, bis: bis, ist: wocheIst(von), laeuft: iso(von) === iso(hm0) }); }
+  return L; }
 function pm(min) { return (min >= 0 ? '+' : '−') + hm(Math.abs(min)); }
 function wocheVon(d) { var m = new Date(d.getFullYear(), d.getMonth(), d.getDate()); m.setDate(m.getDate() - (m.getDay() + 6) % 7); return m; }
 function euro(x) { return x.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
@@ -169,12 +174,10 @@ function zeichne() {
   $('sStd').textContent = hm(sum); var nt = Object.keys(tage).length; $('sTage').textContent = nt + (nt === 1 ? ' Tag' : ' Tage');
   $('sGeld').textContent = lohn() ? '≈ ' + euro(sum / 60 * lohn()) : '';
   var V = vertrag();
-  $('sSoll').innerHTML = V ? 'von ' + hm(V) + ' · <span class="' + (sum - V >= 0 ? 'plusw' : 'minusw') + '">' + pm(sum - V) + '</span>' : '';
   if (V) {
-    var mo = wocheVon(heute), so = new Date(mo); so.setDate(mo.getDate() + 6); var a0 = iso(mo), a1 = iso(so), wi = 0, ws = Math.round(V * 12 / 52);
-    daten.eintraege.forEach(function (e) { if (e.d >= a0 && e.d <= a1) wi += dauer(e); });
+    var mo = wocheVon(heute), so = new Date(mo); so.setDate(mo.getDate() + 6); var wi = wocheIst(mo), ws = V;
     $('woche').style.display = ''; $('wTitel').textContent = 'Diese Woche (' + mo.getDate() + '.' + (mo.getMonth() + 1) + '. – ' + so.getDate() + '.' + (so.getMonth() + 1) + '.)';
-    $('wIst').textContent = hm(wi) + ' Std.'; $('wSoll').textContent = 'Soll ' + hm(ws) + ' Std.';
+    $('wIst').textContent = hm(wi) + ' von ' + hm(ws); var wm = monatsWochen(heute.getFullYear(), heute.getMonth()), wmi = wm.reduce(function (a, w) { return a + w.ist; }, 0); $('wSoll').textContent = wm.length ? 'Monat bisher: ' + hm(wmi) + ' von ' + hm(ws * wm.length) + ' (' + pm(wmi - ws * wm.length) + ')' : '';
     $('wDiff').textContent = pm(wi - ws); $('wDiff').className = 'diff ' + (wi - ws >= 0 ? 'plusw' : 'minusw');
   } else $('woche').style.display = 'none';
   [].forEach.call(document.querySelectorAll('#ansichtWahl button'), function (k) { k.classList.toggle('an', k.dataset.a === modus); });
@@ -296,19 +299,18 @@ $('pdfKnopf').onclick = function () {
   y += 10; if (y > 760) { doc.addPage(); y = 54; }
   doc.text(sp[0], y, 'Summe', 11, true); doc.text(515, y, hm(sum) + ' Std.', 11, true, 'r'); y += 18;
   doc.text(sp[0], y, 'Arbeitstage', 10); doc.text(515, y, String(Object.keys(L.reduce(function (a, e) { a[e.d] = 1; return a; }, {})).length), 10, false, 'r'); y += 16;
-  var V = vertrag(); if (V) { doc.text(sp[0], y, 'Vertragsstunden', 10); doc.text(515, y, hm(V) + ' Std.', 10, false, 'r'); y += 16; doc.text(sp[0], y, sum - V >= 0 ? 'Plusstunden' : 'Minusstunden', 10, true); doc.text(515, y, pm(sum - V).replace('−', '-') + ' Std.', 10, true, 'r'); y += 16; }
   if (l) { doc.text(sp[0], y, 'Stundenlohn', 10); doc.text(515, y, euro(l), 10, false, 'r'); y += 16; doc.text(sp[0], y, 'Brutto (Stunden x Stundenlohn)', 10, true); doc.text(515, y, euro(sum / 60 * l), 10, true, 'r'); y += 16; }
-  if (V) { // Wochenübersicht des Monats: Ist gegen Soll (Monatswert × 12 ÷ 52)
-    var ws = Math.round(V * 12 / 52), W = {}, ord = [];
-    var ende = new Date(ansicht.j, ansicht.m + 1, 0), jetzt = new Date(); if (ende > jetzt) ende = jetzt; // alle Wochen, die in diesem Monat beginnen (bis heute), auch ohne Stunden; angebrochene Wochen nur mit Einträgen
-    var wk = wocheVon(new Date(ansicht.j, ansicht.m, 1)); if (wk.getDate() !== 1) wk.setDate(wk.getDate() + 7); for (; wk <= ende; wk.setDate(wk.getDate() + 7)) { var kk = iso(wk); W[kk] = 0; ord.push(kk); }
-    L.forEach(function (e) { var k = iso(wocheVon(new Date(e.d + 'T12:00:00'))); if (!(k in W)) { W[k] = 0; ord.push(k); } W[k] += dauer(e); });
-    y += 14; if (y > 700) { doc.addPage(); y = 54; }
-    doc.text(sp[0], y, 'Wochen', 11, true); y += 18;
+  var V = vertrag();
+  if (V) { // Wochen des Monats: jede Woche zählt ganz (Mo–So) mit den Vertragsstunden, auch über den Monatswechsel; sie gehört zu dem Monat, in dem ihr Montag liegt
+    var WO = monatsWochen(ansicht.j, ansicht.m), ist = 0;
+    y += 14; if (y > 680) { doc.addPage(); y = 54; }
+    doc.text(sp[0], y, 'Wochen (Soll ' + hm(V) + ' Std. pro Woche)', 11, true); y += 18;
     doc.rect(x0 - 6, y - 13, 595 - 2 * x0 + 12, 20, 0.92); doc.text(sp[0], y, 'Woche', 10, true); doc.text(330, y, 'Ist', 10, true, 'r'); doc.text(420, y, 'Soll', 10, true, 'r'); doc.text(515, y, 'Plus/Minus', 10, true, 'r'); y += 20;
-    ord.sort().forEach(function (k) { if (y > 790) { doc.addPage(); y = 54; } var mo = new Date(k + 'T12:00:00'), so = new Date(mo); so.setDate(mo.getDate() + 6);
-      doc.text(sp[0], y, mo.getDate() + '.' + (mo.getMonth() + 1) + '. – ' + so.getDate() + '.' + (so.getMonth() + 1) + '.', 10); doc.text(330, y, hm(W[k]), 10, false, 'r'); doc.text(420, y, hm(ws), 10, false, 'r'); doc.text(515, y, pm(W[k] - ws).replace('−', '-'), 10, false, 'r');
+    WO.forEach(function (w) { if (y > 790) { doc.addPage(); y = 54; } ist += w.ist;
+      doc.text(sp[0], y, w.von.getDate() + '.' + (w.von.getMonth() + 1) + '. – ' + w.bis.getDate() + '.' + (w.bis.getMonth() + 1) + '.' + (w.laeuft ? ' (läuft)' : ''), 10); doc.text(330, y, hm(w.ist), 10, false, 'r'); doc.text(420, y, hm(V), 10, false, 'r'); doc.text(515, y, pm(w.ist - V).replace('−', '-'), 10, false, 'r');
       doc.line(x0 - 6, y + 6, 595 - x0 + 6, y + 6, 0.3, 0.85); y += 18; });
+    if (WO.length) { y += 4; doc.text(sp[0], y, 'Summe Wochen', 10, true); doc.text(330, y, hm(ist), 10, true, 'r'); doc.text(420, y, hm(V * WO.length), 10, true, 'r'); doc.text(515, y, pm(ist - V * WO.length).replace('−', '-'), 10, true, 'r'); y += 16; }
+    doc.text(sp[0], y + 4, 'Wochen zählen immer ganz von Montag bis Sonntag, auch über den Monatswechsel (die Woche gehört zum Monat ihres Montags).', 8); y += 16;
   }
   doc.text(x0, 812, 'Erstellt am ' + new Date().toLocaleDateString('de-DE'), 8);
   teile('Stunden ' + MONATE[ansicht.m] + ' ' + ansicht.j + '.pdf', new Blob([doc.bytes()], { type: 'application/pdf' }));
