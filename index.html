@@ -473,7 +473,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.21';
+var VERSION = '2.22';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -916,6 +916,50 @@ function blattZu(bl) {
 }
 [].forEach.call(document.querySelectorAll('.schliessen'), function (b) { b.onclick = function () { blattZu($(b.dataset.zu)); }; });
 [].forEach.call(document.querySelectorAll('.blatt'), function (bl) { bl.addEventListener('click', function (ev) { if (ev.target === bl) blattZu(bl); }); });
+// (2.22) Wischen vom linken Rand nach rechts = Zurück (wie bei iOS): das oberste offene Fenster folgt dem Finger und geht zu; ohne Fenster zurück zur Startseite
+(function () {
+  var sx = 0, sy = 0, t0 = 0, bl = null, inn = null, an = false, aus = false, w = 1, dx = 0, haupt = false, stKl = null;
+  function oberstes() {
+    var L = [].filter.call(document.querySelectorAll('.blatt.offen'), function (x) { return x.id !== 'blattJv' && !x.classList.contains('zugeht'); });
+    if (!L.length) return null;
+    L.sort(function (a, b) { return (parseInt(getComputedStyle(a).zIndex) || 0) - (parseInt(getComputedStyle(b).zIndex) || 0); });
+    return L[L.length - 1];
+  }
+  function zuruecksetzen() { if (inn) { inn.style.transition = ''; inn.style.transform = ''; inn.style.boxShadow = ''; } if (bl) { bl.style.transition = ''; bl.style.background = ''; } bl = inn = null; an = aus = haupt = false; dx = 0; }
+  document.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 1 || an) return; var t = e.touches[0]; aus = false;
+    if (t.clientX > 24 || ($('sperre') && $('sperre').classList.contains('an')) || document.body.classList.contains('jvgross')) return;
+    bl = oberstes(); haupt = !bl && $('start').classList.contains('aus') && !!$('zurStart');
+    if (!bl && !haupt) return;
+    inn = bl ? bl.querySelector('.innen') : null; sx = t.clientX; sy = t.clientY; t0 = Date.now(); w = window.innerWidth; aus = true;
+  }, { passive: true });
+  document.addEventListener('touchmove', function (e) {
+    if (!aus) return; var t = e.touches[0]; dx = t.clientX - sx; var dy = t.clientY - sy;
+    if (!an) { if (dx > 10 && dx > Math.abs(dy) * 1.3) { an = true; if (bl && bl.dataset.vonstart) { stKl = $('start').className; $('start').classList.remove('aus', 'weg', 'klein'); } } else if (Math.abs(dy) > 12 || dx < -6) { aus = false; return; } else return; }
+    e.preventDefault(); dx = Math.max(0, dx);
+    if (inn) { inn.style.transition = 'none'; inn.style.transform = 'translateX(' + dx + 'px)'; inn.style.boxShadow = '-8px 0 30px rgba(0,0,0,.45)'; bl.style.background = 'rgba(0,0,0,' + (0.5 * (1 - dx / w)).toFixed(3) + ')'; }
+  }, { passive: false });
+  function ende() {
+    if (!aus) return; aus = false; if (!an) { zuruecksetzen(); return; }
+    var v = dx / Math.max(1, Date.now() - t0), weg = dx > w * 0.33 || (v > 0.45 && dx > 50);
+    if (haupt) { var z = $('zurStart'); zuruecksetzen(); if (weg && z) z.click(); return; }
+    var b = bl, i = inn;
+    if (weg) {
+      i.style.transition = 'transform .22s cubic-bezier(.2,.7,.3,1)'; i.style.transform = 'translateX(' + w + 'px)'; b.style.transition = 'background .22s'; b.style.background = 'rgba(0,0,0,0)';
+      setTimeout(function () {
+        var vs = b.dataset.vonstart; delete b.dataset.vonstart; if (vs) document.body.classList.add('zumstart');
+        b.classList.remove('offen'); b.classList.remove('auf'); i.style.transition = ''; i.style.transform = ''; i.style.boxShadow = ''; b.style.transition = ''; b.style.background = '';
+        if (vs) { startZeichnen(); document.body.classList.remove('zumstart'); document.body.classList.remove('versteckt'); }
+      }, 230); stKl = null;
+      bl = inn = null; an = false; dx = 0;
+    } else {
+      i.style.transition = 'transform .25s cubic-bezier(.2,.8,.2,1)'; i.style.transform = 'translateX(0)'; b.style.transition = 'background .25s'; b.style.background = '';
+      var kl = stKl; stKl = null; setTimeout(function () { i.style.transition = ''; i.style.transform = ''; i.style.boxShadow = ''; b.style.transition = ''; if (kl != null) $('start').className = kl; }, 260);
+      bl = inn = null; an = false; dx = 0;
+    }
+  }
+  document.addEventListener('touchend', ende); document.addEventListener('touchcancel', ende);
+})();
 
 // ---------- Einstellungen ----------
 $('einstknopf').onclick = function () {
