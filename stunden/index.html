@@ -35,7 +35,7 @@ button{font:inherit;color:inherit}
 .summe .r{text-align:right}
 .summe{cursor:pointer}.summe:active{transform:scale(.99)}
 .jahrlink{display:inline-block;font-size:12px;font-weight:600;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:4px 10px;margin-bottom:10px}
-.summe .tg{margin-top:2px}.summe .r small.nl{margin-top:8px}.summe .mz{align-items:flex-end}
+.summe .r small.nl{margin-top:8px}.summe .mz{align-items:stretch}.summe .lks{display:flex;flex-direction:column;align-items:flex-start}.summe .lks small{margin-top:auto}.summe .lks b{line-height:1.05}
 .jkarte{background:var(--karte);border:1px solid var(--rand);border-radius:20px;padding:16px;margin:14px 0}
 .jkarte small{display:block;color:var(--grau);font-size:13px}.jkarte b.g{font-size:34px;font-weight:700;letter-spacing:-.5px}
 .jgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--rand)}
@@ -113,9 +113,9 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 </style>
 </head>
 <body>
-<div class="kopf"><button class="kugel" id="pdfKnopf" aria-label="Monat als PDF"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button><div class="mitte" id="monat"></div><button class="kugel" id="einstKnopf" aria-label="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></div>
+<div class="kopf"><button class="kugel" id="zurJahr" aria-label="Zurück zur Jahresübersicht" style="display:none"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><button class="kugel" id="pdfKnopf" aria-label="Monat als PDF"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button><div class="mitte" id="monat"></div><button class="kugel" id="einstKnopf" aria-label="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></div>
 <div id="seite">
-<div class="summe" id="summe"><div class="mz"><div><span class="jahrlink">Jahresübersicht ›</span><small>Stunden im Monat</small><b id="sStd">0:00</b><small id="sTage" class="tg">0 Tage</small></div><div class="r" id="sGeldBox"><small>Brutto</small><b id="sGeld"></b><small class="nl">Netto (ca.)</small><b id="sNetto"></b></div></div><div class="woche" id="woche" style="display:none"><div><small id="wTitel">Diese Woche</small><b id="wIst">0:00</b><div class="soll" id="wSoll" style="display:none"></div></div><div class="diff" id="wDiff"></div></div></div>
+<div class="summe" id="summe"><div class="mz"><div class="lks"><span class="jahrlink">Jahresübersicht ›</span><small>Stunden im Monat</small><b id="sStd">0:00</b></div><div class="r" id="sGeldBox"><small>Brutto</small><b id="sGeld"></b><small class="nl">Netto (ca.)</small><b id="sNetto"></b></div></div><div class="woche" id="woche" style="display:none"><div><small id="wTitel">Diese Woche</small><b id="wIst">0:00</b><div class="soll" id="wSoll" style="display:none"></div></div><div class="diff" id="wDiff"></div></div></div>
 <div class="umschalter" id="ansichtWahl"><button data-a="liste">Liste</button><button data-a="kal">Kalender</button></div>
 <div id="kalender"></div>
 <div id="liste"></div>
@@ -170,7 +170,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.1';
+var VERSION = '3.2';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -215,7 +215,7 @@ function zeichneEcht() {
   $('monat').textContent = MONATE[ansicht.m] + ' ' + ansicht.j;
   var L = monatsEintraege(), sum = 0, tage = {};
   L.forEach(function (e) { sum += dauer(e); tage[e.d] = 1; });
-  $('sStd').textContent = hm(sum); var nt = Object.keys(tage).length; $('sTage').textContent = nt + (nt === 1 ? ' Tag' : ' Tage');
+  $('sStd').textContent = hm(sum); 
   var br = Math.round(sum / 60 * lohn() * 100) / 100;
   $('sGeldBox').style.display = lohn() ? '' : 'none'; $('sGeld').textContent = euro(br); $('sNetto').textContent = euro(netto(br));
   var V = vertrag();
@@ -402,7 +402,10 @@ $('sDatei').onchange = function () {
   r.readAsText(f);
 };
 // Jahresübersicht: Stunden, Tage, Geld, Überstunden (Wochen mit Montag im Jahr bis zur laufenden Woche) und jeder Monat; Monat antippen springt dorthin
-var jahrAnsicht = new Date().getFullYear();
+var jahrAnsicht = new Date().getFullYear(), vonJahr = false;
+// zurück zur Jahresübersicht (Knopf links oben oder vom linken Rand wischen); danach verschwindet der Knopf wieder
+function zurueckZumJahr() { if (!vonJahr) return; vonJahr = false; $('zurJahr').style.display = 'none'; jahrZeichnen(); oeffne('blattJ'); }
+$('zurJahr').onclick = zurueckZumJahr;
 $('summe').onclick = function () { jahrAnsicht = ansicht.j; jahrZeichnen(); oeffne('blattJ'); };
 function jahrZeichnen() {
   var J = jahrAnsicht, V = vertrag(), l = lohn(), jahre = {}, hj = new Date().getFullYear();
@@ -435,7 +438,7 @@ function jahrZeichnen() {
 }
 $('jInhalt').onclick = function (ev) {
   var j = ev.target.closest('[data-j]'); if (j) { jahrAnsicht = +j.dataset.j; jahrZeichnen(); return; }
-  var m = ev.target.closest('.jmon'); if (m) { ansicht.j = jahrAnsicht; ansicht.m = +m.dataset.m; zeichne(); schliesse($('blattJ')); }
+  var m = ev.target.closest('.jmon'); if (m) { ansicht.j = jahrAnsicht; ansicht.m = +m.dataset.m; vonJahr = true; $('zurJahr').style.display = ''; zeichne(); schliesse($('blattJ')); }
 };
 // PDF des angezeigten Monats
 $('pdfKnopf').onclick = function () { if (!monatsEintraege().length) { toast('In diesem Monat ist nichts eingetragen'); return; } $('pMonat').textContent = MONATE[ansicht.m] + ' ' + ansicht.j; oeffne('blattP'); };
@@ -532,9 +535,9 @@ function pdfKalender() {
 // Wischen vom linken Rand = Zurück (wie bei iOS)
 (function () {
   var sx = 0, sy = 0, t0 = 0, bl = null, inn = null, an = false, aktiv = false, dx = 0, w = 1;
-  document.addEventListener('touchstart', function (e) { if (e.touches.length !== 1) return; var t = e.touches[0]; aktiv = false; if (t.clientX > 24) return; var L = document.querySelectorAll('.blatt.offen:not(.zu)'); bl = L[L.length - 1]; if (!bl) return; inn = bl.querySelector('.innen'); sx = t.clientX; sy = t.clientY; t0 = Date.now(); w = innerWidth; an = false; aktiv = true; }, { passive: true });
-  document.addEventListener('touchmove', function (e) { if (!aktiv) return; var t = e.touches[0]; dx = t.clientX - sx; var dy = t.clientY - sy; if (!an) { if (dx > 10 && dx > Math.abs(dy) * 1.3) an = true; else if (Math.abs(dy) > 12 || dx < -6) { aktiv = false; return; } else return; } e.preventDefault(); dx = Math.max(0, dx); inn.style.animation = 'none'; inn.style.transition = 'none'; inn.style.transform = 'translateX(' + dx + 'px)'; bl.style.background = 'rgba(0,0,0,' + (0.5 * (1 - dx / w)).toFixed(3) + ')'; }, { passive: false });
-  function ende() { if (!aktiv) return; aktiv = false; if (!an) return; var b = bl, i = inn, weg = dx > w * 0.33 || (dx / Math.max(1, Date.now() - t0) > 0.45 && dx > 50);
+  document.addEventListener('touchstart', function (e) { if (e.touches.length !== 1) return; var t = e.touches[0]; aktiv = false; if (t.clientX > 24) return; var L = document.querySelectorAll('.blatt.offen:not(.zu)'); bl = L[L.length - 1]; if (!bl) { if (typeof vonJahr !== 'undefined' && vonJahr) { sx = t.clientX; sy = t.clientY; t0 = Date.now(); w = innerWidth; an = false; aktiv = true; inn = null; } return; } inn = bl.querySelector('.innen'); sx = t.clientX; sy = t.clientY; t0 = Date.now(); w = innerWidth; an = false; aktiv = true; }, { passive: true });
+  document.addEventListener('touchmove', function (e) { if (!aktiv) return; var t = e.touches[0]; dx = t.clientX - sx; var dy = t.clientY - sy; if (!an) { if (dx > 10 && dx > Math.abs(dy) * 1.3) an = true; else if (Math.abs(dy) > 12 || dx < -6) { aktiv = false; return; } else return; } e.preventDefault(); dx = Math.max(0, dx); if (!inn) return; inn.style.animation = 'none'; inn.style.transition = 'none'; inn.style.transform = 'translateX(' + dx + 'px)'; bl.style.background = 'rgba(0,0,0,' + (0.5 * (1 - dx / w)).toFixed(3) + ')'; }, { passive: false });
+  function ende() { if (!aktiv) return; aktiv = false; if (!an) return; var b = bl, i = inn, weg = dx > w * 0.33 || (dx / Math.max(1, Date.now() - t0) > 0.45 && dx > 50); if (!i) { if (weg) zurueckZumJahr(); return; }
     i.style.transition = 'transform .22s cubic-bezier(.2,.7,.3,1)'; i.style.transform = 'translateX(' + (weg ? w : 0) + 'px)'; b.style.transition = 'background .22s'; b.style.background = weg ? 'rgba(0,0,0,0)' : '';
     setTimeout(function () { if (weg) b.classList.remove('offen'); i.style.transition = ''; i.style.transform = ''; i.style.animation = ''; b.style.transition = ''; b.style.background = ''; }, 240); }
   document.addEventListener('touchend', ende); document.addEventListener('touchcancel', ende);
