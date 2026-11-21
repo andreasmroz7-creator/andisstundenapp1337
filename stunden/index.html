@@ -154,7 +154,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.7';
+var VERSION = '1.8';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -210,8 +210,7 @@ function zeichne() {
     $('kalender').innerHTML = '<div class="kal"><div class="wk"><span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span></div><div class="gitter">' + g + '</div></div>';
     var TL = L.filter(function (e) { return e.d === gewaehlt; }), ts = TL.reduce(function (a, e) { return a + dauer(e); }, 0);
     $('liste').innerHTML = '<div class="tagkopf">' + datumText(gewaehlt).replace(/ \d{4}$/, '') + '<span>' + (TL.length ? hm(ts) + ' Std.' : '') + '</span></div>' +
-      (TL.length ? TL.map(eintragHtml).join('') : '<div class="leer" style="padding:16px 10px">Nichts eingetragen.</div>') +
-      '<div class="knopfreihe" style="margin-top:8px"><button class="btn" id="tagNeu">+ Stunden für diesen Tag</button></div>';
+      (TL.length ? TL.map(eintragHtml).join('') : '<div class="leer" style="padding:16px 10px">Nichts eingetragen. Tippe auf +</div>');
   } else {
     $('kalender').innerHTML = '';
     $('liste').innerHTML = L.length ? L.map(eintragHtml).join('') : '<div class="leer">Noch keine Stunden in diesem Monat.<br>Tippe auf +</div>';
@@ -254,7 +253,6 @@ function eRechne() { $('eStd').textContent = hm(eNur ? (stdLesen($('eStunden').v
 $('plus').onclick = function () { eintragOeffnen(null, modus === 'kal' ? gewaehlt : null); };
 $('ansichtWahl').onclick = function (ev) { var k = ev.target.closest('button'); if (!k) return; modus = k.dataset.a; try { localStorage.setItem('stunden_einfach_ansicht', modus); } catch (e) {} zeichne(); };
 $('kalender').onclick = function (ev) { var z = ev.target.closest('.zelle[data-d]'); if (!z) return; gewaehlt = z.dataset.d; zeichne(); };
-document.addEventListener('click', function (ev) { if (ev.target.id === 'tagNeu') eintragOeffnen(null, gewaehlt); });
 $('liste').onclick = function (ev) { var t = ev.target.closest('.tag'); if (!t) return; var e = daten.eintraege.filter(function (x) { return x.id === t.dataset.id; })[0]; if (e) eintragOeffnen(e); };
 $('eSpeichern').onclick = function () {
   var d = $('eDatum').value, b = $('eBeginn').value, z = $('eEnde').value, id = bearbeite ? bearbeite.id : Date.now().toString(36) + Math.random().toString(36).slice(2, 6), e;
