@@ -32,6 +32,7 @@ button{font:inherit;color:inherit}
 .summe .mz{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
 .summe small{display:block;color:var(--grau);font-size:13px}
 .summe b{font-size:34px;font-weight:700;letter-spacing:-.5px}
+.summe .netto{font-size:14px;color:var(--grau);margin-top:2px;white-space:nowrap}.summe .netto b{font-size:16px;color:var(--txt)}
 .summe .r{text-align:right}.summe .r b{font-size:22px}
 .tag{background:var(--karte);border:1px solid var(--rand);border-radius:16px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer}
 .tag:active{transform:scale(.985)}
@@ -103,7 +104,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <body>
 <div class="kopf"><button class="kugel" id="pdfKnopf" aria-label="Monat als PDF"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button><div class="mitte" id="monat"></div><button class="kugel" id="einstKnopf" aria-label="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></div>
 <div id="seite">
-<div class="summe"><div class="mz"><div><small>Stunden im Monat</small><b id="sStd">0:00</b></div><div class="r"><small id="sTage">0 Tage</small><b id="sGeld"></b></div></div><div class="woche" id="woche" style="display:none"><div><small id="wTitel">Diese Woche</small><b id="wIst">0:00</b><div class="soll" id="wSoll" style="display:none"></div></div><div class="diff" id="wDiff"></div></div></div>
+<div class="summe"><div class="mz"><div><small>Stunden im Monat</small><b id="sStd">0:00</b></div><div class="r"><small id="sTage">0 Tage</small><b id="sGeld"></b><div class="netto" id="sNetto"></div></div></div><div class="woche" id="woche" style="display:none"><div><small id="wTitel">Diese Woche</small><b id="wIst">0:00</b><div class="soll" id="wSoll" style="display:none"></div></div><div class="diff" id="wDiff"></div></div></div>
 <div class="umschalter" id="ansichtWahl"><button data-a="liste">Liste</button><button data-a="kal">Kalender</button></div>
 <div id="kalender"></div>
 <div id="liste"></div>
@@ -131,6 +132,8 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
     <label>Dein Name (steht im PDF)</label><input type="text" id="sName" placeholder="Vorname Nachname" autocomplete="off">
     <label>Stundenlohn brutto (€)</label><input type="text" id="sLohn" inputmode="decimal" placeholder="z. B. 13,90" autocomplete="off">
     <div class="hinweis">Leer lassen, wenn nur die Stunden gezählt werden sollen.</div>
+    <div class="schalter" id="sKist"><div>Kirchensteuer<small>nur wenn du in der Kirche bist (für den Netto-Schätzer)</small></div><div class="knopf"></div></div>
+    <div class="schalter" id="sKinder"><div>Ich habe Kinder<small>sonst etwas höherer Pflegebeitrag (für den Netto-Schätzer)</small></div><div class="knopf"></div></div>
     <div class="schalter" id="sNurStd"><div>Nur Stunden eintragen<small>statt Beginn und Ende einfach die Stunden, z. B. 7:30</small></div><div class="knopf"></div></div>
     <label>Vertragsstunden pro Woche</label><input type="text" id="sVertrag" inputmode="decimal" placeholder="z. B. 32" autocomplete="off">
     <div class="hinweis">Oben siehst du dann, wie viele Stunden du diese Woche hast und ob du im Plus oder Minus bist. Jede Woche zählt ganz von Montag bis Sonntag, auch über den Monatswechsel.</div>
@@ -152,7 +155,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.8';
+var VERSION = '2.9';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -175,6 +178,18 @@ function monatsWochen(j, mo, alle) { var L = [], hm0 = wocheVon(new Date()), d =
   return L; }
 function pm(min) { return (min >= 0 ? '+' : '−') + hm(Math.abs(min)); }
 function wocheVon(d) { var m = new Date(d.getFullYear(), d.getMonth(), d.getDate()); m.setDate(m.getDate() - (m.getDay() + 6) % 7); return m; }
+// Netto-Schätzung (Steuerklasse 1, Tarif 2026 § 32a EStG, Sozialversicherung 2026 mit Zusatzbeitrag 2,9 %).
+// Minijob bis 603 € ohne Abzüge; Midijob 603–2.000 € mit verringertem Arbeitnehmer-Anteil (Übergangsbereich). Grobe Näherung an die Lohnsteuertabelle.
+function estTarif(x) { x = Math.floor(x); if (x <= 12348) return 0; if (x <= 17799) { var y = (x - 12348) / 1e4; return Math.floor((914.51 * y + 1400) * y); } if (x <= 69878) { var z = (x - 17799) / 1e4; return Math.floor((173.10 * z + 2397) * z + 1034.87); } if (x <= 277825) return Math.floor(.42 * x - 11135.63); return Math.floor(.45 * x - 19470.38); }
+function netto(brutto) {
+  if (!(brutto > 0)) return 0; if (brutto <= 603) return brutto;
+  var e = daten.einst, zus = .029, kv = Math.min(brutto, 5812.5), rv = Math.min(brutto, 8450), pv = e.kinder ? .018 : .024, satz = .073 + zus / 2 + pv + .093 + .013;
+  var basis = brutto < 2000 ? 2000 / (2000 - 603) * (brutto - 603) : null; // Übergangsbereich: Beitrag nur auf einen Teil des Lohns
+  var sv = basis != null ? basis * satz : kv * (.073 + zus / 2 + pv) + rv * (.093 + .013);
+  var jahr = brutto * 12, vorsorge = rv * 12 * .093 + Math.max(Math.min(1900, jahr * .12), (kv * (.07 + zus / 2) + kv * pv) * 12);
+  var est = estTarif(Math.max(0, jahr - 1230 - 36 - vorsorge)), lst = est / 12, soli = est > 20350 ? lst * .055 : 0, kist = e.kist ? lst * .09 : 0;
+  return Math.round((brutto - sv - lst - soli - kist) * 100) / 100;
+}
 function euro(x) { return x.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
 function datumText(s) { var d = new Date(s + 'T12:00:00'); return WTL[d.getDay()] + ', ' + d.getDate() + '. ' + MONATE[d.getMonth()] + ' ' + d.getFullYear(); }
 function monatsEintraege() { var pre = ansicht.j + '-' + ('0' + (ansicht.m + 1)).slice(-2); return daten.eintraege.filter(function (e) { return e.d.slice(0, 7) === pre; }).sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : (a.b || '') < (b.b || '') ? -1 : 1; }); }
@@ -185,7 +200,9 @@ function zeichneEcht() {
   var L = monatsEintraege(), sum = 0, tage = {};
   L.forEach(function (e) { sum += dauer(e); tage[e.d] = 1; });
   $('sStd').textContent = hm(sum); var nt = Object.keys(tage).length; $('sTage').textContent = nt + (nt === 1 ? ' Tag' : ' Tage');
-  $('sGeld').textContent = lohn() ? euro(Math.round(sum / 60 * lohn() * 100) / 100) : ''; if (lohn()) $('sTage').textContent += ' · brutto';
+  var br = Math.round(sum / 60 * lohn() * 100) / 100;
+  $('sGeld').textContent = lohn() ? euro(br) : ''; if (lohn()) $('sTage').textContent += ' · brutto';
+  $('sNetto').innerHTML = lohn() && br > 0 ? '≈ <b>' + euro(netto(br)) + '</b> netto' : '';
   var V = vertrag();
   if (V) {
     var mo = wocheVon(heute), so = new Date(mo); so.setDate(mo.getDate() + 6); var wi = wocheIst(mo), ws = V;
@@ -331,7 +348,9 @@ $('einstKnopf').onclick = function () { $('sName').value = daten.einst.name || '
 $('sName').onchange = function () { daten.einst.name = this.value.trim(); sichern(); zeichne(); };
 $('sLohn').onchange = function () { daten.einst.lohn = this.value.trim(); sichern(); zeichne(); };
 $('sPause').onchange = function () { daten.einst.pause = this.value.trim(); sichern(); };
-function nurStdZeigen() { $('sNurStd').classList.toggle('an', !!daten.einst.nurStd); }
+function nurStdZeigen() { $('sNurStd').classList.toggle('an', !!daten.einst.nurStd); $('sKist').classList.toggle('an', !!daten.einst.kist); $('sKinder').classList.toggle('an', !!daten.einst.kinder); }
+$('sKist').onclick = function () { daten.einst.kist = !daten.einst.kist; sichern(); nurStdZeigen(); zeichne(); };
+$('sKinder').onclick = function () { daten.einst.kinder = !daten.einst.kinder; sichern(); nurStdZeigen(); zeichne(); };
 $('sNurStd').onclick = function () { daten.einst.nurStd = !daten.einst.nurStd; sichern(); nurStdZeigen(); toast(daten.einst.nurStd ? 'Ab jetzt nur Stunden eintragen' : 'Ab jetzt Beginn und Ende eintragen'); };
 $('sVertrag').onchange = function () { daten.einst.vertrag = this.value.trim(); sichern(); zeichne(); };
 // Datei teilen (Teilen-Menü: In Dateien sichern → iCloud Drive), sonst herunterladen
