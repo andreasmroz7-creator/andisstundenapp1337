@@ -254,6 +254,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .dplus{color:var(--ok)}.dminus{color:var(--rot)}.verdeckt .dplus,.verdeckt .dminus{color:var(--grau)}
 .dlinie{display:block;width:100%;height:46px;margin-top:8px}.dlinie path{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:stroke .4s}
 .dlinie .ref{stroke:rgba(255,255,255,.18);stroke-dasharray:3 4;stroke-width:1}
+.dlinie path.vt{stroke:rgba(255,255,255,.38);transition:opacity .45s}.dlinie path.tg{stroke:rgba(255,255,255,.22);stroke-width:1;stroke-dasharray:3 4}.dlinie .neu{animation:dein .5s ease}@keyframes dein{from{opacity:0}}.verdeckt .dlinie path.vt{opacity:0} /* (2.38) grauer Vortag 0–6 Uhr */
 .dlinie path.l,.dlinie .ref{transition:opacity .45s}.dlinie path.f{stroke:#777;opacity:0;transition:opacity .45s}.verdeckt .dlinie path.l,.verdeckt .dlinie .ref{opacity:0}.verdeckt .dlinie path.f{opacity:1}
 .dgross{font-size:40px;font-weight:800;letter-spacing:-1px;margin:16px 0 2px}
 .dheute{font-size:16px;font-weight:600}
@@ -488,7 +489,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.37';
+var VERSION = '2.38';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2143,12 +2144,21 @@ function depotHolen(kopf, leise) {
     if (neu) { if (!$('start').classList.contains('aus')) startZeichnen(true); if ($('blattD').classList.contains('offen')) depotZeichnen(); }
   }).catch(function () {}).then(function () { depotKopf = kopf; return depotLiveRechnen(!leise); });
 }
+// (2.38) Tagesansicht wie im Dashboard: links ein Sechstel grauer Vortag (0 bis 6 Uhr), gestrichelte Trennlinie, danach der heutige Tag bis ganz rechts (wächst mit der Zeit)
+function depotTagX(ax, vor, ts, W) {
+  if (!ax || !vor || vor.length < 2 || !ts || ts.length < 2) return null;
+  var span = Math.max(1800, ts[ts.length - 1] - ax.open), TE = span * .2, tot = TE + span;
+  return { xh: ts.map(function (t) { return (TE + Math.max(0, t - ax.open)) / tot * W; }), xv: vor.map(function (q) { return Math.max(0, q[0] - ax.t0) / ax.len * TE / tot * W; }), xb: TE / tot * W };
+}
 function depotLinie(d, zu, gross) {
   var l = d.linie || []; if (l.length < 2) return '';
   var W = 300, H = gross ? 180 : 46, mn = Math.min.apply(null, l.concat([d.ref])), mx = Math.max.apply(null, l.concat([d.ref])), sp = (mx - mn) || 1;
-  var y = function (v) { return (H - 4 - (v - mn) / sp * (H - 8)).toFixed(1); }, x = function (i) { return (i / (l.length - 1) * W).toFixed(1); };
+  var TX = !d.seitMac && d.lt && d.lt.length === l.length ? depotTagX(d.ax, d.vor, d.lt, W) : null;
+  if (TX) { var vv = d.vor.map(function (q) { return q[1]; }); mn = Math.min(mn, Math.min.apply(null, vv)); mx = Math.max(mx, Math.max.apply(null, vv)); sp = (mx - mn) || 1; }
+  var y = function (v) { return (H - 4 - (v - mn) / sp * (H - 8)).toFixed(1); }, x = function (i) { return (TX ? TX.xh[i] : i / (l.length - 1) * W).toFixed(1); };
   var pf = l.map(function (v, i) { return (i ? 'L' : 'M') + x(i) + ' ' + y(v); }).join('');
-  return '<svg class="dlinie' + (gross ? ' gross' : '') + '" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none"><path class="ref" d="M0 ' + y(d.ref) + 'H' + W + '"/><path class="l" d="' + pf + '" style="stroke:' + (d.heute_eur >= 0 ? 'var(--ok)' : 'var(--rot)') + '" vector-effect="non-scaling-stroke"/><path class="f" d="M0 ' + (H / 2) + 'H' + W + '" vector-effect="non-scaling-stroke"/></svg>';
+  var gr = TX ? '<path class="tg" d="M' + TX.xb.toFixed(1) + ' 0V' + H + '" vector-effect="non-scaling-stroke"/><path class="vt" d="' + d.vor.map(function (q, i) { return (i ? 'L' : 'M') + TX.xv[i].toFixed(1) + ' ' + y(q[1]); }).join('') + 'L' + x(0) + ' ' + y(l[0]) + '" vector-effect="non-scaling-stroke"/>' : '';
+  return '<svg class="dlinie' + (gross ? ' gross' : '') + '" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + gr + '<path class="ref" d="M' + (TX ? TX.xb.toFixed(1) : 0) + ' ' + y(d.ref) + 'H' + W + '"/><path class="l" d="' + pf + '" style="stroke:' + (d.heute_eur >= 0 ? 'var(--ok)' : 'var(--rot)') + '" vector-effect="non-scaling-stroke"/><path class="f" d="M0 ' + (H / 2) + 'H' + W + '" vector-effect="non-scaling-stroke"/></svg>';
 }
 var DZR = [['1d', '1T'], ['1w', '1W'], ['1m', '1M'], ['6m', '6M'], ['1y', '1J'], ['max', 'Max']], depotZr = '1d'; // (2.15) öffnet immer mit 1 Tag
 var DZT = { '1d': 'heute', '1w': 'in 1 Woche', '1m': 'in 1 Monat', '6m': 'in 6 Monaten', '1y': 'in 1 Jahr', 'max': 'seit Beginn' };
@@ -2169,13 +2179,14 @@ function depotReihe(d, r) {
     var fz = []; for (var i = 1; i < e.length; i++) if (Math.abs(e[i] - e[i - 1]) > 0.5) fz.push(i);
     return { v: v, g: Z.pl ? e : depotPlusMinus(v, Z.eur, fz), t: Z.p.map(function (x) { return x[0]; }), e: e, ref: 0, eur: Z.eur, pct: Z.pct, txt: DZT[r], r: r }; }
   if (r !== '1d') return { v: [], t: null, e: null, ref: null, eur: 0, pct: 0, txt: DZT[r], r: r, leer: true };
-  var l = d.linie || []; return { v: l, t: d.lt && d.lt.length === l.length ? d.lt : null, e: null, ref: d.ref, eur: d.heute_eur, pct: d.heute_pct, txt: depotWann(d), r: '1d' };
+  var l = d.linie || []; return { v: l, t: d.lt && d.lt.length === l.length ? d.lt : null, e: null, ref: d.ref, eur: d.heute_eur, pct: d.heute_pct, txt: depotWann(d), r: '1d', vor: !d.seitMac && d.ax ? d.vor : null, ax: d.ax };
 }
 // (2.32) Diagramm-Art wie im Dashboard: € = Gesamtvermögen, ± = Gewinn/Verlust ohne Einzahlungen (Nulllinie gestrichelt)
 var depotArt = (function () { try { return localStorage.getItem('cockpit_depotart2') === 'eur' ? 'eur' : 'pm'; } catch (x) { return 'pm'; } })(); // (2.34) ± zuerst (Standard), € als zweites
 function depotLinieWahl(R) {
   if (depotArt === 'pm') { R.l = R.g || (R.ref != null ? R.v.map(function (v) { return v - R.ref; }) : R.v); R.lref = (R.g || R.ref != null) ? 0 : null; }
   else { R.l = R.v; R.lref = R.r === '1d' ? R.ref : null; }
+  R.vl = R.vor && R.vor.length > 1 ? R.vor.map(function (q) { return depotArt === 'pm' && R.ref != null ? q[1] - R.ref : q[1]; }) : null;
   return R;
 }
 // Kurze Namen wie im Dashboard
@@ -2208,25 +2219,28 @@ function depotMorph() {
   cancelAnimationFrame(depotMorphR);
   if (!A || !pl || matchMedia('(prefers-reduced-motion:reduce)').matches) { depotAltLinie = Z; return; }
   var N = Math.min(240, Math.max(A.p.length, Z.p.length)), an = function (P, f) { var x = f * (P.length - 1), i = Math.floor(x), k = x - i, a = P[i], b = P[Math.min(P.length - 1, i + 1)]; return a + (b - a) * k; };
-  var a = [], b = [], i; for (i = 0; i < N; i++) { var f = N > 1 ? i / (N - 1) : 0; a.push(an(A.p, f)); b.push(an(Z.p, f)); }
-  var ra = A.ref != null ? A.ref : Z.ref, rb = Z.ref, t0 = performance.now(), DU = 650, W = Z.W;
-  var bild = function (P) { return P.map(function (y, i) { return (i ? 'L' : 'M') + (N > 1 ? i / (N - 1) * W : 0).toFixed(1) + ' ' + y.toFixed(1); }).join(''); };
+  var W = Z.W, gx = function (Q) { return Q.x && Q.x.length === Q.p.length ? Q.x : Q.p.map(function (y, i) { return Q.p.length > 1 ? i / (Q.p.length - 1) * W : 0; }); };
+  var ax_ = gx(A), zx_ = gx(Z), a = [], b = [], xa = [], xz = [], i; for (i = 0; i < N; i++) { var f = N > 1 ? i / (N - 1) : 0; a.push(an(A.p, f)); b.push(an(Z.p, f)); xa.push(an(ax_, f)); xz.push(an(zx_, f)); }
+  var ra = A.ref != null ? A.ref : Z.ref, rb = Z.ref, t0 = performance.now(), DU = 650, rx = Z.xb || 0;
+  var bild = function (P, X) { return P.map(function (y, i) { return (i ? 'L' : 'M') + X[i].toFixed(1) + ' ' + y.toFixed(1); }).join(''); };
   var schritt = function (jetzt) {
-    var q = Math.min(1, (jetzt - t0) / DU), e = q < .5 ? 4 * q * q * q : 1 - Math.pow(-2 * q + 2, 3) / 2, P = a.map(function (y, i) { return y + (b[i] - y) * e; });
-    pl.setAttribute('d', bild(P)); if (pr && ra != null && rb != null) pr.setAttribute('d', 'M0 ' + (ra + (rb - ra) * e).toFixed(1) + 'H' + W);
-    depotAltLinie = { p: P, ref: ra != null && rb != null ? ra + (rb - ra) * e : rb, W: W };
+    var q = Math.min(1, (jetzt - t0) / DU), e = q < .5 ? 4 * q * q * q : 1 - Math.pow(-2 * q + 2, 3) / 2, P = a.map(function (y, i) { return y + (b[i] - y) * e; }), X = xa.map(function (x, i) { return x + (xz[i] - x) * e; });
+    pl.setAttribute('d', bild(P, X)); if (pr && ra != null && rb != null) pr.setAttribute('d', 'M' + rx.toFixed(1) + ' ' + (ra + (rb - ra) * e).toFixed(1) + 'H' + W);
+    depotAltLinie = { p: P, x: X, ref: ra != null && rb != null ? ra + (rb - ra) * e : rb, W: W, xb: Z.xb };
     if (q < 1) depotMorphR = requestAnimationFrame(schritt); else { pl.setAttribute('d', Z.d); depotAltLinie = Z; }
   };
-  pl.setAttribute('d', bild(a)); depotMorphR = requestAnimationFrame(schritt);
+  pl.setAttribute('d', bild(a, xa)); depotMorphR = requestAnimationFrame(schritt);
 }
 function depotAend(eur, pct, txt) { return '<span class="dpkt">•••</span><span class="dw ' + (eur >= 0 ? 'dplus' : 'dminus') + '">' + (eur >= 0 ? '+' : '') + euroH(eur) + ' (' + (pct >= 0 ? '+' : '') + String((Math.round(pct * 100) / 100)).replace('.', ',') + ' %) <span class="dwann">' + txt + '</span></span>'; }
 function depotGrafik(R) {
   var l = R.l || R.g || R.v, rf = R.lref !== undefined ? R.lref : R.ref; if (l.length < 2) { depotGrafik.ziel = null; return '<p class="hinweis" style="margin-top:22px">Für diesen Zeitraum gibt es noch keine Daten vom Mac.</p>'; }
-  var W = 300, H = 180, mm = rf != null ? l.concat([rf]) : l, mn = Math.min.apply(null, mm), mx = Math.max.apply(null, mm), sp = (mx - mn) || 1;
-  var y = function (v) { return (H - 4 - (v - mn) / sp * (H - 8)); }, x = function (i) { return (i / (l.length - 1) * W).toFixed(1); };
+  var W = 300, H = 180, TX = R.r === '1d' && R.vl ? depotTagX(R.ax, R.vor, R.t, W) : null, mm = (rf != null ? l.concat([rf]) : l).concat(TX ? R.vl : []), mn = Math.min.apply(null, mm), mx = Math.max.apply(null, mm), sp = (mx - mn) || 1;
+  var y = function (v) { return (H - 4 - (v - mn) / sp * (H - 8)); }, x = function (i) { return (TX ? TX.xh[i] : i / (l.length - 1) * W).toFixed(1); };
   var pf = l.map(function (v, i) { return (i ? 'L' : 'M') + x(i) + ' ' + y(v).toFixed(1); }).join('');
-  depotGrafik.y = y; depotGrafik.H = H; depotGrafik.ziel = { p: l.map(function (v) { return y(v); }), ref: rf != null ? y(rf) : null, W: W, d: pf };
-  return '<div class="dchart" id="dChart"><svg class="dlinie gross" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + (rf != null ? '<path class="ref" d="M0 ' + y(rf).toFixed(1) + 'H' + W + '"/>' : '') + '<path class="l" d="' + pf + '" style="stroke:' + (R.eur >= 0 ? 'var(--ok)' : 'var(--rot)') + '" vector-effect="non-scaling-stroke"/><path class="f" d="M0 ' + (H / 2) + 'H' + W + '" vector-effect="non-scaling-stroke"/></svg><i class="dcur" id="dCur"></i><i class="ddot" id="dDot"></i></div>';
+  var neu = TX && !(depotAltLinie && depotAltLinie.xb) ? ' neu' : '';
+  var gr = TX ? '<path class="tg' + neu + '" d="M' + TX.xb.toFixed(1) + ' 0V' + H + '" vector-effect="non-scaling-stroke"/><path class="vt' + neu + '" d="' + R.vl.map(function (v, i) { return (i ? 'L' : 'M') + TX.xv[i].toFixed(1) + ' ' + y(v).toFixed(1); }).join('') + 'L' + x(0) + ' ' + y(l[0]).toFixed(1) + '" vector-effect="non-scaling-stroke"/>' : '';
+  depotGrafik.y = y; depotGrafik.H = H; depotGrafik.ziel = { p: l.map(function (v) { return y(v); }), x: l.map(function (v, i) { return +x(i); }), ref: rf != null ? y(rf) : null, W: W, d: pf, xb: TX ? TX.xb : 0 };
+  return '<div class="dchart" id="dChart"><svg class="dlinie gross" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + gr + (rf != null ? '<path class="ref" d="M' + (TX ? TX.xb.toFixed(1) : 0) + ' ' + y(rf).toFixed(1) + 'H' + W + '"/>' : '') + '<path class="l" d="' + pf + '" style="stroke:' + (R.eur >= 0 ? 'var(--ok)' : 'var(--rot)') + '" vector-effect="non-scaling-stroke"/><path class="f" d="M0 ' + (H / 2) + 'H' + W + '" vector-effect="non-scaling-stroke"/></svg><i class="dcur" id="dCur"></i><i class="ddot" id="dDot"></i></div>';
 }
 function depotZeit(t, r) {
   var d = new Date(t * 1000);
@@ -2256,8 +2270,10 @@ function depotZeichnen() {
 function depotFinger(d, R) {
   var c = $('dChart'); if (!c || R.v.length < 2) return; var l = R.l || R.g || R.v, n = l.length, aktiv = false, letzt = -1;
   var zeig = function (cx) {
-    var b = c.getBoundingClientRect(), i = Math.max(0, Math.min(n - 1, Math.round((cx - b.left) / b.width * (n - 1)))); if (i === letzt) return; letzt = i;
-    var px = i / (n - 1) * b.width, py = depotGrafik.y(l[i]) / depotGrafik.H * b.height;
+    var b = c.getBoundingClientRect(), ZX = depotGrafik.ziel && depotGrafik.ziel.x && depotGrafik.ziel.x.length === n ? depotGrafik.ziel.x : null, i;
+    if (ZX) { var fx = (cx - b.left) / b.width * depotGrafik.ziel.W, bi = 0; ZX.forEach(function (xx, k) { if (Math.abs(xx - fx) < Math.abs(ZX[bi] - fx)) bi = k; }); i = bi; } else i = Math.max(0, Math.min(n - 1, Math.round((cx - b.left) / b.width * (n - 1))));
+    if (i === letzt) return; letzt = i;
+    var px = ZX ? ZX[i] / depotGrafik.ziel.W * b.width : i / (n - 1) * b.width, py = depotGrafik.y(l[i]) / depotGrafik.H * b.height;
     $('dCur').style.left = px + 'px'; $('dDot').style.left = px + 'px'; $('dDot').style.top = py + 'px';
     var v = R.v[i], chg, base;
     if (R.g) { chg = R.g[i]; base = v - chg; } else { chg = v - R.ref; base = R.ref; }
