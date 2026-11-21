@@ -473,7 +473,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.22';
+var VERSION = '2.23';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -935,21 +935,28 @@ function blattZu(bl) {
   }, { passive: true });
   document.addEventListener('touchmove', function (e) {
     if (!aus) return; var t = e.touches[0]; dx = t.clientX - sx; var dy = t.clientY - sy;
-    if (!an) { if (dx > 10 && dx > Math.abs(dy) * 1.3) { an = true; if (bl && bl.dataset.vonstart) { stKl = $('start').className; $('start').classList.remove('aus', 'weg', 'klein'); } } else if (Math.abs(dy) > 12 || dx < -6) { aus = false; return; } else return; }
+    if (!an) { if (dx > 10 && dx > Math.abs(dy) * 1.3) { an = true; if (haupt) { var s0 = $('start'); stKl = s0.className; startZeichnen(true); s0.classList.remove('aus', 'weg', 'klein', 'oben'); s0.style.transition = 'none'; s0.style.boxShadow = '8px 0 30px rgba(0,0,0,.45)'; } if (bl && bl.dataset.vonstart) { stKl = $('start').className; $('start').classList.remove('aus', 'weg', 'klein'); } } else if (Math.abs(dy) > 12 || dx < -6) { aus = false; return; } else return; }
     e.preventDefault(); dx = Math.max(0, dx);
+    if (haupt) $('start').style.transform = 'translateX(' + (dx - w) + 'px)';
     if (inn) { inn.style.transition = 'none'; inn.style.transform = 'translateX(' + dx + 'px)'; inn.style.boxShadow = '-8px 0 30px rgba(0,0,0,.45)'; bl.style.background = 'rgba(0,0,0,' + (0.5 * (1 - dx / w)).toFixed(3) + ')'; }
   }, { passive: false });
   function ende() {
     if (!aus) return; aus = false; if (!an) { zuruecksetzen(); return; }
     var v = dx / Math.max(1, Date.now() - t0), weg = dx > w * 0.33 || (v > 0.45 && dx > 50);
-    if (haupt) { var z = $('zurStart'); zuruecksetzen(); if (weg && z) z.click(); return; }
+    if (haupt) {
+      var s1 = $('start'), kl0 = stKl; stKl = null; haupt = false; an = false; bl = inn = null;
+      s1.style.transition = 'transform ' + (weg ? '.22s cubic-bezier(.2,.7,.3,1)' : '.25s cubic-bezier(.2,.8,.2,1)'); s1.style.transform = 'translateX(' + (weg ? 0 : -w) + 'px)';
+      setTimeout(function () { s1.style.transition = ''; s1.style.transform = ''; s1.style.boxShadow = '';
+        if (weg) { document.body.classList.remove('zumstart'); document.body.classList.remove('versteckt'); document.body.classList.remove('vonstart'); } else if (kl0 != null) s1.className = kl0; }, weg ? 230 : 260);
+      return;
+    }
     var b = bl, i = inn;
     if (weg) {
       i.style.transition = 'transform .22s cubic-bezier(.2,.7,.3,1)'; i.style.transform = 'translateX(' + w + 'px)'; b.style.transition = 'background .22s'; b.style.background = 'rgba(0,0,0,0)';
       setTimeout(function () {
         var vs = b.dataset.vonstart; delete b.dataset.vonstart; if (vs) document.body.classList.add('zumstart');
         b.classList.remove('offen'); b.classList.remove('auf'); i.style.transition = ''; i.style.transform = ''; i.style.boxShadow = ''; b.style.transition = ''; b.style.background = '';
-        if (vs) { startZeichnen(); document.body.classList.remove('zumstart'); document.body.classList.remove('versteckt'); }
+        if (vs) { startZeichnen(true); document.body.classList.remove('zumstart'); document.body.classList.remove('versteckt'); }
       }, 230); stKl = null;
       bl = inn = null; an = false; dx = 0;
     } else {
@@ -1137,7 +1144,7 @@ function geisterSpaeter(ms) { clearTimeout(geistTimer); geistTimer = setTimeout(
   }
   document.addEventListener('touchstart', function (ev) {
     fingerDrauf = true; an = false;
-    var st = $('start'); if (laeuft || document.querySelector('.blatt.offen') || !(st.classList.contains('aus') || st.classList.contains('weg')) || ev.touches.length > 1 || $('suche').value || (ev.target.closest && ev.target.closest('input,textarea,select'))) return;
+    var st = $('start'); if (laeuft || document.querySelector('.blatt.offen') || !(st.classList.contains('aus') || st.classList.contains('weg')) || ev.touches.length > 1 || ev.touches[0].clientX <= 24 || $('suche').value || (ev.target.closest && ev.target.closest('input,textarea,select'))) return;
     document.body.classList.remove('vonstart');
     an = true; richtung = 0; v = 0;
     sx = lx = ev.touches[0].clientX; sy = ev.touches[0].clientY; lt = Date.now();
