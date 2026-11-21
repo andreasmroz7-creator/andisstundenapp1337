@@ -32,9 +32,10 @@ button{font:inherit;color:inherit}
 .summe .mz{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
 .summe small{display:block;color:var(--grau);font-size:13px}
 .summe b{font-size:34px;font-weight:700;letter-spacing:-.5px}
-.summe .netto{font-size:14px;color:var(--grau);margin-top:2px;white-space:nowrap}.summe .netto b{font-size:16px;color:var(--txt)}
 .summe .r{text-align:right}
-.summe{cursor:pointer}.summe:active{transform:scale(.99)}.jahrlink{color:#d0d0d0}
+.summe{cursor:pointer}.summe:active{transform:scale(.99)}
+.jahrlink{display:inline-block;font-size:12px;font-weight:600;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:4px 10px;margin-bottom:10px}
+.summe .tg{margin-top:2px}.summe .r small.nl{margin-top:8px}.summe .mz{align-items:flex-end}
 .jkarte{background:var(--karte);border:1px solid var(--rand);border-radius:20px;padding:16px;margin:14px 0}
 .jkarte small{display:block;color:var(--grau);font-size:13px}.jkarte b.g{font-size:34px;font-weight:700;letter-spacing:-.5px}
 .jgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--rand)}
@@ -114,7 +115,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <body>
 <div class="kopf"><button class="kugel" id="pdfKnopf" aria-label="Monat als PDF"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button><div class="mitte" id="monat"></div><button class="kugel" id="einstKnopf" aria-label="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></div>
 <div id="seite">
-<div class="summe" id="summe"><div class="mz"><div><small>Stunden im Monat <span class="jahrlink">· Jahr ›</span></small><b id="sStd">0:00</b></div><div class="r"><small id="sTage">0 Tage</small><b id="sGeld"></b><div class="netto" id="sNetto"></div></div></div><div class="woche" id="woche" style="display:none"><div><small id="wTitel">Diese Woche</small><b id="wIst">0:00</b><div class="soll" id="wSoll" style="display:none"></div></div><div class="diff" id="wDiff"></div></div></div>
+<div class="summe" id="summe"><div class="mz"><div><span class="jahrlink">Jahresübersicht ›</span><small>Stunden im Monat</small><b id="sStd">0:00</b><small id="sTage" class="tg">0 Tage</small></div><div class="r" id="sGeldBox"><small>Brutto</small><b id="sGeld"></b><small class="nl">Netto (ca.)</small><b id="sNetto"></b></div></div><div class="woche" id="woche" style="display:none"><div><small id="wTitel">Diese Woche</small><b id="wIst">0:00</b><div class="soll" id="wSoll" style="display:none"></div></div><div class="diff" id="wDiff"></div></div></div>
 <div class="umschalter" id="ansichtWahl"><button data-a="liste">Liste</button><button data-a="kal">Kalender</button></div>
 <div id="kalender"></div>
 <div id="liste"></div>
@@ -169,7 +170,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.0';
+var VERSION = '3.1';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -216,8 +217,7 @@ function zeichneEcht() {
   L.forEach(function (e) { sum += dauer(e); tage[e.d] = 1; });
   $('sStd').textContent = hm(sum); var nt = Object.keys(tage).length; $('sTage').textContent = nt + (nt === 1 ? ' Tag' : ' Tage');
   var br = Math.round(sum / 60 * lohn() * 100) / 100;
-  $('sGeld').textContent = lohn() ? euro(br) : ''; if (lohn()) $('sTage').textContent += ' · brutto';
-  $('sNetto').innerHTML = lohn() && br > 0 ? '≈ <b>' + euro(netto(br)) + '</b> netto' : '';
+  $('sGeldBox').style.display = lohn() ? '' : 'none'; $('sGeld').textContent = euro(br); $('sNetto').textContent = euro(netto(br));
   var V = vertrag();
   if (V) {
     var mo = wocheVon(heute), so = new Date(mo); so.setDate(mo.getDate() + 6); var wi = wocheIst(mo), ws = V;
