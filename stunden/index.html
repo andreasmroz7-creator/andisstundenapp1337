@@ -34,6 +34,7 @@ button{font:inherit;color:inherit}
 .summe b{font-size:34px;font-weight:700;letter-spacing:-.5px}
 .summe .r{text-align:right}
 .summe{cursor:pointer}.summe:active{transform:scale(.99)}
+.summe.sollk{cursor:default}.summe.sollk:active{transform:none}.summe.sollk .lks small#sollInfo{margin-top:4px;font-size:12px}.sollrest{border-top:1px solid var(--rand);margin-top:12px;padding-top:10px;font-size:14px;color:var(--grau)}.sollrest b{font-size:15px;color:#fff}
 .jahrlink{display:inline-block;font-size:12px;font-weight:600;color:#fff;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:4px 10px;margin-bottom:10px}
 .summe .r small.nl{margin-top:8px}.summe .mz{align-items:stretch}.summe .lks{display:flex;flex-direction:column;align-items:flex-start}.summe .lks small{margin-top:auto}.summe .lks b{line-height:1.05}
 .jkarte{background:var(--karte);border:1px solid var(--rand);border-radius:20px;padding:16px;margin:14px 0}
@@ -115,6 +116,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <body>
 <div class="kopf"><button class="kugel" id="zurJahr" aria-label="Zurück zur Jahresübersicht" style="display:none"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><button class="kugel" id="pdfKnopf" aria-label="Monat als PDF"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button><div class="mitte" id="monat"></div><button class="kugel" id="einstKnopf" aria-label="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></div>
 <div id="seite">
+<div class="summe sollk" id="sollBox" style="display:none"><div class="mz"><div class="lks"><small>Sollstunden im Monat</small><b id="sollStd">0:00</b><small id="sollInfo"></small></div><div class="r" id="sollGeldBox"><small>Brutto</small><b id="sollGeld"></b><small class="nl">Netto (ca.)</small><b id="sollNetto"></b></div></div><div class="sollrest" id="sollRest"></div></div>
 <div class="summe" id="summe"><div class="mz"><div class="lks"><span class="jahrlink">Jahresübersicht ›</span><small>Stunden im Monat</small><b id="sStd">0:00</b></div><div class="r" id="sGeldBox"><small>Brutto</small><b id="sGeld"></b><small class="nl">Netto (ca.)</small><b id="sNetto"></b></div></div><div class="woche" id="woche" style="display:none"><div><small id="wTitel">Diese Woche</small><b id="wIst">0:00</b><div class="soll" id="wSoll" style="display:none"></div></div><div class="diff" id="wDiff"></div></div></div>
 <div class="umschalter" id="ansichtWahl"><button data-a="liste">Liste</button><button data-a="kal">Kalender</button></div>
 <div id="kalender"></div>
@@ -175,7 +177,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.4';
+var VERSION = '3.5';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -226,6 +228,16 @@ function zeichneEcht() {
   var br = Math.round(sum / 60 * lohn() * 100) / 100;
   $('sGeldBox').style.display = lohn() ? '' : 'none'; $('sGeld').textContent = euro(br); $('sNetto').textContent = euro(netto(br));
   var V = vertrag();
+  // (3.5) Sollstunden im Monat: Vertragsstunden pro Woche ÷ 5 je Arbeitstag (Mo–Fr), nur die Tage, die in diesem Monat liegen
+  // (eine angebrochene Woche am Monatsanfang oder -ende zählt also nur mit ihren Tagen im Monat)
+  if (V) {
+    var nT = new Date(ansicht.j, ansicht.m + 1, 0).getDate(), at = 0; for (var q = 1; q <= nT; q++) { var wq = new Date(ansicht.j, ansicht.m, q).getDay(); if (wq >= 1 && wq <= 5) at++; }
+    var soll = Math.round(V / 5 * at), sbr = Math.round(soll / 60 * lohn() * 100) / 100, rest = soll - sum;
+    $('sollBox').style.display = ''; $('sollStd').textContent = hm(soll);
+    $('sollInfo').textContent = at + ' Arbeitstage (Mo–Fr) × ' + hm(V / 5) + ' Std.';
+    $('sollGeldBox').style.display = lohn() ? '' : 'none'; $('sollGeld').textContent = euro(sbr); $('sollNetto').textContent = euro(netto(sbr));
+    $('sollRest').innerHTML = rest > 0 ? 'Noch <b>' + hm(rest) + '</b> bis zum Soll' : rest < 0 ? '<b>' + hm(-rest) + '</b> über dem Soll' : 'Soll genau erreicht';
+  } else $('sollBox').style.display = 'none';
   if (V) {
     var mo = wocheVon(heute), so = new Date(mo); so.setDate(mo.getDate() + 6); var wi = wocheIst(mo), ws = V;
     $('woche').style.display = ''; $('wTitel').textContent = 'Diese Woche (' + mo.getDate() + '.' + (mo.getMonth() + 1) + '. – ' + so.getDate() + '.' + (so.getMonth() + 1) + '.)';
