@@ -514,7 +514,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.48';
+var VERSION = '2.49';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1916,6 +1916,7 @@ function jvDepot(q) {
       return spr(p.n) + ' steht bei ' + eur(kurs) + (p.pct != null ? ', ' + (p.k === 'krypto' ? 'seit 6 Uhr ' : 'heute ') + pz(p.pct) : '') + '. Deine ' + (p.k === 'krypto' ? spr(p.n) : (Math.round(p.q * 100) / 100).toLocaleString('de-DE') + ' Stück') + ' sind ' + eur(p.w) + ' wert' + (m.c ? ', seit Kauf ' + pm(p.w - m.c) : '') + '.'; }
     var v = wlWert(treffer.x); if (v.kurs == null) return spr(treffer.x.n) + ' steht auf deiner Watchlist, der Kurs kommt gleich.';
     return spr(treffer.x.n) + ' steht bei ' + eur(v.kurs) + (v.pct != null ? ', ' + (treffer.x.k === 'krypto' ? 'seit 6 Uhr ' : 'heute ') + pz(v.pct) : '') + '. Der Wert steht auf deiner Watchlist.'; }
+  if (/allianz|rente\b|rentenversicherung/.test(q) && (d.ex || []).length) { var al = d.ex[0]; return 'Deine Allianz-Rente steht bei ' + eur(al.v) + (al.p > 0 ? ', eingezahlt hast du ' + eur(al.p) + ', das sind ' + pm(al.v - al.p) + ' oder ' + pz((al.v / al.p - 1) * 100) : '') + '.'; }
   if (/(depot|vermögen|portfolio|gesamtwert)/.test(q)) return 'Dein Depot liegt bei ' + eur(d.gesamt) + ', heute ' + pm(d.heute_eur) + ', das sind ' + pz(d.heute_pct) + '.';
   return null;
 }
@@ -2298,6 +2299,12 @@ function posMini(key, kurs) {
 // (2.45) Sortierung der Positionen: Tipp auf „Positionen“ wechselt nach Wert → nach heute → nach Gewinn seit Kauf
 var depotSort = (function () { try { return localStorage.getItem('cockpit_possort') || 'wert'; } catch (x) { return 'wert'; } })();
 var DSORT = { wert: 'nach Wert', heute: 'nach heute', kauf: 'nach Gewinn seit Kauf' };
+// (2.49) Allianz-Rente als eigene Position (vom Mac: depot.json „ex“ mit Wert und Eingezahlt); rechts darunter Gewinn seit Beginn in %
+function depotRest(d) { var r = +d.fest || 0; (d.ex || []).forEach(function (x) { r -= +x.v || 0; }); return r; }
+function depotRenteHtml(d, zeile) {
+  var E = (d.ex || []).filter(function (x) { return x.v > 0; }); if (!E.length) return '';
+  return '<div class="wltr">Rente</div>' + E.map(function (x) { var pc = x.p > 0 ? (x.v / x.p - 1) * 100 : null; return zeile(/allianz/i.test(x.n) ? 'Allianz-Rente' : depotKurz(x.n), x.p > 0 ? 'eingezahlt ' + euro(x.p) : 'Stand vom Mac', x.v, pc, null); }).join('');
+}
 function depotPosHtml(d) {
   if (!d.pos || !d.pos.length) return '';
   var L = (depotLive && depotPosLive && depotPosLive.length === d.pos.length) ? depotPosLive : d.pos.map(function (p) { return { n: p.n, k: p.k, q: p.q, sym: p.sym, isin: p.isin, w: p.v, pct: null }; });
@@ -2311,8 +2318,8 @@ function depotPosHtml(d) {
   };
   var zz = function (p) { return zeile(depotKurz(p.n), depotMenge(p), p.w, depotSort === 'kauf' ? p.kp : p.pct, p.isin || p.sym, posMini(p.isin || p.sym, p.kurs || (p.q ? p.w / p.q : null))); };
   var LK = L.filter(function (p) { return p.k === 'krypto'; }), LW = L.filter(function (p) { return p.k !== 'krypto'; }); // (2.47) wie im Dashboard: zuerst Krypto, dann der Rest (je Gruppe sortiert)
-  return '<div class="dpos"><div class="dpt sort" id="dSort">Positionen<span>' + DSORT[depotSort] + ' ⇅</span></div>' + (LK.length ? '<div class="wltr" style="margin-top:6px">Krypto</div>' + LK.map(zz).join('') : '') + (LW.length ? '<div class="wltr">Aktien &amp; ETFs</div>' + LW.map(zz).join('') : '') +
-    (d.fest ? zeile('Rente, Tagesgeld & eigene Werte', 'Stand vom Mac', +d.fest, null) : '') + '</div>';
+  return '<div class="dpos"><div class="dpt sort" id="dSort">Positionen<span>' + DSORT[depotSort] + ' ⇅</span></div>' + (LK.length ? '<div class="wltr" style="margin-top:6px">Krypto</div>' + LK.map(zz).join('') : '') + (LW.length ? '<div class="wltr">Aktien &amp; ETFs</div>' + LW.map(zz).join('') : '') + depotRenteHtml(d, zeile) +
+    (depotRest(d) > 0.5 ? zeile((d.ex && d.ex.length ? 'Tagesgeld & eigene Werte' : 'Rente, Tagesgeld & eigene Werte'), 'Stand vom Mac', depotRest(d), null) : '') + '</div>';
 }
 // Weicher Übergang zwischen den Linien (Zeitraum, € / ±, neue Kurse): alte und neue Linie werden auf gleich viele Punkte gebracht und ineinander überblendet
 var depotAltLinie = null, depotMorphR = 0;
