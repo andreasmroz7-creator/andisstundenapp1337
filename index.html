@@ -249,7 +249,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .jvk{padding-bottom:120px!important}
 .dw{transition:opacity .35s,filter .35s}.verdeckt .dw{opacity:.0;filter:blur(6px)}
 .dpkt{position:absolute;opacity:0;transition:opacity .35s;letter-spacing:3px;color:var(--grau)}.verdeckt .dpkt{opacity:1}
-.dbox{position:relative}
+.dbox{position:relative}#dAuge[hidden]{display:none!important}
 .dplus{color:var(--ok)}.dminus{color:var(--rot)}.verdeckt .dplus,.verdeckt .dminus{color:var(--grau)}
 .dlinie{display:block;width:100%;height:46px;margin-top:8px}.dlinie path{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:stroke .4s}
 .dlinie .ref{stroke:rgba(255,255,255,.18);stroke-dasharray:3 4;stroke-width:1}
@@ -427,7 +427,7 @@ body.istoffline .sstand{color:#ff6b61}
   <div class="jvein"><input type="text" id="jvText" placeholder="Frag Jarvis …" autocomplete="off" enterkeyhint="send"><button class="kugel" id="jvMic" aria-label="Sprechen"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button></div>
 </div></div>
 <div class="blatt" id="blattD"><div class="innen">
-  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattD" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Depot</b></div><button class="kugel" id="dAuge" aria-label="Beträge zeigen"></button></div>
+  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattD" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Depot</b></div><button class="kugel" id="dAuge" aria-label="Beträge zeigen" hidden></button></div>
   <div class="koerper" id="dKoerper"></div>
 </div></div>
 <div class="blatt" id="blattN"><div class="innen">
@@ -471,7 +471,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.15';
+var VERSION = '2.16';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1916,7 +1916,7 @@ $('jvMic').onclick = function () {
   try { e.start(); } catch (x) { jv.erk = null; mic.classList.remove('an'); $('jvText').focus(); }
 };
 // ---------- Depot (depot.json im Daten-Repo, schreibt der Mac alle 30 Min.; Beträge wie im Dashboard erst über das Auge sichtbar) ----------
-var GHD = GH.replace('daten.json', 'depot.json'), depotSicht = false, AUGE_ZU = '<svg viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.1 6.1A17 17 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.9-2"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>', AUGE_AUF = '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+var GHD = GH.replace('daten.json', 'depot.json'), depotSicht = true /* (2.16) Beträge immer sichtbar, kein Auge mehr (Andi) */, AUGE_ZU = '<svg viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.1 6.1A17 17 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.9-2"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>', AUGE_AUF = '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
 // (2.13) Ohne Mac weiterrechnen: Stückzahl × aktueller Kurs. Aktien/ETFs über kurse.json (holt GitHub alle 30 Min. bei Yahoo; nur die Veränderung
 // gegenüber dem Yahoo-Kurs zum Mac-Stand zählt, so passt es zu Scalable), Krypto live von Binance; Rente, Tagesgeld, eigene Werte bleiben beim Mac-Stand.
 var depotKopf = null, depotLive = null;
