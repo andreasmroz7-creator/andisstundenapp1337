@@ -273,9 +273,9 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .dkopf{display:flex;align-items:center;justify-content:space-between;gap:10px}.dkopf .hinweis{margin-top:0}
 .dart{position:relative;display:inline-grid;grid-template-columns:1fr 1fr;padding:3px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 .dart::before{content:"";position:absolute;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);border-radius:999px;background:rgba(255,255,255,.2);transition:transform .38s cubic-bezier(.3,.8,.3,1)}
-.dart.pm::before{transform:translateX(100%)}
+.dart.eu::before{transform:translateX(100%)}
 .dart span{position:relative;z-index:1;min-width:34px;padding:4px 10px;font-size:13px;font-weight:700;color:var(--grau);text-align:center;transition:color .3s}
-.dart:not(.pm) span:first-child,.dart.pm span:last-child{color:#fff}
+.dart:not(.eu) span:first-child,.dart.eu span:last-child{color:#fff}
 .dpos{margin-top:26px}.dpos .dpt{font-size:13px;color:var(--grau);font-weight:600;margin-bottom:4px}
 .dprow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--rand)}
 .dprow .n{font-size:15px;font-weight:600}.dprow .s{font-size:12px;color:var(--grau);margin-top:2px}
@@ -488,7 +488,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.33';
+var VERSION = '2.34';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2171,7 +2171,7 @@ function depotReihe(d, r) {
   var l = d.linie || []; return { v: l, t: d.lt && d.lt.length === l.length ? d.lt : null, e: null, ref: d.ref, eur: d.heute_eur, pct: d.heute_pct, txt: depotWann(d), r: '1d' };
 }
 // (2.32) Diagramm-Art wie im Dashboard: € = Gesamtvermögen, ± = Gewinn/Verlust ohne Einzahlungen (Nulllinie gestrichelt)
-var depotArt = (function () { try { return localStorage.getItem('cockpit_depotart') === 'pm' ? 'pm' : 'eur'; } catch (x) { return 'eur'; } })();
+var depotArt = (function () { try { return localStorage.getItem('cockpit_depotart2') === 'eur' ? 'eur' : 'pm'; } catch (x) { return 'pm'; } })(); // (2.34) ± zuerst (Standard), € als zweites
 function depotLinieWahl(R) {
   if (depotArt === 'pm') { R.l = R.g || (R.ref != null ? R.v.map(function (v) { return v - R.ref; }) : R.v); R.lref = (R.g || R.ref != null) ? 0 : null; }
   else { R.l = R.v; R.lref = R.r === '1d' ? R.ref : null; }
@@ -2239,12 +2239,12 @@ function depotZeichnen() {
   if (!d) { $('dKoerper').innerHTML = '<p class="hinweis">Noch kein Depot-Stand. Er kommt vom Mac, sobald das Dashboard läuft.</p>'; return; }
   var st = new Date(d.stand), alt = (Date.now() - st) > 3 * 3600e3, R = depotLinieWahl(depotReihe(d, depotZr));
   if (!$('blattD').classList.contains('offen')) depotAltLinie = null; // beim Öffnen ohne Übergang
-  $('dKoerper').innerHTML = '<div class="dbox' + (zu ? ' verdeckt' : '') + '" id="dBox"><div class="dkopf"><small class="hinweis">Gesamtvermögen</small><span class="dart' + (depotArt === 'pm' ? ' pm' : '') + '" id="dArt" role="switch" aria-checked="' + (depotArt === 'pm') + '" aria-label="Diagramm in Euro oder Plus/Minus"><span>€</span><span>±</span></span></div><div class="dgross" id="dGross"><span class="dpkt">••••••</span><span class="dw">' + pxEuro(d.gesamt) + '</span></div>' +
+  $('dKoerper').innerHTML = '<div class="dbox' + (zu ? ' verdeckt' : '') + '" id="dBox"><div class="dkopf"><small class="hinweis">Gesamtvermögen</small><span class="dart' + (depotArt === 'eur' ? ' eu' : '') + '" id="dArt" role="switch" aria-checked="' + (depotArt === 'eur') + '" aria-label="Diagramm Plus/Minus oder Euro"><span>±</span><span>€</span></span></div><div class="dgross" id="dGross"><span class="dpkt">••••••</span><span class="dw">' + pxEuro(d.gesamt) + '</span></div>' +
     '<div class="dheute" id="dAend">' + (R.leer ? '<span class="dwann">' + R.txt + ': kommt mit dem nächsten Stand vom Mac</span>' : depotAend(R.eur, R.pct, R.txt)) + '</div>' + depotGrafik(R) + '</div>' +
     '<div class="dzr" id="dZr">' + DZR.map(function (z) { return '<button type="button" data-r="' + z[0] + '" class="' + (z[0] === depotZr ? 'an' : '') + '">' + z[1] + '</button>'; }).join('') + '</div>' +
     '<p class="hinweis" style="margin-top:14px">' + (d.live ? (Date.now() - st > 20 * 60e3 ? 'Mac aus: live' : 'Live') + ' gerechnet (' + (d.live.neuK ? 'Krypto alle 5 s' : '') + (d.live.neuK && d.live.neuW ? ', ' : '') + (d.live.neuW ? 'Aktien/ETFs ' + (boerseOffen() ? 'alle 10 s' : 'Börse zu') + ', Stand ' + new Date(d.live.tW * 1000).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' Uhr' : '') + '). Letzter Stand vom Mac: ' : 'Stand ') + st.toLocaleString('de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr' + (d.live ? '' : ', vom Mac' + (alt ? ' (älter, der Mac ist wohl aus)' : '')) + '. Mit dem Finger über das Diagramm fahren zeigt den Wert zu jedem Zeitpunkt.</p>';
   [].forEach.call(document.querySelectorAll('#dZr button'), function (b) { b.onclick = function () { depotZr = b.dataset.r; depotZeichnen(); }; });
-  $('dArt').onclick = function () { depotArt = depotArt === 'pm' ? 'eur' : 'pm'; try { localStorage.setItem('cockpit_depotart', depotArt); } catch (x) {} depotZeichnen(); }; // ganze Breite schaltet um
+  $('dArt').onclick = function () { depotArt = depotArt === 'pm' ? 'eur' : 'pm'; try { localStorage.setItem('cockpit_depotart2', depotArt); } catch (x) {} depotZeichnen(); }; // ganze Breite schaltet um
   $('dKoerper').insertAdjacentHTML('beforeend', depotPosHtml(d));
   depotMorph();
   rollZahl($('dGross').querySelector('.dw'), 'dG', d.gesamt);
