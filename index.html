@@ -473,7 +473,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.24';
+var VERSION = '2.25';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -935,6 +935,14 @@ function blattZu(bl) {
     L.sort(function (a, b) { return (parseInt(getComputedStyle(a).zIndex) || 0) - (parseInt(getComputedStyle(b).zIndex) || 0); });
     return L[L.length - 1];
   }
+  // (2.25) Stunden-Ansicht: Startseite liegt UNTER der Ansicht (z 3), ein undurchsichtiger Vorhang (z 4) und die Teile der Ansicht (z 6) wandern mit dem Finger nach rechts
+  var vorhang = null;
+  function hauptTeile() { return [].slice.call(document.querySelectorAll('body > .kopf, body > .summe, body > .suche, body > #liste, #plus, .festpfeil')); }
+  function hauptSetze(x, tr) {
+    if (vorhang) { vorhang.style.transition = tr || 'none'; vorhang.style.transform = 'translateX(' + x + 'px)'; }
+    hauptTeile().forEach(function (el) { if (getComputedStyle(el).position === 'static') el.style.position = 'relative'; el.style.zIndex = '6'; el.style.transition = tr || 'none'; el.style.transform = 'translateX(' + x + 'px)'; });
+  }
+  function hauptAufraeumen() { hauptTeile().forEach(function (el) { el.style.position = ''; el.style.zIndex = ''; el.style.transition = ''; el.style.transform = ''; }); if (vorhang) { vorhang.remove(); vorhang = null; } $('start').style.zIndex = ''; }
   function zuruecksetzen() { if (inn) { inn.style.transition = ''; inn.style.transform = ''; inn.style.boxShadow = ''; } if (bl) { bl.style.transition = ''; bl.style.background = ''; } bl = inn = null; an = aus = haupt = false; dx = 0; }
   document.addEventListener('touchstart', function (e) {
     if (e.touches.length !== 1 || an) return; var t = e.touches[0]; aus = false;
@@ -945,9 +953,9 @@ function blattZu(bl) {
   }, { passive: true });
   document.addEventListener('touchmove', function (e) {
     if (!aus) return; var t = e.touches[0]; dx = t.clientX - sx; var dy = t.clientY - sy;
-    if (!an) { if (dx > 10 && dx > Math.abs(dy) * 1.3) { an = true; if (haupt) { var s0 = $('start'); stKl = s0.className; startZeichnen(true); s0.classList.remove('aus', 'weg', 'klein', 'oben'); s0.style.transition = 'none'; s0.style.boxShadow = '8px 0 30px rgba(0,0,0,.45)'; } if (bl && bl.dataset.vonstart) { stKl = $('start').className; $('start').classList.remove('aus', 'weg', 'klein'); } } else if (Math.abs(dy) > 12 || dx < -6) { aus = false; return; } else return; }
+    if (!an) { if (dx > 10 && dx > Math.abs(dy) * 1.3) { an = true; if (haupt) { var s0 = $('start'); stKl = s0.className; startZeichnen(true); s0.classList.remove('aus', 'weg', 'klein', 'oben'); s0.style.zIndex = '3'; vorhang = document.createElement('div'); vorhang.style.cssText = 'position:fixed;top:0;bottom:0;left:0;width:100%;z-index:4;background:#000;box-shadow:-10px 0 30px rgba(0,0,0,.55);pointer-events:none'; document.body.appendChild(vorhang); } if (bl && bl.dataset.vonstart) { stKl = $('start').className; $('start').classList.remove('aus', 'weg', 'klein'); } } else if (Math.abs(dy) > 12 || dx < -6) { aus = false; return; } else return; }
     e.preventDefault(); dx = Math.max(0, dx);
-    if (haupt) $('start').style.transform = 'translateX(' + (dx - w) + 'px)';
+    if (haupt) hauptSetze(dx);
     if (inn) { inn.style.transition = 'none'; inn.style.transform = 'translateX(' + dx + 'px)'; inn.style.boxShadow = '-8px 0 30px rgba(0,0,0,.45)'; bl.style.background = 'rgba(0,0,0,' + (0.5 * (1 - dx / w)).toFixed(3) + ')'; }
   }, { passive: false });
   function ende() {
@@ -955,9 +963,10 @@ function blattZu(bl) {
     var v = dx / Math.max(1, Date.now() - t0), weg = dx > w * 0.33 || (v > 0.45 && dx > 50);
     if (haupt) {
       var s1 = $('start'), kl0 = stKl; stKl = null; haupt = false; an = false; bl = inn = null;
-      s1.style.transition = 'transform ' + (weg ? '.22s cubic-bezier(.2,.7,.3,1)' : '.25s cubic-bezier(.2,.8,.2,1)'); s1.style.transform = 'translateX(' + (weg ? 0 : -w) + 'px)';
-      setTimeout(function () { s1.style.transition = ''; s1.style.transform = ''; s1.style.boxShadow = '';
-        if (weg) { document.body.classList.remove('zumstart'); document.body.classList.remove('versteckt'); document.body.classList.remove('vonstart'); } else if (kl0 != null) s1.className = kl0; }, weg ? 230 : 260);
+      hauptSetze(weg ? w : 0, 'transform ' + (weg ? '.22s cubic-bezier(.2,.7,.3,1)' : '.25s cubic-bezier(.2,.8,.2,1)'));
+      setTimeout(function () {
+        if (weg) { document.body.classList.remove('zumstart'); document.body.classList.remove('versteckt'); document.body.classList.remove('vonstart'); } else if (kl0 != null) s1.className = kl0;
+        hauptAufraeumen(); }, weg ? 230 : 260);
       return;
     }
     var b = bl, i = inn;
