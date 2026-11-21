@@ -179,7 +179,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.17';
+var VERSION = '3.18';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -263,12 +263,12 @@ function zeichneEcht() {
     if (gewaehlt.slice(0, 7) !== iso(erster).slice(0, 7)) gewaehlt = hi.slice(0, 7) === iso(erster).slice(0, 7) ? hi : iso(erster);
     var g = '';
     // (3.17) Tage vom Vor- und Folgemonat in der ersten/letzten Reihe zeigen (blasser), damit jede KW Mo–So vollständig zu sehen ist
-    var fremd = function (dt) { var fs = iso(dt), fm = 0, fh = false; daten.eintraege.forEach(function (e) { if (e.d === fs) { fm += dauer(e); fh = true; } }); var wd2 = (dt.getDay() + 6) % 7;
-      return '<div class="zelle fremd' + (fh ? ' hat' : '') + (wd2 >= 5 ? ' we' : '') + '" data-d="' + fs + '"><span class="n">' + dt.getDate() + '</span>' + (fh ? '<span class="s">' + hm(fm) + '</span>' : '') + '</div>'; };
+    var fremd = function (dt) { var fs = iso(dt), fm = 0, fh = false; var fu = true; daten.eintraege.forEach(function (e) { if (e.d === fs) { fm += dauer(e); fh = true; if (!istUrlaub(e)) fu = false; } }); var wd2 = (dt.getDay() + 6) % 7;
+      return '<div class="zelle fremd' + (fh ? ' hat' : '') + (wd2 >= 5 ? ' we' : '') + '" data-d="' + fs + '"><span class="n">' + dt.getDate() + '</span>' + (fh ? '<span class="s">' + (fu ? 'U' : hm(fm)) + '</span>' : '') + '</div>'; };
     for (var i = 0; i < versatz; i++) g += fremd(new Date(ansicht.j, ansicht.m, 1 - versatz + i));
     for (var t = 1; t <= nTage; t++) {
       var ds = iso(new Date(ansicht.j, ansicht.m, t)), wd = (versatz + t - 1) % 7, m = proTag[ds], nurUrl = m != null && L.filter(function (e) { return e.d === ds; }).every(istUrlaub);
-      g += '<div class="zelle' + (m != null ? ' hat' : '') + (wd >= 5 ? ' we' : '') + (ds === hi ? ' heute' : '') + (ds === gewaehlt ? ' gew' : '') + '" data-d="' + ds + '"><span class="n">' + t + '</span>' + (m != null ? '<span class="s">' + (nurUrl ? 'Urlaub' : hm(m)) + '</span>' : '') + '</div>';
+      g += '<div class="zelle' + (m != null ? ' hat' : '') + (wd >= 5 ? ' we' : '') + (ds === hi ? ' heute' : '') + (ds === gewaehlt ? ' gew' : '') + '" data-d="' + ds + '"><span class="n">' + t + '</span>' + (m != null ? '<span class="s">' + (nurUrl ? 'U' : hm(m)) + '</span>' : '') + '</div>';
     }
     for (var r = 1, rest = (7 - (versatz + nTage) % 7) % 7; r <= rest; r++) g += fremd(new Date(ansicht.j, ansicht.m + 1, r));
     $('kalender').innerHTML = '<div class="kal"><div class="wk"><span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span></div><div class="gitter">' + g + '</div></div>';
