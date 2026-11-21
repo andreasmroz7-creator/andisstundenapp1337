@@ -44,7 +44,7 @@ button{font:inherit;color:inherit}
 .geistseite .kugel{visibility:hidden}
 .woche small{display:block;color:var(--grau);font-size:13px}.woche b{font-size:22px;font-weight:700}
 .woche .diff{font-size:17px;font-weight:700;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.08);white-space:nowrap}
-.plusw{color:var(--ok)}.minusw{color:var(--rot)}
+.plusw{color:var(--ok)}.minusw{color:#ff5fa8}
 .soll{font-size:13px;color:var(--grau);margin-top:4px}
 .schalter{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid var(--rand);cursor:pointer}
 .schalter small{display:block;color:var(--grau);font-size:13px}
@@ -64,7 +64,7 @@ button{font:inherit;color:inherit}
 .kal .zelle .s{font-size:13px;font-weight:800;margin-top:3px;white-space:nowrap;color:#fff;letter-spacing:-.2px}
 .kal .zelle.leerz{cursor:default;background:none}
 .kal .zelle.we .n{color:#b4b4b4}
-.kal .zelle.hat{background:#bfe6c9;border-color:#bfe6c9}.kal .zelle.hat .n,.kal .zelle.hat .s{color:#0f3a1d}
+.kal .zelle.hat{background:#34c759;border-color:#34c759}.kal .zelle.hat .n,.kal .zelle.hat .s{color:#062b12}
 .kal .zelle.heute{border:2px solid #fff}
 .kal .zelle.gew{background:#ededed}.kal .zelle.gew .n,.kal .zelle.gew .s{color:#000}
 .tagkopf{display:flex;justify-content:space-between;align-items:baseline;margin:2px 4px 8px;font-size:15px;font-weight:600}
@@ -152,7 +152,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.4';
+var VERSION = '2.5';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
