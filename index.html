@@ -473,7 +473,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.27';
+var VERSION = '2.28';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2186,8 +2186,8 @@ function urlaubKonto(j) {
   var u = (daten.einst.urlaubJahr || {})[j] || {}, hi = iso2(new Date()), gen = [], gep = [];
   daten.eintraege.forEach(function (x) { if (!x.urlaub || x.datum.slice(0, 4) !== String(j) || (daten.geloescht || {})[x.id]) return; (x.datum <= hi ? gen : gep).push(x.datum); });
   gen.sort(); gep.sort();
-  var an = u.anspruch != null && u.anspruch !== '' ? +u.anspruch : null, ue = +u.uebertrag || 0, ges = an != null ? an + ue : null;
-  return { anspruch: an, uebertrag: ue, gesamt: ges, genommen: gen.length, geplant: gep.length, rest: ges != null ? ges - gen.length - gep.length : null, tageGen: gen, tageGep: gep };
+  var an = u.anspruch != null && u.anspruch !== '' ? +u.anspruch : null, ue = +u.uebertrag || 0, od = +u.ohneDatum || 0, ges = an != null ? an + ue : null;
+  return { anspruch: an, uebertrag: ue, gesamt: ges, genommen: gen.length + od, ohneDatum: od, geplant: gep.length, rest: ges != null ? ges - gen.length - od - gep.length : null, tageGen: gen, tageGep: gep };
 }
 var uJahr = new Date().getFullYear();
 function urlaubZeichnen() {
@@ -2197,6 +2197,7 @@ function urlaubZeichnen() {
   if (k.gesamt) h += '<div class="jb"><div class="s"><i style="width:' + Math.min(100, (k.genommen + k.geplant) / k.gesamt * 100) + '%"></i></div></div>';
   h += '<label class="l">Urlaubsanspruch ' + uJahr + ' (Tage)</label><input type="text" inputmode="decimal" id="uAn" placeholder="z. B. 30" value="' + (k.anspruch != null ? String(k.anspruch).replace('.', ',') : '') + '">';
   h += '<label class="l">Resturlaub aus ' + (uJahr - 1) + ' (Tage)</label><input type="text" inputmode="decimal" id="uUe" placeholder="0" value="' + (k.uebertrag ? String(k.uebertrag).replace('.', ',') : '') + '">';
+  h += '<label class="l">Schon genommen ohne Eintrag (Tage)</label><input type="text" inputmode="decimal" id="uOd" placeholder="0" value="' + (k.ohneDatum ? String(k.ohneDatum).replace('.', ',') : '') + '">';
   var liste = function (t, a) { if (!a.length) return ''; var m = {}; a.forEach(function (d) { var mm = +d.slice(5, 7) - 1; (m[mm] = m[mm] || []).push(d); }); return '<label class="l">' + t + '</label>' + Object.keys(m).map(function (mm) { return '<div class="jb"><div class="k"><b>' + MONATE[mm] + '</b><span>' + tg(m[mm].length) + '</span></div><div class="hinweis" style="margin-top:0">' + m[mm].map(function (d) { return WT[new Date(d + 'T12:00').getDay()] + ' ' + +d.slice(8) + '.'; }).join(', ') + '</div></div>'; }).join(''); };
   h += liste('Geplant', k.tageGep) + liste('Genommen', k.tageGen);
   if (!k.genommen && !k.geplant) h += '<p class="hinweis">Noch keine Urlaubstage ' + uJahr + '. Schick Claude einfach einen Screenshot vom Urlaubsantrag.</p>';
@@ -2205,6 +2206,7 @@ function urlaubZeichnen() {
   var setz = function (feld, wert) { daten.einst.urlaubJahr = daten.einst.urlaubJahr || {}; var u = daten.einst.urlaubJahr[uJahr] = daten.einst.urlaubJahr[uJahr] || {}; var v = wert.trim().replace(',', '.'); u[feld] = v === '' ? null : (parseFloat(v) || 0); daten.einst.urlaubStand = Date.now(); sichern(true); syncBald(); };
   $('uAn').onchange = function () { setz('anspruch', this.value); urlaubZeichnen(); };
   $('uUe').onchange = function () { setz('uebertrag', this.value); urlaubZeichnen(); };
+  $('uOd').onchange = function () { setz('ohneDatum', this.value); urlaubZeichnen(); };
   $('uVor').onclick = function () { uJahr--; urlaubZeichnen(); }; $('uNach').onclick = function () { uJahr++; urlaubZeichnen(); };
 }
 // ---------- Notizen (notizen.json im Daten-Repo, gleicht zwischen Geräten ab) ----------
