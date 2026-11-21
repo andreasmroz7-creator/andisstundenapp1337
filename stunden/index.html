@@ -26,9 +26,10 @@ button{font:inherit;color:inherit}
 .plus svg{width:28px;height:28px}
 .gruss{font-size:15px;font-weight:600;color:var(--grau);letter-spacing:.4px;text-transform:uppercase}
 .name{margin:0 0 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
-.monatzeile{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.monatzeile .m{flex:1;text-align:center;font-size:20px;font-weight:700}
-.summe{background:var(--karte);border:1px solid var(--rand);border-radius:20px;padding:16px;margin-bottom:14px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
+.kopf{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.kopf .mitte{flex:1;text-align:center;font-size:22px;font-weight:700;letter-spacing:-.3px}
+.summe{background:var(--karte);border:1px solid var(--rand);border-radius:20px;padding:16px;margin-bottom:14px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.summe .mz{display:flex;justify-content:space-between;align-items:flex-end;gap:10px}
 .summe small{display:block;color:var(--grau);font-size:13px}
 .summe b{font-size:34px;font-weight:700;letter-spacing:-.5px}
 .summe .r{text-align:right}.summe .r b{font-size:22px}
@@ -38,7 +39,9 @@ button{font:inherit;color:inherit}
 .tag .info{flex:1;min-width:0;font-size:13px;color:var(--grau)}.tag .info .z1{color:var(--txt);font-size:15px}
 .tag .h{font-size:20px;font-weight:700}
 .leer{color:var(--grau);text-align:center;padding:40px 10px}
-.woche{background:var(--karte);border:1px solid var(--rand);border-radius:20px;padding:14px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.woche{border-top:1px solid var(--rand);margin-top:14px;padding-top:14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.geistseite{position:fixed;left:0;top:0;width:100%;padding:calc(env(safe-area-inset-top) + 18px) 16px 0;visibility:hidden;pointer-events:none;z-index:1;will-change:transform}
+.geistseite .kugel{visibility:hidden}
 .woche small{display:block;color:var(--grau);font-size:13px}.woche b{font-size:22px;font-weight:700}
 .woche .diff{font-size:17px;font-weight:700;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.08);white-space:nowrap}
 .plusw{color:var(--ok)}.minusw{color:var(--rot)}
@@ -98,18 +101,14 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 </style>
 </head>
 <body>
-<div class="name"><span class="gruss" id="datum"></span><span style="display:flex;gap:8px"><button class="kugel" id="pdfKnopf" aria-label="Monat als PDF"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button><button class="kugel" id="einstKnopf" aria-label="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></span></div>
-<div class="woche" id="woche" style="display:none"><div><small id="wTitel">Diese Woche</small><b id="wIst">0:00</b><div class="soll" id="wSoll"></div></div><div class="diff" id="wDiff"></div></div>
-<div class="monatzeile">
-  <button class="kugel" id="mZurueck" aria-label="Vorheriger Monat"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
-  <div class="m" id="monat"></div>
-  <button class="kugel" id="mVor" aria-label="Nächster Monat"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
-</div>
-<div class="summe"><div><small>Stunden</small><b id="sStd">0:00</b></div><div class="r"><small id="sTage">0 Tage</small><b id="sGeld"></b></div></div>
+<div class="kopf"><button class="kugel" id="pdfKnopf" aria-label="Monat als PDF"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button><div class="mitte" id="monat"></div><button class="kugel" id="einstKnopf" aria-label="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button></div>
+<div id="seite">
+<div class="summe"><div class="mz"><div><small>Stunden im Monat</small><b id="sStd">0:00</b></div><div class="r"><small id="sTage">0 Tage</small><b id="sGeld"></b></div></div><div class="woche" id="woche" style="display:none"><div><small id="wTitel">Diese Woche</small><b id="wIst">0:00</b><div class="soll" id="wSoll"></div></div><div class="diff" id="wDiff"></div></div></div>
 <div class="umschalter" id="ansichtWahl"><button data-a="liste">Liste</button><button data-a="kal">Kalender</button></div>
 <div id="kalender"></div>
 <div id="liste"></div>
 <div class="version" id="version"></div>
+</div>
 <button class="kugel plus" id="plus" aria-label="Stunden eintragen"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
 
 <div class="blatt" id="blattE"><div class="innen">
@@ -153,7 +152,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.9';
+var VERSION = '2.0';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -179,9 +178,9 @@ function wocheVon(d) { var m = new Date(d.getFullYear(), d.getMonth(), d.getDate
 function euro(x) { return x.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
 function datumText(s) { var d = new Date(s + 'T12:00:00'); return WTL[d.getDay()] + ', ' + d.getDate() + '. ' + MONATE[d.getMonth()] + ' ' + d.getFullYear(); }
 function monatsEintraege() { var pre = ansicht.j + '-' + ('0' + (ansicht.m + 1)).slice(-2); return daten.eintraege.filter(function (e) { return e.d.slice(0, 7) === pre; }).sort(function (a, b) { return a.d < b.d ? -1 : a.d > b.d ? 1 : (a.b || '') < (b.b || '') ? -1 : 1; }); }
-function zeichne() {
+function zeichne() { zeichneEcht(); geisterSpaeter(); }
+function zeichneEcht() {
   var heute = new Date(), vn = (daten.einst.name || '').trim().split(' ')[0];
-  $('datum').textContent = WTL[heute.getDay()] + ', ' + heute.getDate() + '. ' + MONATE[heute.getMonth()];
   $('monat').textContent = MONATE[ansicht.m] + ' ' + ansicht.j;
   var L = monatsEintraege(), sum = 0, tage = {};
   L.forEach(function (e) { sum += dauer(e); tage[e.d] = 1; });
@@ -263,7 +262,70 @@ $('eSpeichern').onclick = function () {
 $('eLoeschen').onclick = function () { if (!bearbeite || !confirm('Diesen Eintrag löschen?')) return; daten.eintraege = daten.eintraege.filter(function (x) { return x.id !== bearbeite.id; }); sichern(); zeichne(); schliesse($('blattE')); toast('Gelöscht'); };
 // Monat wechseln
 function monatSchritt(n) { ansicht.m += n; if (ansicht.m < 0) { ansicht.m = 11; ansicht.j--; } if (ansicht.m > 11) { ansicht.m = 0; ansicht.j++; } zeichne(); }
-$('mZurueck').onclick = function () { monatSchritt(-1); }; $('mVor').onclick = function () { monatSchritt(1); };
+// Monat wechseln durch Wischen (wie im Cockpit): die Nachbarmonate liegen fertig gezeichnet daneben und schieben sich mit dem Finger herein.
+// Sie werden vorbereitet, solange kein Finger auf dem Display liegt (sonst verliert das iPhone die Berührung).
+var geist = { '-1': null, '1': null }, geistFuer = '', geistBau = false, fingerDrauf = false, wischAktiv = false, geistTimer = null;
+function monatKey() { return ansicht.j + '-' + ansicht.m; }
+function geisterBauen() {
+  if (geistBau || fingerDrauf || wischAktiv) return; geistBau = true;
+  var alt = { j: ansicht.j, m: ansicht.m }, gw = gewaehlt;
+  ['-1', '1'].forEach(function (k) {
+    ansicht.j = alt.j; ansicht.m = alt.m + +k; if (ansicht.m < 0) { ansicht.m = 11; ansicht.j--; } if (ansicht.m > 11) { ansicht.m = 0; ansicht.j++; }
+    zeichneEcht();
+    var g = document.createElement('div'); g.className = 'geistseite';
+    g.appendChild(document.querySelector('.kopf').cloneNode(true)); g.appendChild($('seite').cloneNode(true));
+    [].forEach.call(g.querySelectorAll('[id]'), function (x) { x.removeAttribute('id'); });
+    if (geist[k]) geist[k].remove(); geist[k] = g; document.body.appendChild(g);
+  });
+  ansicht.j = alt.j; ansicht.m = alt.m; gewaehlt = gw; zeichneEcht(); geistFuer = monatKey(); geistBau = false;
+}
+function geisterSpaeter(ms) { clearTimeout(geistTimer); geistTimer = setTimeout(function () { if (fingerDrauf || wischAktiv) geisterSpaeter(200); else geisterBauen(); }, ms == null ? 120 : ms); }
+(function () {
+  var sx = 0, sy = 0, lx = 0, lt = 0, v = 0, an = false, richtung = 0, laeuft = false;
+  function teile() { return [$('monat'), $('seite')]; }
+  function setze(dx, dauer, kurve) {
+    var w = window.innerWidth, tr = dauer ? 'transform ' + dauer + 'ms ' + kurve : 'none';
+    teile().forEach(function (el) { el.style.transition = tr; el.style.transform = dx ? 'translate3d(' + dx + 'px,0,0)' : ''; });
+    ['-1', '1'].forEach(function (k) { var g = geist[k]; if (!g) return; g.style.transition = tr; g.style.transform = 'translate3d(' + (+k * w + dx) + 'px,0,0)'; g.style.visibility = (k === '1' ? dx < 0 : dx > 0) ? 'visible' : 'hidden'; });
+  }
+  function aufraeumen() {
+    teile().forEach(function (el) { el.style.transition = 'none'; el.style.transform = ''; });
+    ['-1', '1'].forEach(function (k) { if (geist[k]) { geist[k].style.transition = 'none'; geist[k].style.visibility = 'hidden'; } });
+  }
+  function ende(dx) {
+    var w = window.innerWidth, schnell = Math.abs(v) > .4 && Math.abs(dx) > 25;
+    if (Math.abs(dx) < w * .25 && !schnell) { laeuft = true; setze(0, 360, 'cubic-bezier(.16,1,.3,1)'); setTimeout(function () { aufraeumen(); wischAktiv = false; laeuft = false; }, 380); return; }
+    laeuft = true; var vor = dx < 0, rest = Math.round(Math.max(200, Math.min(380, (w - Math.abs(dx)) / Math.max(Math.abs(v), 1) * 1.2)));
+    setze(vor ? -w : w, rest, 'cubic-bezier(.2,.7,.3,1)');
+    setTimeout(function () {
+      aufraeumen(); wischAktiv = false;
+      monatSchrittStill(vor ? 1 : -1);      // neuer Monat steht jetzt an Position 0, sieht aus wie der eingeschobene Geist
+      clearTimeout(geistTimer); geisterBauen();
+      laeuft = false;
+    }, rest + 30);
+  }
+  document.addEventListener('touchstart', function (ev) {
+    fingerDrauf = true; an = false;
+    if (laeuft || document.querySelector('.blatt.offen') || ev.touches.length > 1 || ev.touches[0].clientX <= 24 || (ev.target.closest && ev.target.closest('input,textarea,select,.plus'))) return;
+    an = true; richtung = 0; v = 0;
+    sx = lx = ev.touches[0].clientX; sy = ev.touches[0].clientY; lt = Date.now();
+    var ziel = ev.target;
+    var mv = function (e) { bewegung(e); }, en = function (e) { if (e.touches.length) return; weg(); los(e.changedTouches[0].clientX - sx); }, ca = function () { weg(); los(lx - sx); };
+    var weg = function () { ziel.removeEventListener('touchmove', mv); ziel.removeEventListener('touchend', en); ziel.removeEventListener('touchcancel', ca); };
+    ziel.addEventListener('touchmove', mv, { passive: true }); ziel.addEventListener('touchend', en, { passive: true }); ziel.addEventListener('touchcancel', ca, { passive: true });
+  }, { passive: true, capture: true });
+  function bewegung(ev) {
+    if (!an) return; var x = ev.touches[0].clientX, dx = x - sx, dy = ev.touches[0].clientY - sy, t = Date.now();
+    if (!richtung) { if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return; richtung = Math.abs(dx) > Math.abs(dy) * 1.2 ? 1 : 2;
+      if (richtung === 1) { if (!geist['1'] || geistFuer !== monatKey()) { clearTimeout(geistTimer); fingerDrauf = false; geisterBauen(); fingerDrauf = true; } wischAktiv = true; ['-1', '1'].forEach(function (k) { if (geist[k]) geist[k].style.top = (-window.scrollY) + 'px'; }); } }
+    if (richtung !== 1) return; if (t > lt) v = (x - lx) / (t - lt); lx = x; lt = t;
+    setze(dx, 0);
+  }
+  function los(dx) { fingerDrauf = false; if (!an) { if (geistFuer !== monatKey() && !laeuft) geisterSpaeter(0); return; } an = false; if (richtung !== 1) return; ende(dx); }
+  document.addEventListener('touchend', function (ev) { if (!an && !ev.touches.length) los(0); }, { passive: true });
+  document.addEventListener('touchcancel', function () { if (!an) los(0); }, { passive: true });
+})();
+function monatSchrittStill(n) { ansicht.m += n; if (ansicht.m < 0) { ansicht.m = 11; ansicht.j--; } if (ansicht.m > 11) { ansicht.m = 0; ansicht.j++; } zeichneEcht(); }
 // Einstellungen
 $('einstKnopf').onclick = function () { $('sName').value = daten.einst.name || ''; $('sLohn').value = daten.einst.lohn || ''; $('sPause').value = daten.einst.pause || ''; $('sVertrag').value = daten.einst.vertrag || ''; nurStdZeigen(); $('sLetzte').textContent = daten.einst.gesichert ? 'Letzte Sicherung: ' + new Date(daten.einst.gesichert).toLocaleString('de-DE', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr' : 'Noch keine Sicherung gemacht.'; oeffne('blattS'); };
 $('sName').onchange = function () { daten.einst.name = this.value.trim(); sichern(); zeichne(); };
