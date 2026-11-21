@@ -164,6 +164,16 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .kgr{display:none;position:absolute;right:10px;top:10px;z-index:3;width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(40,40,40,.9);color:#fff;align-items:center;justify-content:center;padding:0}
 .kgr svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 #start.ordnen .kgr{display:flex}
+/* (2.61) breite Depot-Kachel: Betrag rechts oben neben dem Symbol, Diagramm groß über die ganze Breite */
+.sgrid .kachel.breit[data-ziel=depot]{display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-content:start}
+.sgrid .kachel.breit[data-ziel=depot]>div:last-child,.sgrid .kachel.breit[data-ziel=depot] .u,.sgrid .kachel.breit[data-ziel=depot] .u>.dbox{display:contents!important}
+.sgrid .kachel.breit[data-ziel=depot] .pfeil{display:none}
+.sgrid .kachel.breit[data-ziel=depot] .ic{grid-column:1;grid-row:1 / 4;align-self:start}
+.sgrid .kachel.breit[data-ziel=depot] .t{grid-column:2;grid-row:1;justify-self:end;margin-top:0}
+.sgrid .kachel.breit[data-ziel=depot] .w{grid-column:2;grid-row:2;justify-self:end}
+.sgrid .kachel.breit[data-ziel=depot] .u>.dbox>.dw{grid-column:2;grid-row:3;justify-self:end;font-size:13px;margin-top:3px}
+.sgrid .kachel.breit[data-ziel=depot] .u>.dbox>.dpkt{grid-column:2;grid-row:3;justify-self:end;position:static}
+.sgrid .kachel.breit[data-ziel=depot] .dlinie{grid-column:1 / -1;grid-row:4;height:120px;margin-top:14px}
 .sgrid .kachel.zieht{animation:none!important;z-index:5;transition:none!important;box-shadow:0 22px 50px rgba(0,0,0,.6);opacity:.96}
 @keyframes wackeln{from{transform:rotate(-1.1deg)}to{transform:rotate(1.1deg)}}
 .ordfertig{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 22px);transform:translate(-50%,30px);opacity:0;pointer-events:none;z-index:9;background:#fff;color:#000;border:0;border-radius:999px;padding:12px 30px;font:inherit;font-weight:700;font-size:15px;box-shadow:0 10px 30px rgba(0,0,0,.5);transition:transform .35s cubic-bezier(.2,.8,.2,1),opacity .25s}
@@ -526,7 +536,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.60';
+var VERSION = '2.61';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
