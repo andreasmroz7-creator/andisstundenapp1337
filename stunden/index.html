@@ -40,6 +40,16 @@ button{font:inherit;color:inherit}
 .summe .r small.nl{margin-top:8px}.summe .mz{align-items:stretch}.summe .lks{display:flex;flex-direction:column;align-items:flex-start}.summe .lks small{margin-top:auto}.summe .lks b{line-height:1.05}
 .jkarte{background:var(--karte);border:1px solid var(--rand);border-radius:20px;padding:16px;margin:14px 0}
 .jkarte small{display:block;color:var(--grau);font-size:13px}.jkarte b.g{font-size:34px;font-weight:700;letter-spacing:-.5px}
+.ukarte .urest{display:flex;align-items:baseline;gap:8px}
+.ukarte .urest b.g{color:#4fdcec}
+.ukarte .urest span{color:var(--grau);font-size:15px}
+.ubalken{height:10px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden;display:flex;margin:10px 0 4px}
+.ubalken i{display:block;height:100%}
+.ubalken .ug{background:linear-gradient(90deg,#1fb6d4,#5ee7f0)}
+.ubalken .up{background:rgba(79,220,236,.35)}
+.uanspruch{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--rand);font-size:14px;color:var(--grau)}
+.uanspruch input{width:104px;text-align:center;margin:0;padding:8px 10px}
+.eart{margin:10px 0 0}
 .jgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;padding-top:14px;border-top:1px solid var(--rand)}
 .jgrid b{font-size:19px}
 .jmon{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--karte);border:1px solid var(--rand);border-radius:16px;margin-bottom:8px;cursor:pointer}
@@ -140,6 +150,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
     <label>Datum</label><input type="date" id="eDatum">
     <div class="schalter" id="eUrlaub" style="margin-top:6px"><div>Urlaub<small>ganzer Tag Urlaub, ohne Uhrzeiten</small></div><div class="knopf"></div></div>
     <div id="eArbeit">
+    <div class="umschalter eart" id="eArt"><button data-a="zeit">Beginn und Ende</button><button data-a="std">Nur Stunden</button></div>
     <div id="eZeiten"><div class="zwei"><div><label>Beginn</label><input type="time" id="eBeginn"></div><div><label>Ende</label><input type="time" id="eEnde"></div></div>
     <label>Pause (Minuten)</label><input type="number" id="ePause" inputmode="numeric" min="0" step="5" placeholder="0"></div>
     <div id="eNurStd" style="display:none"><label>Stunden</label><input type="text" id="eStunden" inputmode="decimal" placeholder="z. B. 7:30 oder 7,5" autocomplete="off"></div>
@@ -186,7 +197,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.19';
+var VERSION = '3.20';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -232,6 +243,8 @@ function netto(brutto) {
   var est = estTarif(Math.max(0, jahr - 1230 - 36 - vorsorge)), lst = est / 12, soli = est > 20350 ? lst * .055 : 0, kist = e.kist ? lst * .09 : 0;
   return Math.round((brutto - sv - lst - soli - kist) * 100) / 100;
 }
+// (3.20) Urlaubsanspruch pro Jahr; ist für ein Jahr nichts eingetragen, gilt der Wert vom letzten Jahr davor
+function urlaubAnspruch(J) { var a = daten.einst.urlaubAnspruch || {}, best = 0; Object.keys(a).map(Number).sort().forEach(function (j) { if (j <= J && +a[j] > 0) best = +a[j]; else if (j <= J && a[j] === '') best = 0; }); return best; }
 function istUrlaub(e) { return !!e && (e.urlaub || (e.std === 0 && /urlaub/i.test(e.n || ''))); }
 function euro(x) { return x.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
 function datumText(s) { var d = new Date(s + 'T12:00:00'); return WTL[d.getDay()] + ', ' + d.getDate() + '. ' + MONATE[d.getMonth()] + ' ' + d.getFullYear(); }
@@ -312,7 +325,7 @@ function eintragOeffnen(e, tag) {
   $('ePause').value = e ? (e.p || '') : (daten.einst.pause || '');
   $('eNotiz').value = e ? (e.n || '') : '';
   eNur = e && !istUrlaub(e) ? e.std != null : !!daten.einst.nurStd; eUrl = istUrlaub(e);
-  $('eZeiten').style.display = eNur ? 'none' : ''; $('eNurStd').style.display = eNur ? '' : 'none';
+  artZeigen();
   $('eStunden').value = e && e.std != null && !eUrl ? hm(e.std) : '';
   if (eUrl) { $('eBeginn').value = letzter && letzter.b ? letzter.b : '08:00'; $('eEnde').value = letzter && letzter.e ? letzter.e : '16:30'; }
   $('eNotiz').value = e && !(eUrl && /^urlaub$/i.test(e.n || '')) ? (e.n || '') : '';
@@ -321,6 +334,13 @@ function eintragOeffnen(e, tag) {
   eRechne(); oeffne('blattE');
 }
 var eNur = false, eUrl = false;
+// (3.20) Pro Eintrag umschalten: Beginn und Ende oder direkt die Stunden – ohne Umweg über die Einstellungen
+function artZeigen() { $('eZeiten').style.display = eNur ? 'none' : ''; $('eNurStd').style.display = eNur ? '' : 'none'; [].forEach.call($('eArt').children, function (b) { b.classList.toggle('an', (b.dataset.a === 'std') === eNur); }); }
+[].forEach.call($('eArt').children, function (b) { b.onclick = function () {
+  var nur = b.dataset.a === 'std'; if (nur === eNur) return;
+  if (nur && !$('eStunden').value) { var m = dauer({ b: $('eBeginn').value, e: $('eEnde').value, p: $('ePause').value }); if (m > 0) $('eStunden').value = hm(m); }
+  eNur = nur; artZeigen(); eRechne(); if (nur) setTimeout(function () { $('eStunden').focus(); }, 50);
+}; });
 function urlaubZeigen() { $('eUrlaub').classList.toggle('an', eUrl); $('eArbeit').style.display = eUrl ? 'none' : ''; $('eErgT').textContent = eUrl ? 'Urlaub' : 'Arbeitszeit'; eRechne(); }
 $('eUrlaub').onclick = function () { eUrl = !eUrl; urlaubZeigen(); };
 // „7:30“, „7,5“, „7.5“ oder „8“ → Minuten
@@ -514,14 +534,23 @@ function jahrZeichnen() {
     (V ? '<div><small>Überstunden gesamt</small><b class="' + (ueber >= 0 ? 'plusw' : 'minusw') + '">' + pm(ueber) + '</b></div>' : '<div><small>Ø pro Arbeitstag</small><b>' + (Object.keys(tage).length ? hm(sum / Object.keys(tage).length) : '0:00') + '</b></div>') +
     (l ? '<div><small>Brutto</small><b>' + euro(Math.round(br * 100) / 100) + '</b></div><div><small>≈ Netto</small><b>' + euro(Math.round(nt * 100) / 100) + '</b></div>' : '') +
     (V && wochen ? '<div><small>Ø pro Woche</small><b>' + hm(M.reduce(function (a, x) { return a + monatsWochen(J, x.m).reduce(function (b, w) { return b + w.ist; }, 0); }, 0) / wochen) + '</b></div><div><small>Soll pro Woche</small><b>' + hm(V) + '</b></div>' : '') +
-    (urlaub ? '<div><small>Urlaubstage</small><b>' + urlaub + '</b></div>' : '') +
     '</div></div>';
+  // (3.20) Urlaubskarte: Anspruch direkt hier eintragen, genommen/geplant zählt die App selbst aus den Urlaubstagen
+  var ua = urlaubAnspruch(J), heuteIso = iso(new Date()), uG = 0, uP = 0;
+  daten.eintraege.forEach(function (e) { if (e.d.slice(0, 4) === String(J) && istUrlaub(e)) { if (e.d <= heuteIso) uG++; else uP++; } });
+  h += '<div class="jkarte ukarte"><small>Urlaub ' + J + '</small>' +
+    (ua ? '<div class="urest"><b class="g">' + (ua - uG - uP) + '</b><span>' + (Math.abs(ua - uG - uP) === 1 ? 'Tag' : 'Tage') + ' Resturlaub</span></div>' +
+      '<div class="ubalken"><i class="ug" style="width:' + Math.min(100, uG / ua * 100) + '%"></i><i class="up" style="width:' + Math.max(0, Math.min(100 - uG / ua * 100, uP / ua * 100)) + '%"></i></div>' +
+      '<div class="jgrid"><div><small>Genommen</small><b>' + uG + '</b></div><div><small>Geplant</small><b>' + uP + '</b></div></div>'
+      : '<div class="hinweis" style="margin-top:6px">Trag ein, wie viele Urlaubstage du im Jahr hast. Dann rechnet die App deinen Resturlaub aus.' + (uG + uP ? ' Bisher eingetragen: ' + (uG + uP) + ' Urlaubstage.' : '') + '</div>') +
+    '<div class="uanspruch"><span>Urlaubstage im Jahr</span><input type="text" id="jUrlaub" inputmode="numeric" placeholder="z. B. 28" value="' + (ua || '') + '" autocomplete="off"></div></div>';
   h += M.length ? M.map(function (x) {
     return '<div class="jmon" data-m="' + x.m + '"><div class="mn">' + MONATE[x.m] + '<small>' + x.tage + (x.tage === 1 ? ' Tag' : ' Tage') + (l ? ' · ' + euro(x.br) + ' brutto' : '') + '</small></div><div class="st">' + hm(x.std) +
       (x.diff != null ? '<small class="' + (x.diff >= 0 ? 'plusw' : 'minusw') + '">' + pm(x.diff) + '</small>' : '') + '</div></div>';
   }).reverse().join('') : '<div class="leer">In ' + J + ' ist noch nichts eingetragen.</div>';
   if (V) h += '<div class="hinweis">Überstunden: jeder Arbeitstag Montag bis Freitag zählt mit ' + hm(V / 5) + ' Std. Soll (' + hm(V) + ' pro Woche), bis zur laufenden Woche. Eine Woche über den Monatswechsel wird auf beide Monate aufgeteilt. Samstag zählt nur, wenn Stunden eingetragen sind. Monat antippen, um ihn zu öffnen.</div>';
   $('jInhalt').innerHTML = h;
+  $('jUrlaub').onchange = function () { var v = parseInt(this.value, 10); if (!daten.einst.urlaubAnspruch) daten.einst.urlaubAnspruch = {}; daten.einst.urlaubAnspruch[J] = v > 0 ? v : ''; sichern(); jahrZeichnen(); toast(v > 0 ? v + ' Urlaubstage für ' + J + ' gespeichert' : 'Urlaubstage gelöscht'); };
   setTimeout(scrollPruefen, 30);
 }
 $('jInhalt').onclick = function (ev) {
