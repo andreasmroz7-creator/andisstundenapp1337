@@ -473,7 +473,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.30';
+var VERSION = '2.31';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2075,7 +2075,31 @@ function depotLiveRechnen(stark) {
 setInterval(function () { if (!document.hidden && daten.depot && daten.depot.pos) depotLiveRechnen(); }, 5000); // (2.30) alle 5 s, solange das Cockpit offen ist
 setInterval(function () { if (!document.hidden && depotKopf) depotHolen(depotKopf, true); }, 30000); // (2.30) Mac-Stand alle 30 s abholen (der Mac schreibt alle paar Minuten)
 document.addEventListener('visibilitychange', function () { if (!document.hidden && daten.depot && daten.depot.pos) depotLiveRechnen(true); });
-function depotNeuZeigen() { if (!$('start').classList.contains('aus')) startZeichnen(true); if ($('blattD').classList.contains('offen')) depotZeichnen(); }
+// (2.31) Zahlen rollen wie im Dashboard: ändert sich der Betrag, rollen die geänderten Ziffern nach oben (Wert steigt) bzw. nach unten (Wert fällt)
+var ROLLK = {};
+function rollZahl(el, key, v) {
+  try {
+    if (!el) return; var txt = el.textContent, prev = ROLLK[key]; ROLLK[key] = { v: v, txt: txt };
+    if (!prev || prev.v === v || prev.txt === txt || !el.animate || matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+    var up = v > prev.v, all = [], pt = prev.txt, EA = 'cubic-bezier(.2,.9,.25,1)', DU = 650;
+    var tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT), tn = [], x; while ((x = tw.nextNode())) tn.push(x); // nur die Texte aufteilen, Unter-Elemente (z. B. „heute“) behalten ihr Aussehen
+    tn.forEach(function (t) { var f = document.createDocumentFragment(); Array.from(t.nodeValue).forEach(function (ch) { var sp = document.createElement('span'); sp.textContent = ch; f.appendChild(sp); all.push(sp); }); t.parentNode.replaceChild(f, t); });
+    var n = all.length;
+    all.forEach(function (sp, i) {
+      var ch = sp.textContent; if (!/\d/.test(ch)) return; var j = pt.length - (n - i), oc = j >= 0 ? pt[j] : ''; if (oc === ch) return;
+      sp.style.cssText = 'display:inline-block;position:relative;overflow:hidden;vertical-align:top';
+      sp.textContent = ''; var ng = document.createElement('span'); ng.textContent = ch; ng.style.display = 'inline-block'; sp.appendChild(ng);
+      ng.animate([{ transform: 'translateY(' + (up ? '100%' : '-100%') + ')', opacity: .2 }, { transform: 'translateY(0)', opacity: 1 }], { duration: DU, easing: EA });
+      if (/\d/.test(oc)) { var og = document.createElement('span'); og.textContent = oc; og.style.cssText = 'position:absolute;left:0;top:0'; sp.appendChild(og);
+        var oa = og.animate([{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(' + (up ? '-100%' : '100%') + ')', opacity: 0 }], { duration: DU, easing: EA, fill: 'forwards' }); oa.onfinish = function () { og.remove(); }; }
+    });
+  } catch (e) {}
+}
+function depotRollenKachel() { // Kachel auf der Startseite: Gesamt (ganze Euro) und Veränderung heute
+  var d = depotEff(); if (!d) return; var w = document.querySelectorAll('.kachel[data-ziel="depot"] .dw');
+  if (w[0]) rollZahl(w[0], 'kG', Math.round(d.gesamt)); if (w[1]) rollZahl(w[1], 'kH', d.heute_eur);
+}
+function depotNeuZeigen() { if (!$('start').classList.contains('aus')) startZeichnen(true); var c = $('dChart'); if ($('blattD').classList.contains('offen') && !(c && c.classList.contains('zieht'))) depotZeichnen(); }
 // Depot-Stand zum Anzeigen: vom Mac, oder mit aktuellen Kursen weitergerechnet
 function depotEff() {
   var d = daten.depot; if (!d || !depotLive) return d;
@@ -2088,6 +2112,7 @@ function depotEff() {
 }
 function depotWann(d) { if (d.seitMac) { var m = new Date(d.stand); return 'seit ' + m.getDate() + '.' + (m.getMonth() + 1) + '.'; } var t = new Date(d.stand); return iso2(t) === iso2(new Date()) ? 'heute' : 'am ' + t.getDate() + '.' + (t.getMonth() + 1) + '.'; }
 function euroK(n) { return (Math.round(n)).toLocaleString('de-DE') + ' €'; }
+(function () { var sz = startZeichnen; startZeichnen = function () { var r = sz.apply(this, arguments); try { depotRollenKachel(); } catch (e) {} return r; }; })();
 function depotHolen(kopf, leise) {
   return fetch(GHD + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
     if (!j) return; var d = JSON.parse(b64dec(j.content) || '{}'); if (!d || d.gesamt == null) return;
@@ -2148,6 +2173,8 @@ function depotZeichnen() {
     '<div class="dzr" id="dZr">' + DZR.map(function (z) { return '<button type="button" data-r="' + z[0] + '" class="' + (z[0] === depotZr ? 'an' : '') + '">' + z[1] + '</button>'; }).join('') + '</div>' +
     '<p class="hinweis" style="margin-top:14px">' + (d.live ? (Date.now() - st > 20 * 60e3 ? 'Mac aus: live' : 'Live') + ' gerechnet (' + (d.live.neuK ? 'Krypto alle 5 s' : '') + (d.live.neuK && d.live.neuW ? ', ' : '') + (d.live.neuW ? 'Aktien/ETFs ' + (boerseOffen() ? 'alle 10 s' : 'Börse zu') + ', Stand ' + new Date(d.live.tW * 1000).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' Uhr' : '') + '). Letzter Stand vom Mac: ' : 'Stand ') + st.toLocaleString('de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr' + (d.live ? '' : ', vom Mac' + (alt ? ' (älter, der Mac ist wohl aus)' : '')) + '. Mit dem Finger über das Diagramm fahren zeigt den Wert zu jedem Zeitpunkt.</p>';
   [].forEach.call(document.querySelectorAll('#dZr button'), function (b) { b.onclick = function () { depotZr = b.dataset.r; depotZeichnen(); }; });
+  rollZahl($('dGross').querySelector('.dw'), 'dG', d.gesamt);
+  if (!R.leer) rollZahl($('dAend').querySelector('.dw'), 'dA' + depotZr, R.eur);
   depotFinger(d, R);
 }
 // Finger über dem Diagramm: Linie und Punkt folgen, oben stehen Wert und Veränderung zu diesem Zeitpunkt; beim Loslassen wieder der aktuelle Stand
