@@ -473,7 +473,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.26';
+var VERSION = '2.27';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -599,9 +599,14 @@ function sync() {
     var m = mische(daten, fern.d);
     var alt = JSON.stringify({ e: daten.eintraege, p: daten.profile, g: daten.geloescht });
     daten.eintraege = m.eintraege; daten.profile = m.profile.length ? m.profile : profile(); daten.geloescht = m.geloescht;
-    sichern(true); if (JSON.stringify({ e: daten.eintraege, p: daten.profile, g: daten.geloescht }) !== alt) zeichne();
-    var neuText = JSON.stringify({ eintraege: daten.eintraege, profile: daten.profile, geloescht: daten.geloescht }, null, 1);
-    var fernText = JSON.stringify({ eintraege: fern.d.eintraege || [], profile: fern.d.profile || [], geloescht: fern.d.geloescht || {} }, null, 1);
+    // (2.27) Urlaubskonto mitsyncen: neuerer Stand gewinnt
+    var fu = fern.d.urlaub; if (fu && fu.jahre && (fu.stand || 0) > (daten.einst.urlaubStand || 0)) { daten.einst.urlaubJahr = fu.jahre; daten.einst.urlaubStand = fu.stand; m.urlaubNeu = 1; }
+    var urlObj = daten.einst.urlaubStand ? { stand: daten.einst.urlaubStand, jahre: daten.einst.urlaubJahr || {} } : (fu || null);
+    sichern(true); if (m.urlaubNeu || JSON.stringify({ e: daten.eintraege, p: daten.profile, g: daten.geloescht }) !== alt) { zeichne(); if (!$('start').classList.contains('aus')) startZeichnen(true); }
+    var nO = { eintraege: daten.eintraege, profile: daten.profile, geloescht: daten.geloescht }, fO = { eintraege: fern.d.eintraege || [], profile: fern.d.profile || [], geloescht: fern.d.geloescht || {} };
+    if (urlObj) nO.urlaub = urlObj; if (fu) fO.urlaub = fu;
+    var neuText = JSON.stringify(nO, null, 1);
+    var fernText = JSON.stringify(fO, null, 1);
     if (neuText === fernText) return;
     var body = { message: 'Stunden-App ' + new Date().toLocaleString('de-DE'), content: b64enc(neuText) };
     if (fern.sha) body.sha = fern.sha;
@@ -2197,7 +2202,7 @@ function urlaubZeichnen() {
   if (!k.genommen && !k.geplant) h += '<p class="hinweis">Noch keine Urlaubstage ' + uJahr + '. Schick Claude einfach einen Screenshot vom Urlaubsantrag.</p>';
   h += '<p class="hinweis" style="text-align:center;margin-top:18px"><button class="mini" id="uVor">‹ ' + (uJahr - 1) + '</button> &nbsp; <button class="mini" id="uNach">' + (uJahr + 1) + ' ›</button></p>';
   $('uKoerper').innerHTML = h;
-  var setz = function (feld, wert) { daten.einst.urlaubJahr = daten.einst.urlaubJahr || {}; var u = daten.einst.urlaubJahr[uJahr] = daten.einst.urlaubJahr[uJahr] || {}; var v = wert.trim().replace(',', '.'); u[feld] = v === '' ? null : (parseFloat(v) || 0); sichern(true); };
+  var setz = function (feld, wert) { daten.einst.urlaubJahr = daten.einst.urlaubJahr || {}; var u = daten.einst.urlaubJahr[uJahr] = daten.einst.urlaubJahr[uJahr] || {}; var v = wert.trim().replace(',', '.'); u[feld] = v === '' ? null : (parseFloat(v) || 0); daten.einst.urlaubStand = Date.now(); sichern(true); syncBald(); };
   $('uAn').onchange = function () { setz('anspruch', this.value); urlaubZeichnen(); };
   $('uUe').onchange = function () { setz('uebertrag', this.value); urlaubZeichnen(); };
   $('uVor').onclick = function () { uJahr--; urlaubZeichnen(); }; $('uNach').onclick = function () { uJahr++; urlaubZeichnen(); };
