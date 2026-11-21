@@ -330,7 +330,11 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .ubrech .ubsum b{font-size:19px;font-weight:700}
 .ubanteil{display:flex;height:10px;border-radius:6px;overflow:hidden;background:#e8e8e8;margin-top:4px}
 .ubanteil i{display:block;height:100%}
-.ubanteil .k{background:#5a5a5a}.ubanteil .s{background:#9a9a9a}
+.ubanteil .k{background:#5a5a5a}.ubanteil .s{background:#9a9a9a}.ubanteil .l{background:#7a7a7a}.ublegende i.l{background:#7a7a7a}
+.ubrech .ubleben{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--rand);font-size:15px}
+.ubrech .ubleben span{color:var(--grau)}
+.ubrech .ubleben label{font-weight:600;display:flex;align-items:center;gap:6px;margin:0;color:var(--txt);font-size:15px;text-transform:none;letter-spacing:0}
+.ubrech .ubleben input{width:96px;text-align:right;margin:0;padding:7px 10px;font-size:15px;font-weight:600}
 .ublegende{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--grau)}
 .ublegende i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;background:#e8e8e8}
 .ublegende i.k{background:#5a5a5a}.ublegende i.s{background:#9a9a9a}
@@ -585,7 +589,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.68';
+var VERSION = '2.69';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1427,7 +1431,7 @@ function startZeichnen(still) {
   var LO = lohnDaten(), lo0 = LO && LO.m.length ? LO.m[LO.m.length - 1] : null; // (2.63) Lohn-Kachel: letzte Abrechnung
   k('lohn', IC.lohn, 'linear-gradient(135deg,#b0b0b0,#5a5a5a)', 'Lohn', lo0 ? pxEuro(lo0.au) : '–', lo0 ? 'ausgezahlt · ' + lohnMonat(lo0.m) : 'kommt vom Mac, sobald er an ist', '', false);
   var UB = ubMonate(), ub0 = UB.length ? UB[UB.length - 1] : null; // (2.68) Was übrig bleibt: letzte Abrechnung minus laufende Kosten und Sparpläne
-  k('uebrig', IC.geld.replace('M3 10h18M16 14.5h2', 'M3 10h18M12 13v4M10 15h4'), 'linear-gradient(135deg,#b4b4b4,#5c5c5c)', 'Übrig', ub0 ? '<span class="' + (ub0.ue < 0 ? 'dminus' : '') + '">' + pxEuro(ub0.ue) + '</span>' : '–', ub0 ? lohnMonat(ub0.m) + ' · nach Kosten und Sparplänen' : !lohnDaten() ? 'kommt mit den Lohnabrechnungen' : 'laufende Kosten noch nicht geladen', '', false);
+  k('uebrig', IC.geld.replace('M3 10h18M16 14.5h2', 'M3 10h18M12 13v4M10 15h4'), 'linear-gradient(135deg,#b4b4b4,#5c5c5c)', 'Übrig', ub0 ? '<span class="' + (ub0.ue < 0 ? 'dminus' : '') + '">' + pxEuro(ub0.ue) + '</span>' : '–', ub0 ? lohnMonat(ub0.m) + (ubLeben() ? ' · nach Kosten, Sparen und Leben' : ' · nach Kosten und Sparplänen') : !lohnDaten() ? 'kommt mit den Lohnabrechnungen' : 'laufende Kosten noch nicht geladen', '', false);
   k('termine', IC.kalender, 'linear-gradient(135deg,#9e9e9e,#585858)', 'Termine', tm0 ? tmTagKurz(tm0) : '–', tm0 ? esc(tm0.ti) + (tm0.g ? '' : ' · ' + tmUhr(tm0)) + (tmL[1] ? '<br>danach ' + tmTagKurz(tmL[1]) + ': ' + esc(tmL[1].ti) : '') : 'kommt vom Mac, sobald er an ist', '', false);
   var kr = kachelReihe(kdef), KG = kachelGroessen(), KB = kachelAutoBreit(kr, KG); kr.forEach(function (z, i) { h += kk[z](.12 + i * .06).replace('class="kachel rein', 'class="kachel rein' + (KG[z] === 'b' || KB === z ? ' breit' : KG[z] === 'k' ? ' klein' : '')).replace('<span class="pfeil">', '<button type="button" class="kgr" aria-label="Größe ändern"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button><span class="pfeil">'); });
   h += '</div><div class="ordtipp">Kachel ziehen zum Verschieben · ⤢ ändert die Größe</div><button class="ordfertig" id="ordfertig">Fertig</button>';
@@ -2549,23 +2553,27 @@ function ubKosten(mon) { // mon = 'JJJJ-MM'; zählt alles, was in dem Monat lief
   (f.sparplaene || []).forEach(function (p) { if (p.ende && p.ende < a) return; var b = p.start || p.beginn; if (b && b > e) return; sp += proMonat(p); });
   return { k: k, sp: sp };
 }
-function ubMonate() { var L = lohnDaten(); if (!L || !daten.fixkosten) return []; return L.m.map(function (x) { var c = ubKosten(x.m); return { m: x.m, au: x.au, k: c.k, sp: c.sp, ue: Math.round((x.au - c.k - c.sp) * 100) / 100 }; }); }
+function ubLeben() { var v = +daten.einst.ubLeben; return v > 0 ? v : 0; } // (2.69) Geld zum Leben pro Monat (Essen, Tanken …), selbst eingetragen
+function ubMonate() { var L = lohnDaten(); if (!L || !daten.fixkosten) return []; var le = ubLeben(); return L.m.map(function (x) { var c = ubKosten(x.m); return { m: x.m, au: x.au, k: c.k, sp: c.sp, le: le, ue: Math.round((x.au - c.k - c.sp - le) * 100) / 100 }; }); }
 function ubZeichnen() {
   var A = ubMonate(); if (!A.length) { $('ubKoerper').innerHTML = '<p class="hinweis">' + (!lohnDaten() ? 'Die Lohnabrechnungen kommen vom Mac, sobald er an ist.' : 'Die laufenden Kosten sind noch nicht geladen. Einmal abgleichen.') + '</p>'; return; }
   var J = []; A.forEach(function (x) { var j = x.m.slice(0, 4); if (J.indexOf(j) < 0) J.push(j); }); J.sort().reverse(); if (!ubJahr || J.indexOf(ubJahr) < 0) ubJahr = J[0];
   var M = A.filter(function (x) { return x.m.slice(0, 4) === ubJahr; }), x0 = M[M.length - 1], sum = M.reduce(function (a, x) { return a + x.ue; }, 0);
   var h = J.length > 1 ? '<div class="ljahr">' + J.map(function (j) { return '<button type="button" data-j="' + j + '" class="' + (j === ubJahr ? 'an' : '') + '">' + j + '</button>'; }).join('') + '</div>' : '';
   h += '<div class="lbox"><small>Übrig im ' + lohnMonat(x0.m) + '</small><div class="lgross' + (x0.ue < 0 ? ' ubminus' : '') + '">' + pxEuro(x0.ue) + '</div><small class="lschnitt">Ø <b>' + euro(sum / M.length) + '</b> pro Monat · ' + ubJahr + ' zusammen <b>' + euro(sum) + '</b></small></div>';
-  h += '<div class="ubrech"><div><span>Ausgezahlt</span><b>' + euroH(x0.au) + '</b></div><div><span>Laufende Kosten</span><b>− ' + euroH(x0.k) + '</b></div>' + (x0.sp ? '<div><span>Sparpläne</span><b>− ' + euroH(x0.sp) + '</b></div>' : '') + '<div class="ubsum"><span>Bleibt übrig</span><b>' + euroH(x0.ue) + '</b></div>' +
-    '<div class="ubanteil"><i class="k" style="width:' + Math.min(100, x0.k / x0.au * 100).toFixed(1) + '%"></i><i class="s" style="width:' + Math.max(0, Math.min(100 - x0.k / x0.au * 100, x0.sp / x0.au * 100)).toFixed(1) + '%"></i></div>' +
-    '<div class="ublegende"><span><i class="k"></i>Kosten ' + Math.round(x0.k / x0.au * 100) + ' %</span>' + (x0.sp ? '<span><i class="s"></i>Sparpläne ' + Math.round(x0.sp / x0.au * 100) + ' %</span>' : '') + '<span><i></i>übrig ' + Math.round(Math.max(0, x0.ue) / x0.au * 100) + ' %</span></div></div>';
+  h += '<div class="ubrech"><div><span>Ausgezahlt</span><b>' + euroH(x0.au) + '</b></div><div><span>Laufende Kosten</span><b>− ' + euroH(x0.k) + '</b></div>' + (x0.sp ? '<div><span>Sparpläne</span><b>− ' + euroH(x0.sp) + '</b></div>' : '') +
+    '<div class="ubleben"><span>Geld zum Leben</span><label>− <input type="text" id="ubLebenIn" inputmode="decimal" placeholder="0" value="' + (x0.le ? String(x0.le).replace('.', ',') : '') + '" autocomplete="off"> €</label></div>' + '<div class="ubsum"><span>Bleibt übrig</span><b>' + euroH(x0.ue) + '</b></div>' +
+    '<div class="ubanteil">' + [['k', x0.k], ['s', x0.sp], ['l', x0.le]].map(function (a, i, all) { var vor = all.slice(0, i).reduce(function (t, b) { return t + b[1]; }, 0); return '<i class="' + a[0] + '" style="width:' + Math.max(0, Math.min(100 - vor / x0.au * 100, a[1] / x0.au * 100)).toFixed(1) + '%"></i>'; }).join('') + '</div>' +
+    '<div class="ublegende"><span><i class="k"></i>Kosten ' + Math.round(x0.k / x0.au * 100) + ' %</span>' + (x0.sp ? '<span><i class="s"></i>Sparpläne ' + Math.round(x0.sp / x0.au * 100) + ' %</span>' : '') + (x0.le ? '<span><i class="l"></i>Leben ' + Math.round(x0.le / x0.au * 100) + ' %</span>' : '') + '<span><i></i>übrig ' + Math.round(Math.max(0, x0.ue) / x0.au * 100) + ' %</span></div></div>';
   var mx = Math.max.apply(null, M.map(function (x) { return Math.abs(x.ue); })) || 1;
   h += '<div class="lbalken">' + M.map(function (x) { return '<button type="button" data-m="' + x.m + '" class="' + (x === x0 ? 'max' : '') + (x.ue < 0 ? ' neg' : '') + '"><i style="height:' + Math.max(4, Math.abs(x.ue) / mx * 92) + 'px"></i>' + lohnMonat(x.m, true).slice(0, 1) + '</button>'; }).join('') + '</div>';
   h += '<div class="lsek"><div class="dpt">Monate</div>' + M.slice().reverse().map(function (x) {
-    return '<div class="lz"><div>' + lohnMonat(x.m) + '<small>ausgezahlt ' + euro(x.au) + ' · Kosten ' + euro(x.k + x.sp) + '</small></div><div class="r"><b class="' + (x.ue < 0 ? 'dminus' : '') + '">' + euroH(x.ue) + '</b><small>übrig</small></div></div>'; }).join('') + '</div>';
-  h += '<p class="hinweis" style="margin-top:14px">Gerechnet mit dem ausgezahlten Lohn aus deinen Abrechnungen minus den laufenden Kosten und Sparplänen, die in dem Monat liefen (jährliche Kosten auf 12 Monate verteilt).</p>';
+    return '<div class="lz"><div>' + lohnMonat(x.m) + '<small>ausgezahlt ' + euro(x.au) + ' · Kosten ' + euro(x.k + x.sp) + (x.le ? ' · Leben ' + euro(x.le) : '') + '</small></div><div class="r"><b class="' + (x.ue < 0 ? 'dminus' : '') + '">' + euroH(x.ue) + '</b><small>übrig</small></div></div>'; }).join('') + '</div>';
+  h += '<p class="hinweis" style="margin-top:14px">Gerechnet mit dem ausgezahlten Lohn aus deinen Abrechnungen minus den laufenden Kosten und Sparplänen, die in dem Monat liefen (jährliche Kosten auf 12 Monate verteilt), und minus deinem Geld zum Leben. Das Geld zum Leben trägst du oben ein, es gilt für jeden Monat.</p>';
   $('ubKoerper').innerHTML = h;
   [].forEach.call(document.querySelectorAll('#ubKoerper .ljahr button'), function (b) { b.onclick = function () { ubJahr = b.dataset.j; ubZeichnen(); }; });
+  $('ubLebenIn').onchange = function () { var v = parseFloat(String(this.value).replace(/\./g, '').replace(',', '.')); daten.einst.ubLeben = v > 0 ? Math.round(v * 100) / 100 : ''; sichern(); var sk = $('ubKoerper').scrollTop; ubZeichnen(); $('ubKoerper').scrollTop = sk; startZeichnen(true); };
+  $('ubLebenIn').onkeydown = function (e) { if (e.key === 'Enter') this.blur(); };
 }
 function lohnZeichnen() {
   var L = lohnDaten(); if (!L) { $('lKoerper').innerHTML = '<p class="hinweis">Die Lohnabrechnungen kommen vom Mac, sobald er an ist.</p>'; return; }
