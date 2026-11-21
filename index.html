@@ -269,7 +269,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 /* (2.33) Beträge wie im Dashboard / bei Scalable: Euro groß, Cent klein oben, € darunter (.s = Cent und € klein daneben, für Listen) */
 .pxb{display:inline-flex;align-items:flex-start;gap:.1em;letter-spacing:inherit;font-weight:inherit}.pxb .pi{color:inherit;line-height:1}
 .pxb .ps{display:flex;flex-direction:column;align-items:flex-start;font-size:.42em;font-weight:600;line-height:1.12;color:var(--grau);letter-spacing:0;margin-top:.1em}
-.pxb.s{gap:.12em}.pxb.s .ps{flex-direction:row;gap:.18em;font-size:.62em;margin-top:.02em}
+.pxb.s{gap:.1em;vertical-align:top}.pxb.s .ps{flex-direction:row;gap:.2em;font-size:.7em;margin-top:.04em;color:inherit;opacity:.72}
 .dkopf{display:flex;align-items:center;justify-content:space-between;gap:10px}.dkopf .hinweis{margin-top:0}
 .dart{position:relative;display:inline-grid;grid-template-columns:1fr 1fr;padding:3px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 .dart::before{content:"";position:absolute;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);border-radius:999px;background:rgba(255,255,255,.2);transition:transform .38s cubic-bezier(.3,.8,.3,1)}
@@ -488,7 +488,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.34';
+var VERSION = '2.35';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -659,6 +659,7 @@ function pxEuro(n, klein) { // (2.33) Betrag im Dashboard-/Scalable-Stil
   var t = (Math.round(n * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), k = t.lastIndexOf(',');
   return '<span class="pxb' + (klein ? ' s' : '') + '" aria-label="' + t + ' €"><span class="pi">' + t.slice(0, k) + '</span><span class="ps"><span class="pd">' + t.slice(k + 1) + '</span><span class="pc">€</span></span></span>';
 }
+function euroH(n) { return pxEuro(+n || 0, true); } // (2.35) überall im Cockpit: Cent und € klein daneben (wie Listen im Dashboard)
 function euro(n) { return n.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
 function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
 function $(id) { return document.getElementById(id); }
@@ -716,7 +717,7 @@ function zeichneEcht() {
     if (r.feiertag) teile.push('Feiertag ' + z(r.feiertag));
     if (r.urlaub) teile.push('Urlaub ' + z(r.urlaub));
     html += '<div class="tag" data-id="' + x.id + '"><div class="d"><b>' + d.getDate() + '</b><span>' + TAGE[d.getDay()] + '</span></div>' +
-      '<div class="info"><div class="z1">' + ld + (x.team === 'halle' ? ' · Halle' : '') + '</div>' + teile.join(' · ') + (r.verpflegung ? ' · ' + r.verpflegung + ' €' : '') + (x.datum === iso2(new Date()) ? fahrtLiveHtml(x.datum) : '') + '</div>' +
+      '<div class="info"><div class="z1">' + ld + (x.team === 'halle' ? ' · Halle' : '') + '</div>' + teile.join(' · ') + (r.verpflegung ? ' · ' + euroH(r.verpflegung) : '') + (x.datum === iso2(new Date()) ? fahrtLiveHtml(x.datum) : '') + '</div>' +
       '<div class="h">' + z(r.gesamt) + '</div></div>';
   });
   var hi = iso2(new Date());
@@ -729,7 +730,7 @@ function zeichneEcht() {
   if ($('suche') && $('suche').value) sucheZeichnen();
   $('msumme').textContent = z(sum);
   var lohn = daten.einst.lohn != null && daten.einst.lohn !== '' ? +daten.einst.lohn : 16;
-  $('mlohn').innerHTML = sum ? '≈ ' + euro(sum * lohn) + ' brutto' + (verpf ? ' + ' + euro(verpf) + ' Verpfl.' : '') + '<br><b>≈ ' + euro(netto(sum * lohn)) + ' netto</b>' : '';
+  $('mlohn').innerHTML = sum ? '≈ ' + euroH(sum * lohn) + ' brutto' + (verpf ? ' + ' + euroH(verpf) + ' Verpfl.' : '') + '<br><b>≈ ' + euroH(netto(sum * lohn)) + ' netto</b>' : '';
   var fm = fahrtMonat(ansicht.j, ansicht.m);
   $('mfahrt').textContent = fm.min ? '🚗 ' + hm(fm.min) + ' Std. im Auto · ' + z(fm.bez) + ' bezahlt' : '';
   $('mgesamt').innerHTML = fm.min ? '<div class="mitfahrt"><span>Stunden + ganze Fahrzeit<small>' + z(sum) + ' − ' + z(fm.bez) + ' bezahlte Fahrt + ' + hm(fm.min) + ' im Auto</small></span><b>' + z(sum - fm.bez + fm.min / 60) + ' Std.</b></div>' : '';
@@ -786,7 +787,7 @@ function formZeichnen() {
 function rechnung() {
   var r = R.berechne(e), h = '';
   var am = r.arbeitMin;
-  if (r.fest) { h += '<div><span>' + esc(e.festText || 'Gesamtzeit (fest übernommen)') + '</span></div>' + (e.quelle ? '<div class="hinweis" style="display:block">Quelle: ' + esc(e.quelle) + '</div>' : '') + '<div class="hinweis" style="display:block"><button class="mini" id="festWeg">Festen Wert entfernen und selbst rechnen lassen</button></div>'; if (r.verpflegung) h += '<div><span>Verpflegung</span><b>' + r.verpflegung + ' €</b></div>'; h += (r.feiertag ? '<div><span>Feiertag (Sachsen)</span><b>' + z(r.feiertag) + '</b></div>' : '') + (r.urlaub ? '<div><span>Urlaub</span><b>' + z(r.urlaub) + '</b></div>' : '') + '<div class="ges"><span>Gesamt</span><span>' + z(r.gesamt) + '</span></div>'; $('rechnung').innerHTML = h; $('festWeg').onclick = function () { delete e.festGesamt; formZeichnen(); }; return; }
+  if (r.fest) { h += '<div><span>' + esc(e.festText || 'Gesamtzeit (fest übernommen)') + '</span></div>' + (e.quelle ? '<div class="hinweis" style="display:block">Quelle: ' + esc(e.quelle) + '</div>' : '') + '<div class="hinweis" style="display:block"><button class="mini" id="festWeg">Festen Wert entfernen und selbst rechnen lassen</button></div>'; if (r.verpflegung) h += '<div><span>Verpflegung</span><b>' + euroH(r.verpflegung) + '</b></div>'; h += (r.feiertag ? '<div><span>Feiertag (Sachsen)</span><b>' + z(r.feiertag) + '</b></div>' : '') + (r.urlaub ? '<div><span>Urlaub</span><b>' + z(r.urlaub) + '</b></div>' : '') + '<div class="ges"><span>Gesamt</span><span>' + z(r.gesamt) + '</span></div>'; $('rechnung').innerHTML = h; $('festWeg').onclick = function () { delete e.festGesamt; formZeichnen(); }; return; }
   h += '<div><span>Arbeitszeit' + (e.modus === 'zeit' && am ? ' (' + Math.floor(am / 60) + ' Std. ' + (am % 60) + ' Min.)' : '') + '</span><b>' + z(r.arbeit) + '</b></div>';
   if (r.zwischen) h += '<div><span>Fahrt zwischen den Läden</span><b>' + z(r.zwischen) + '</b></div>';
   if (r.tl) h += '<div><span>Teamleiter</span><b>' + z(r.tl) + '</b></div>';
@@ -794,7 +795,7 @@ function rechnung() {
   if (r.anreise) h += '<div><span>' + (e.team === 'halle' ? 'Anreise Halle' : 'An-/Abreise') + '</span><b>' + z(r.anreise) + '</b></div>';
   if (r.feiertag) h += '<div><span>Feiertag (Sachsen)</span><b>' + z(r.feiertag) + '</b></div>';
   if (r.urlaub) h += '<div><span>Urlaub</span><b>' + z(r.urlaub) + '</b></div>';
-  if (r.verpflegung) h += '<div><span>Verpflegung</span><b>' + r.verpflegung + ' €</b></div>';
+  if (r.verpflegung) h += '<div><span>Verpflegung</span><b>' + euroH(r.verpflegung) + '</b></div>';
   h += '<div class="ges"><span>Gesamt</span><span>' + z(r.gesamt) + '</span></div>';
   $('rechnung').innerHTML = h;
 }
@@ -1301,9 +1302,9 @@ function startZeichnen(still) {
   };
   var kk = {}, kdef = ['stunden', 'kosten', 'nachweis', 'jahr', 'urlaub', 'notizen', 'geburtstage', 'depot'];
   var k = function (ziel, ic, farbe, titel, wert, unter, extra, breit) { kk[ziel] = function (delay) { return k0(ziel, ic, farbe, titel, wert, unter, extra, breit, delay); }; };
-  k('stunden', IC.uhr, 'linear-gradient(135deg,#b4b4b4,#737373)', 'Stunden ' + MONATE[d.getMonth()], z(std.s), std.n + (std.n === 1 ? ' Tag' : ' Tage') + ' · ≈ ' + euro(std.s * lohn) + ' brutto<br>≈ ' + euro(netto(std.s * lohn)) + ' netto', '', false, .12);
-  k('kosten', IC.geld, 'linear-gradient(135deg,#b0b0b0,#5a5a5a)', 'Laufende Kosten', f ? euro(fk) : '–', f ? 'pro Monat · ' + nfk + ' Posten' + (naechste ? '<br>nächste: ' + esc(naechste.p.name.split(' (')[0]) + ' am ' + naechste.p.tag + '.' : '') : 'noch nicht geladen', '', false, .18);
-  k('nachweis', IC.koffer, 'linear-gradient(135deg,#a6a6a6,#909090)', 'Arbeitsnachweis ' + hi.slice(0, 4), nt + ' Tage', 'Verpflegung erhalten ' + euro(vp) + (nx ? '<br>nächster Einsatz: ' + WT[new Date(nx.datum + 'T12:00').getDay()] + ' ' + +nx.datum.slice(8) + '.' + +nx.datum.slice(5, 7) + '. ' + esc(nx.laeden[0].ort) : ''), '', false, .24);
+  k('stunden', IC.uhr, 'linear-gradient(135deg,#b4b4b4,#737373)', 'Stunden ' + MONATE[d.getMonth()], z(std.s), std.n + (std.n === 1 ? ' Tag' : ' Tage') + ' · ≈ ' + euroH(std.s * lohn) + ' brutto<br>≈ ' + euroH(netto(std.s * lohn)) + ' netto', '', false, .12);
+  k('kosten', IC.geld, 'linear-gradient(135deg,#b0b0b0,#5a5a5a)', 'Laufende Kosten', f ? pxEuro(fk) : '–', f ? 'pro Monat · ' + nfk + ' Posten' + (naechste ? '<br>nächste: ' + esc(naechste.p.name.split(' (')[0]) + ' am ' + naechste.p.tag + '.' : '') : 'noch nicht geladen', '', false, .18);
+  k('nachweis', IC.koffer, 'linear-gradient(135deg,#a6a6a6,#909090)', 'Arbeitsnachweis ' + hi.slice(0, 4), nt + ' Tage', 'Verpflegung erhalten ' + euroH(vp) + (nx ? '<br>nächster Einsatz: ' + WT[new Date(nx.datum + 'T12:00').getDay()] + ' ' + +nx.datum.slice(8) + '.' + +nx.datum.slice(5, 7) + '. ' + esc(nx.laeden[0].ort) : ''), '', false, .24);
   k('jahr', IC.balken, 'linear-gradient(135deg,#7a7a7a,#666666)', 'Jahresübersicht', 'Jahr ›', 'Stunden, Brutto und Verpflegung pro Monat', '', false, .30);
   var uk = urlaubKonto(+hi.slice(0, 4));
   k('urlaub', IC.sonne, 'linear-gradient(135deg,#a0a0a0,#606060)', (uk.anspruch != null ? 'Resturlaub ' : 'Urlaub ') + hi.slice(0, 4), uk.anspruch != null ? tg(uk.rest) : tg(uk.genommen), uk.anspruch != null ? String(uk.genommen) + ' genommen' + (uk.geplant ? ' · ' + uk.geplant + ' geplant' : '') + '<br>von ' + String(uk.gesamt).replace('.', ',') + ' Tagen' : 'genommen · Anspruch noch nicht eingetragen', '', false);
@@ -1312,7 +1313,7 @@ function startZeichnen(still) {
   var gbl = gbSortiert(), g0 = gbl[0];
   k('geburtstage', IC.torte, 'linear-gradient(135deg,#9c9c9c,#5a5a5a)', 'Geburtstage', g0 ? (g0.tage === 0 ? 'Heute!' : g0.tage === 1 ? 'Morgen' : 'in ' + g0.tage + ' Tagen') : 'Keine', g0 ? esc(g0.x.name) + (g0.alter ? ' wird ' + g0.alter : '') + ' · ' + g0.txt + (gbl[1] ? '<br>danach ' + esc(gbl[1].x.name) + ' · ' + gbl[1].txt : '') : 'Tippen, um Geburtstage einzutragen', '', false);
   var dp = depotEff(), dzu = !depotSicht;
-  k('depot', IC.balken.replace('M4 20V10M10 20V4M16 20v-7M22 20H2', 'M3 17l5-5 4 3 8-8M15 7h5v5'), 'linear-gradient(135deg,#bdbdbd,#5e5e5e)', 'Depot', dp ? '<span class="dbox' + (dzu ? ' verdeckt' : '') + '"><span class="dpkt">••••••</span><span class="dw">' + pxEuro(dp.gesamt) + '</span></span>' : '–', dp ? '<span class="dbox' + (dzu ? ' verdeckt' : '') + '" style="display:block"><span class="dpkt">•••</span><span class="dw ' + (dp.heute_eur >= 0 ? 'dplus' : 'dminus') + '">' + (dp.heute_eur >= 0 ? '+' : '') + euroK(dp.heute_eur) + ' · ' + (dp.heute_pct >= 0 ? '+' : '') + String(dp.heute_pct).replace('.', ',') + ' % ' + depotWann(dp) + '</span>' + depotLinie(dp, dzu, false) + '</span>' : 'kommt vom Mac, sobald er an ist', '', false);
+  k('depot', IC.balken.replace('M4 20V10M10 20V4M16 20v-7M22 20H2', 'M3 17l5-5 4 3 8-8M15 7h5v5'), 'linear-gradient(135deg,#bdbdbd,#5e5e5e)', 'Depot', dp ? '<span class="dbox' + (dzu ? ' verdeckt' : '') + '"><span class="dpkt">••••••</span><span class="dw">' + pxEuro(dp.gesamt) + '</span></span>' : '–', dp ? '<span class="dbox' + (dzu ? ' verdeckt' : '') + '" style="display:block"><span class="dpkt">•••</span><span class="dw ' + (dp.heute_eur >= 0 ? 'dplus' : 'dminus') + '">' + (dp.heute_eur >= 0 ? '+' : '') + euroH(dp.heute_eur) + ' · ' + (dp.heute_pct >= 0 ? '+' : '') + String(dp.heute_pct).replace('.', ',') + ' % ' + depotWann(dp) + '</span>' + depotLinie(dp, dzu, false) + '</span>' : 'kommt vom Mac, sobald er an ist', '', false);
   var kr = kachelReihe(kdef); kr.forEach(function (z, i) { h += kk[z](.12 + i * .06).replace('class="kachel rein', 'class="kachel rein' + (kr.length % 2 && i === kr.length - 1 ? ' breit' : '')); });
   h += '</div><div class="ordtipp">Kachel ziehen zum Verschieben</div><button class="ordfertig" id="ordfertig">Fertig</button>';
   $('start').innerHTML = '<div class="ptr" id="ptr"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>' + h + '<div class="sversion">Cockpit ' + VERSION + '</div>';
@@ -1455,23 +1456,23 @@ function jahrZeichnen() {
   var urlT = daten.eintraege.filter(function (x) { return x.urlaub && x.datum.slice(0, 4) === jj && !(daten.geloescht || {})[x.id]; }).map(function (x) { return x.datum; }).sort();
   keys.forEach(function (k) { var m = mon[k] || { std: 0, vp: 0, tage: 0 }; mon[k] = m; sStd += m.std; sVp += m.vp; if (m.std > max) { max = m.std; top = k; } });
   var mn = function (k) { return MONATE[+k.slice(5) - 1] + ' ' + k.slice(0, 4); };
-  var h = '<div class="nwk"><div><small>Stunden seit ' + MONATE[+JAHR_AB.slice(5) - 1] + '</small><b>' + z(sStd) + '</b></div><div><small>≈ Brutto</small><b>' + euro(sStd * lohn) + '</b></div>' +
-    '<div><small>Verpflegung</small><b>' + euro(sVp) + '</b></div><div><small>Ø pro Monat</small><b>' + z(keys.length ? sStd / keys.length : 0) + '</b></div></div>';
+  var h = '<div class="nwk"><div><small>Stunden seit ' + MONATE[+JAHR_AB.slice(5) - 1] + '</small><b>' + z(sStd) + '</b></div><div><small>≈ Brutto</small><b>' + euroH(sStd * lohn) + '</b></div>' +
+    '<div><small>Verpflegung</small><b>' + euroH(sVp) + '</b></div><div><small>Ø pro Monat</small><b>' + z(keys.length ? sStd / keys.length : 0) + '</b></div></div>';
   var _uk = urlaubKonto(+jj); h += '<div class="hinweis">Urlaubstage ' + jj + ': <b>' + _uk.genommen + '</b> genommen' + (_uk.rest != null ? ', <b>' + String(_uk.rest).replace('.', ',') + '</b> übrig' : '') + (urlT.length ? ' (' + urlT.map(function (d) { return +d.slice(8) + '.' + +d.slice(5, 7) + '.'; }).join(', ') + ')' : '') + '</div>';
   if (top) h += '<div class="hinweis">Stärkster Monat: <b>' + mn(top) + '</b> mit ' + z(max) + ' Std.</div>';
   keys.slice().reverse().forEach(function (k) {
     var m = mon[k], w = max ? Math.round(m.std / max * 100) : 0;
-    h += '<div class="jb' + (k === top ? ' top' : '') + '"><div class="k"><b>' + mn(k) + '</b><span>' + z(m.std) + ' Std. · ' + euro(m.std * lohn) + (m.vp ? ' + ' + euro(m.vp) : '') + '</span></div><div class="s"><i style="width:' + w + '%"></i></div></div>';
+    h += '<div class="jb' + (k === top ? ' top' : '') + '"><div class="k"><b>' + mn(k) + '</b><span>' + z(m.std) + ' Std. · ' + euroH(m.std * lohn) + (m.vp ? ' + ' + euroH(m.vp) : '') + '</span></div><div class="s"><i style="width:' + w + '%"></i></div></div>';
   });
   // Netto pro Monat und Zeit im Auto
   var sN = 0; keys.forEach(function (k) { sN += netto(mon[k].std * lohn); });
-  h += '<div class="hinweis">≈ Netto seit ' + MONATE[+JAHR_AB.slice(5) - 1] + ': <b>' + euro(sN) + '</b> (Steuerklasse 1, Schätzung)</div>';
+  h += '<div class="hinweis">≈ Netto seit ' + MONATE[+JAHR_AB.slice(5) - 1] + ': <b>' + euroH(sN) + '</b> (Steuerklasse 1, Schätzung)</div>';
   var fa = keys.map(function (k) { return { k: k, f: fahrtMonat(+k.slice(0, 4), +k.slice(5) - 1) }; }), fmax = 0, fSum = 0, fBez = 0;
   fa.forEach(function (x) { fmax = Math.max(fmax, x.f.min); fSum += x.f.min; fBez += x.f.bez; });
   h += '<label class="l">Im Auto</label><div class="nwk"><div><small>Fahrzeit gesamt</small><b>' + hm(fSum) + ' Std.</b></div><div><small>davon bezahlt</small><b>' + z(fBez) + ' Std.</b></div></div>';
   fa.slice().reverse().forEach(function (x) { var w = fmax ? Math.round(x.f.min / fmax * 100) : 0;
     h += '<div class="jb"><div class="k"><b>' + mn(x.k) + '</b><span>' + (x.f.min ? hm(x.f.min) + ' Std. an ' + x.f.tage + ' Tagen · Ø ' + hm(x.f.min / x.f.tage) + ' · ' + z(x.f.bez) + ' bezahlt' : 'Fahrzeit nicht erfasst' + (x.f.bez ? ' · ' + z(x.f.bez) + ' bezahlt' : '')) + '</span></div><div class="s"><i style="width:' + w + '%;background:linear-gradient(90deg,#8a8a8a,#646464)"></i></div></div>'; });
-  h += '<p class="hinweis">Brutto = Stunden × ' + euro(lohn) + ' (Einstellungen). Verpflegung steuerfrei. Netto grob geschätzt (Steuerklasse 1, ohne Kirchensteuer, Einstellungen). Fahrzeit = Hin, Rück und Zwischenfahrten aus deinen Einträgen. Gezählt wird ab ' + mn(JAHR_AB) + '.</p>';
+  h += '<p class="hinweis">Brutto = Stunden × ' + euroH(lohn) + ' (Einstellungen). Verpflegung steuerfrei. Netto grob geschätzt (Steuerklasse 1, ohne Kirchensteuer, Einstellungen). Fahrzeit = Hin, Rück und Zwischenfahrten aus deinen Einträgen. Gezählt wird ab ' + mn(JAHR_AB) + '.</p>';
   $('jKoerper').innerHTML = h;
 }
 $('jahrauf').onclick = function () { jahrZeichnen(); $('blattJ').classList.add('offen'); };
@@ -1504,7 +1505,7 @@ function fixZeichnen() {
   var rhTxt = function (p) { return { monat: 'monatlich', jahr: 'jährlich', quartal: 'vierteljährlich', woche: 'wöchentlich' }[p.rhythmus] || ''; };
   var mon = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
   // Held
-  var h = '<div class="fkheld"><small>Pro Monat</small><div class="gross">' + euro(sA + sS) + '</div><div class="unter">' + euro((sA + sS) * 12) + ' im Jahr · ' + alle.length + ' Posten' + (sS ? ' · davon Sparpläne ' + euro(sS) : '') + '</div>';
+  var h = '<div class="fkheld"><small>Pro Monat</small><div class="gross">' + pxEuro(sA + sS) + '</div><div class="unter">' + euroH((sA + sS) * 12) + ' im Jahr · ' + alle.length + ' Posten' + (sS ? ' · davon Sparpläne ' + euroH(sS) : '') + '</div>';
   h += '<div class="fkbalken">' + alle.map(function (x, i) { return '<i style="width:' + (x.m / ges * 100).toFixed(2) + '%;background:' + farbe(i) + ';animation-delay:' + (.1 + i * .05) + 's"></i>'; }).join('') + '</div>';
   h += '<div class="fklegende">' + alle.slice(0, 4).map(function (x, i) { return '<span><i style="background:' + farbe(i) + '"></i>' + esc(x.p.name.split(/[ –(]/)[0]) + ' ' + Math.round(x.m / ges * 100) + ' %</span>'; }).join('') + (alle.length > 4 ? '<span><i style="background:' + farbe(5) + '"></i>Rest ' + Math.round(alle.slice(4).reduce(function (s2, x) { return s2 + x.m; }, 0) / ges * 100) + ' %</span>' : '') + '</div></div>';
   // Diesen Monat
@@ -1516,10 +1517,10 @@ function fixZeichnen() {
   });
   naechst.sort(function (a, b) { return a.d - b.d; });
   var nx = naechst[0];
-  h += '<div class="fkmonat"><div class="fkkopf"><b>' + MONATE[heute.getMonth()] + '</b><span>' + euro(monatAb) + ' von ' + euro(monatAb + monatOffen) + '</span></div>';
+  h += '<div class="fkmonat"><div class="fkkopf"><b>' + MONATE[heute.getMonth()] + '</b><span>' + euroH(monatAb) + ' von ' + euroH(monatAb + monatOffen) + '</span></div>';
   h += '<div class="fkfort"><i style="width:' + ((monatAb / ((monatAb + monatOffen) || 1)) * 100).toFixed(1) + '%"></i></div>';
-  h += '<div class="zahlen"><span>schon abgebucht</span><span>noch offen ' + euro(monatOffen) + '</span></div>';
-  if (nx) { var tg2 = Math.round((nx.d - heute) / 864e5); h += '<div class="fknaechst"><div class="tag"><b>' + nx.d.getDate() + '</b><small>' + mon[nx.d.getMonth()] + '</small></div><div class="tx"><b>' + esc(nx.x.p.name) + '</b><small>Nächste Abbuchung · ' + (tg2 === 0 ? 'heute' : tg2 === 1 ? 'morgen' : 'in ' + tg2 + ' Tagen') + '</small></div><div class="bt">' + euro(+nx.x.p.betrag) + '</div></div>'; }
+  h += '<div class="zahlen"><span>schon abgebucht</span><span>noch offen ' + euroH(monatOffen) + '</span></div>';
+  if (nx) { var tg2 = Math.round((nx.d - heute) / 864e5); h += '<div class="fknaechst"><div class="tag"><b>' + nx.d.getDate() + '</b><small>' + mon[nx.d.getMonth()] + '</small></div><div class="tx"><b>' + esc(nx.x.p.name) + '</b><small>Nächste Abbuchung · ' + (tg2 === 0 ? 'heute' : tg2 === 1 ? 'morgen' : 'in ' + tg2 + ' Tagen') + '</small></div><div class="bt">' + euroH(+nx.x.p.betrag) + '</div></div>'; }
   h += '</div>';
   // Liste
   var zeile = function (x, i) {
@@ -1530,7 +1531,7 @@ function fixZeichnen() {
     var marke = p.ende ? '<span class="fkmarke">bis ' + mon[+p.ende.slice(5, 7) - 1] + ' ' + p.ende.slice(0, 4) + '</span>' : '';
     var notiz = (p.notiz || '').replace(/,?\s*Jahresvertrag läuft bis [\d.]+/, '').trim();
     return '<div class="fkpos" style="animation-delay:' + (.08 + i * .04) + 's"><div class="ic">' + esc((p.name.match(/[A-Za-zÄÖÜäöü]/) || ['•'])[0].toUpperCase()) + '</div><div class="mi"><b>' + esc(p.name) + marke + '</b><small>' + info + '</small>' + (notiz ? '<em>' + esc(notiz) + '</em>' : '') +
-      '</div><div class="re"><b>' + euro(+p.betrag) + '</b><small>' + (p.rhythmus === 'monat' ? Math.round(x.m / ges * 100) + ' %' : '≈ ' + euro(x.m) + '/Mon.') + '</small></div></div>';
+      '</div><div class="re"><b>' + euroH(+p.betrag) + '</b><small>' + (p.rhythmus === 'monat' ? Math.round(x.m / ges * 100) + ' %' : '≈ ' + euroH(x.m) + '/Mon.') + '</small></div></div>';
   };
   var ab = alle.filter(function (x) { return !x.sp; }), spl = alle.filter(function (x) { return x.sp; });
   h += '<label class="l">Abos & Verträge</label><div class="fkliste">' + ab.map(function (x) { return zeile(x, alle.indexOf(x)); }).join('') + '</div>';
@@ -2193,7 +2194,7 @@ function depotPosHtml(d) {
   var L = (depotLive && depotPosLive && depotPosLive.length === d.pos.length) ? depotPosLive : d.pos.map(function (p) { return { n: p.n, k: p.k, q: p.q, sym: p.sym, w: p.v, pct: null }; });
   L = L.slice().sort(function (a, b) { return b.w - a.w; });
   var zeile = function (n, s, w, pct) {
-    return '<div class="dprow"><div><div class="n">' + esc(n) + '</div>' + (s ? '<div class="s">' + s + '</div>' : '') + '</div><div class="r"><span class="dpkt">•••</span><span class="dw"><b>' + euro(w) + '</b>' +
+    return '<div class="dprow"><div><div class="n">' + esc(n) + '</div>' + (s ? '<div class="s">' + s + '</div>' : '') + '</div><div class="r"><span class="dpkt">•••</span><span class="dw"><b>' + euroH(w) + '</b>' +
       (pct != null ? '<small class="' + (pct >= 0 ? 'dplus' : 'dminus') + '">' + (pct >= 0 ? '+' : '') + (Math.round(pct * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %</small>' : '') + '</span></div></div>';
   };
   return '<div class="dpos"><div class="dpt">Positionen</div>' + L.map(function (p) { return zeile(depotKurz(p.n), depotMenge(p), p.w, p.pct); }).join('') +
@@ -2218,7 +2219,7 @@ function depotMorph() {
   };
   pl.setAttribute('d', bild(a)); depotMorphR = requestAnimationFrame(schritt);
 }
-function depotAend(eur, pct, txt) { return '<span class="dpkt">•••</span><span class="dw ' + (eur >= 0 ? 'dplus' : 'dminus') + '">' + (eur >= 0 ? '+' : '') + euro(eur) + ' (' + (pct >= 0 ? '+' : '') + String((Math.round(pct * 100) / 100)).replace('.', ',') + ' %) <span class="dwann">' + txt + '</span></span>'; }
+function depotAend(eur, pct, txt) { return '<span class="dpkt">•••</span><span class="dw ' + (eur >= 0 ? 'dplus' : 'dminus') + '">' + (eur >= 0 ? '+' : '') + euroH(eur) + ' (' + (pct >= 0 ? '+' : '') + String((Math.round(pct * 100) / 100)).replace('.', ',') + ' %) <span class="dwann">' + txt + '</span></span>'; }
 function depotGrafik(R) {
   var l = R.l || R.g || R.v, rf = R.lref !== undefined ? R.lref : R.ref; if (l.length < 2) { depotGrafik.ziel = null; return '<p class="hinweis" style="margin-top:22px">Für diesen Zeitraum gibt es noch keine Daten vom Mac.</p>'; }
   var W = 300, H = 180, mm = rf != null ? l.concat([rf]) : l, mn = Math.min.apply(null, mm), mx = Math.max.apply(null, mm), sp = (mx - mn) || 1;
@@ -2423,12 +2424,12 @@ function nwLaeden(x) { return (x.laeden || []).map(function (l) { return l.fil +
 function nwHotelKurz(h) { var t = String(h || '').split(', '); return t.length > 2 ? t[0] + ', ' + t[t.length - 1].replace(/^\d{5} /, '') : t.join(', '); }
 function nwSteuerHtml(s, jahr) {
   return '<div class="nwst"><h3>Für die Steuererklärung ' + jahr + ' (Anlage N, Verpflegungsmehraufwand)</h3>' +
-    '<div><span>Tage mit 24 Std. Abwesenheit</span><b>' + s.t24 + ' × 28 € = ' + euro(s.t24 * 28) + '</b></div>' +
-    '<div><span>An- und Abreisetage</span><b>' + s.tAn + ' × 14 € = ' + euro(s.tAn * 14) + '</b></div>' +
-    '<div><span>Eintägig über 8 Std. (nur wenn zutreffend)</span><b>' + s.t8 + ' × 14 € = ' + euro(s.t8 * 14) + '</b></div>' +
-    '<div><span>Vom Arbeitgeber steuerfrei erstattet</span><b>' + euro(s.erh) + '</b></div>' +
-    '<div class="sum"><span>Absetzbar (ohne eintägige)</span><b style="color:var(--gruen)">' + euro(s.ges - s.erh) + '</b></div>' +
-    '<div class="sum"><span>Absetzbar (mit eintägigen)</span><b>' + euro(s.ges + s.bed - s.erh) + '</b></div>' +
+    '<div><span>Tage mit 24 Std. Abwesenheit</span><b>' + s.t24 + ' × 28 € = ' + euroH(s.t24 * 28) + '</b></div>' +
+    '<div><span>An- und Abreisetage</span><b>' + s.tAn + ' × 14 € = ' + euroH(s.tAn * 14) + '</b></div>' +
+    '<div><span>Eintägig über 8 Std. (nur wenn zutreffend)</span><b>' + s.t8 + ' × 14 € = ' + euroH(s.t8 * 14) + '</b></div>' +
+    '<div><span>Vom Arbeitgeber steuerfrei erstattet</span><b>' + euroH(s.erh) + '</b></div>' +
+    '<div class="sum"><span>Absetzbar (ohne eintägige)</span><b style="color:var(--gruen)">' + euroH(s.ges - s.erh) + '</b></div>' +
+    '<div class="sum"><span>Absetzbar (mit eintägigen)</span><b>' + euroH(s.ges + s.bed - s.erh) + '</b></div>' +
     '<p class="hinweis" style="margin:8px 0 0">Unterkunft hat die Firma gebucht und bezahlt, dafür gibt es nichts einzutragen. Pauschalen gelten pro Einsatzort nur für die ersten 3 Monate am selben Ort; bei dir wechseln die Filialen ständig. Keine Steuerberatung.</p></div>';
 }
 
@@ -2438,20 +2439,20 @@ function nachweisZeichnen() {
   $('nwTitel').textContent = 'Arbeitsnachweis ' + n.jahr;
   var s = nwSumme(n.tage), html = '<div class="nwk">' +
     '<div><small>Arbeitstage</small><b>' + s.tage + '</b></div><div><small>Übernachtungen</small><b>' + s.naechte + '</b></div>' +
-    '<div><small>Verpflegung erhalten</small><b>' + euro(s.erh) + '</b></div><div><small>Gesetzlich (Reise)</small><b>' + euro(s.ges) + '</b></div>' +
-    '<div style="grid-column:1/3"><small>Differenz: kannst du als Werbungskosten angeben</small><b class="gr">' + euro(s.ges - (s.erh)) + '</b>' + (s.bed ? '<small>dazu bis zu ' + euro(s.bed) + ' für eintägige Einsätze (nur bei über 8 Std. Abwesenheit)</small>' : '') + '</div></div>' +
+    '<div><small>Verpflegung erhalten</small><b>' + euroH(s.erh) + '</b></div><div><small>Gesetzlich (Reise)</small><b>' + euroH(s.ges) + '</b></div>' +
+    '<div style="grid-column:1/3"><small>Differenz: kannst du als Werbungskosten angeben</small><b class="gr">' + euroH(s.ges - (s.erh)) + '</b>' + (s.bed ? '<small>dazu bis zu ' + euroH(s.bed) + ' für eintägige Einsätze (nur bei über 8 Std. Abwesenheit)</small>' : '') + '</div></div>' +
     nwSteuerHtml(s, n.jahr) + '<div class="hinweis">Aus den Einsatzplänen und Reiseinfos in deinen E-Mails · Stand ' + new Date(n.stand).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + '. ' + esc(n.regel || '') + '</div>';
   var mon = {};
   n.tage.forEach(function (x) { (mon[x.datum.slice(0, 7)] = mon[x.datum.slice(0, 7)] || []).push(x); });
   Object.keys(mon).sort().reverse().forEach(function (mk) {
     var L = mon[mk], ms = nwSumme(L);
-    html += '<div class="nwm"><h3>' + MONATE[+mk.slice(5) - 1] + '<span>' + ms.tage + ' Tage · ' + euro(ms.erh) + ' erhalten · <span style="color:var(--gruen)">+' + euro(ms.ges - ms.erh) + '</span></span></h3>';
+    html += '<div class="nwm"><h3>' + MONATE[+mk.slice(5) - 1] + '<span>' + ms.tage + ' Tage · ' + euroH(ms.erh) + ' erhalten · <span style="color:var(--gruen)">+' + euroH(ms.ges - ms.erh) + '</span></span></h3>';
     L.forEach(function (x) {
       var d = new Date(x.datum + 'T12:00:00'), titel = x.nurReise ? 'Anreise ' + x.team : (nwLaeden(x) || '–');
       var info = [x.team + (x.reise ? ' (Reise)' : ''), x.an ? 'Anreise' : x.ab ? 'Abreise' : '', x.hotel ? '🏨 ' + nwHotelKurz(x.hotel) : '', x.tp && !x.nurReise ? 'TP ' + x.tp : ''].filter(Boolean).join(' · ');
       var diff = (x.vpGesetz || 0) - (x.vpErhalten || 0);
       html += '<div class="nwt"><div class="d"><b>' + d.getDate() + '.</b>' + WT[d.getDay()] + '</div><div class="m"><div class="l">' + esc(titel) + '</div><div class="x">' + esc(info) + '</div></div>' +
-        '<div class="v"><b>' + (x.vpErhalten || 0) + ' €</b> / ' + (x.vpGesetz || 0) + ' €' + (x.vpBedingt ? '*' : '') + '<br><span class="p">+' + diff + ' €</span></div></div>';
+        '<div class="v"><b>' + euroH(x.vpErhalten || 0) + '</b> / ' + euroH(x.vpGesetz || 0) + (x.vpBedingt ? '*' : '') + '<br><span class="p">+' + euroH(+diff) + '</span></div></div>';
     });
     html += '</div>';
   });
