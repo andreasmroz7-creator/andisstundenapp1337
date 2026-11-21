@@ -43,6 +43,13 @@ button{font:inherit;color:inherit}
 .woche .diff{font-size:17px;font-weight:700;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.08);white-space:nowrap}
 .plusw{color:var(--ok)}.minusw{color:var(--rot)}
 .soll{font-size:13px;color:var(--grau);margin-top:4px}
+.schalter{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid var(--rand);cursor:pointer}
+.schalter small{display:block;color:var(--grau);font-size:13px}
+.schalter .knopf{width:51px;height:31px;border-radius:16px;background:rgba(255,255,255,.16);position:relative;flex:none;transition:background .25s}
+.schalter .knopf:after{content:'';position:absolute;left:2px;top:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.35);transition:transform .25s}
+.schalter.an .knopf{background:var(--ok)}.schalter.an .knopf:after{transform:translateX(20px)}
+.wahl{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.wahl .btn{text-align:left;padding:16px}.wahl .btn small{display:block;color:var(--grau);font-weight:400;font-size:13px;margin-top:2px}
 .umschalter{display:flex;gap:4px;padding:4px;border-radius:14px;background:rgba(255,255,255,.06);margin-bottom:14px}
 .umschalter button{flex:1;border:0;background:none;color:var(--grau);font-size:14px;font-weight:600;padding:8px 0;border-radius:10px;cursor:pointer;transition:background .25s,color .25s}
 .umschalter button.an{background:rgba(255,255,255,.14);color:#fff}
@@ -110,8 +117,9 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
   <div class="titel"><button class="kugel zuknopf" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b id="eTitel">Stunden eintragen</b></div>
   <div class="koerper">
     <label>Datum</label><input type="date" id="eDatum">
-    <div class="zwei"><div><label>Beginn</label><input type="time" id="eBeginn"></div><div><label>Ende</label><input type="time" id="eEnde"></div></div>
-    <label>Pause (Minuten)</label><input type="number" id="ePause" inputmode="numeric" min="0" step="5" placeholder="0">
+    <div id="eZeiten"><div class="zwei"><div><label>Beginn</label><input type="time" id="eBeginn"></div><div><label>Ende</label><input type="time" id="eEnde"></div></div>
+    <label>Pause (Minuten)</label><input type="number" id="ePause" inputmode="numeric" min="0" step="5" placeholder="0"></div>
+    <div id="eNurStd" style="display:none"><label>Stunden</label><input type="text" id="eStunden" inputmode="decimal" placeholder="z. B. 7:30 oder 7,5" autocomplete="off"></div>
     <label>Ort / Notiz (freiwillig)</label><input type="text" id="eNotiz" placeholder="z. B. Filiale Mitte" autocomplete="off">
     <div class="ergebnis"><span style="color:var(--grau)">Arbeitszeit</span><b id="eStd">0:00 Std.</b></div>
     <div class="knopfreihe"><button class="btn haupt" id="eSpeichern">Speichern</button></div>
@@ -125,6 +133,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
     <label>Dein Name (steht im PDF)</label><input type="text" id="sName" placeholder="Vorname Nachname" autocomplete="off">
     <label>Stundenlohn brutto (€)</label><input type="text" id="sLohn" inputmode="decimal" placeholder="z. B. 13,90" autocomplete="off">
     <div class="hinweis">Leer lassen, wenn nur die Stunden gezählt werden sollen.</div>
+    <div class="schalter" id="sNurStd"><div>Nur Stunden eintragen<small>statt Beginn und Ende einfach die Stunden, z. B. 7:30</small></div><div class="knopf"></div></div>
     <label>Vertragsstunden pro Woche</label><input type="text" id="sVertrag" inputmode="decimal" placeholder="z. B. 32" autocomplete="off">
     <div class="hinweis">Oben siehst du dann, wie viele Stunden du diese Woche hast und ob du im Plus oder Minus bist. Jede Woche zählt ganz von Montag bis Sonntag, auch über den Monatswechsel.</div>
     <label>Standard-Pause (Minuten)</label><input type="number" id="sPause" inputmode="numeric" min="0" step="5" placeholder="0">
@@ -135,10 +144,17 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
     <div class="hinweis" id="sLetzte"></div>
   </div>
 </div></div>
+<div class="blatt" id="blattP"><div class="innen">
+  <div class="titel"><button class="kugel zuknopf" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>PDF für <span id="pMonat"></span></b></div>
+  <div class="koerper"><div class="wahl">
+    <button class="btn" id="pListe">Stundennachweis (Liste)<small>Alle Einträge mit Beginn, Ende, Pause, Summe und Wochen</small></button>
+    <button class="btn" id="pKal">Kalenderübersicht<small>Der Monat als Kalender: Stunden pro Tag und pro Woche, zum Vorzeigen beim Arbeitgeber</small></button>
+  </div></div>
+</div></div>
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.5';
+var VERSION = '1.6';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -150,7 +166,7 @@ function toast(t) { var el = $('toast'); el.textContent = t; el.classList.add('a
 function iso(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
 function minuten(t) { if (!t) return null; var p = t.split(':'); return +p[0] * 60 + +p[1]; }
 // Arbeitszeit in Minuten: Ende vor Beginn = über Mitternacht
-function dauer(e) { var b = minuten(e.b), z = minuten(e.e); if (b == null || z == null) return 0; var m = z - b; if (m <= 0) m += 1440; return Math.max(0, m - (+e.p || 0)); }
+function dauer(e) { if (e.std != null) return +e.std || 0; var b = minuten(e.b), z = minuten(e.e); if (b == null || z == null) return 0; var m = z - b; if (m <= 0) m += 1440; return Math.max(0, m - (+e.p || 0)); }
 function hm(min) { var h = Math.floor(min / 60), m = Math.round(min % 60); if (m === 60) { h++; m = 0; } return h + ':' + ('0' + m).slice(-2); }
 function lohn() { var l = parseFloat(String(daten.einst.lohn || '').replace(',', '.')); return isFinite(l) && l > 0 ? l : 0; }
 function vertrag() { var v = parseFloat(String(daten.einst.vertrag || '').replace(',', '.')); return isFinite(v) && v > 0 ? v * 60 : 0; } // Minuten pro Woche
@@ -204,7 +220,7 @@ function zeichne() {
 }
 function eintragHtml(e) {
   var d = new Date(e.d + 'T12:00:00');
-  return '<div class="tag" data-id="' + e.id + '"><div class="d"><b>' + d.getDate() + '</b><span>' + WT[d.getDay()] + '</span></div><div class="info"><div class="z1">' + e.b + ' – ' + e.e + ' Uhr' + (e.n ? ' · ' + esc(e.n) : '') + '</div>' + (+e.p ? 'Pause ' + e.p + ' Min.' : 'ohne Pause') + '</div><div class="h">' + hm(dauer(e)) + '</div></div>';
+  return '<div class="tag" data-id="' + e.id + '"><div class="d"><b>' + d.getDate() + '</b><span>' + WT[d.getDay()] + '</span></div><div class="info"><div class="z1">' + (e.std != null ? 'Stunden' : e.b + ' – ' + e.e + ' Uhr') + (e.n ? ' · ' + esc(e.n) : '') + '</div>' + (e.std != null ? 'direkt eingetragen' : +e.p ? 'Pause ' + e.p + ' Min.' : 'ohne Pause') + '</div><div class="h">' + hm(dauer(e)) + '</div></div>';
 }
 function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 // Fenster
@@ -224,20 +240,26 @@ function eintragOeffnen(e, tag) {
   $('eEnde').value = e ? e.e : (letzter ? letzter.e : '16:30');
   $('ePause').value = e ? (e.p || '') : (daten.einst.pause || '');
   $('eNotiz').value = e ? (e.n || '') : '';
+  eNur = e ? e.std != null : !!daten.einst.nurStd;
+  $('eZeiten').style.display = eNur ? 'none' : ''; $('eNurStd').style.display = eNur ? '' : 'none';
+  $('eStunden').value = e && e.std != null ? hm(e.std) : '';
   $('eLoeschZeile').style.display = e ? '' : 'none';
   eRechne(); oeffne('blattE');
 }
-function eRechne() { $('eStd').textContent = hm(dauer({ b: $('eBeginn').value, e: $('eEnde').value, p: $('ePause').value })) + ' Std.'; }
-['eBeginn', 'eEnde', 'ePause'].forEach(function (id) { $(id).addEventListener('input', eRechne); });
+var eNur = false;
+// „7:30“, „7,5“, „7.5“ oder „8“ → Minuten
+function stdLesen(t) { t = String(t || '').trim(); if (!t) return null; var m = /^(\d{1,2}):(\d{1,2})$/.exec(t); if (m) return +m[1] * 60 + +m[2]; var x = parseFloat(t.replace(',', '.')); return isFinite(x) && x >= 0 && x <= 24 ? Math.round(x * 60) : null; }
+function eRechne() { $('eStd').textContent = hm(eNur ? (stdLesen($('eStunden').value) || 0) : dauer({ b: $('eBeginn').value, e: $('eEnde').value, p: $('ePause').value })) + ' Std.'; }
+['eBeginn', 'eEnde', 'ePause', 'eStunden'].forEach(function (id) { $(id).addEventListener('input', eRechne); });
 $('plus').onclick = function () { eintragOeffnen(null, modus === 'kal' ? gewaehlt : null); };
 $('ansichtWahl').onclick = function (ev) { var k = ev.target.closest('button'); if (!k) return; modus = k.dataset.a; try { localStorage.setItem('stunden_einfach_ansicht', modus); } catch (e) {} zeichne(); };
 $('kalender').onclick = function (ev) { var z = ev.target.closest('.zelle[data-d]'); if (!z) return; gewaehlt = z.dataset.d; zeichne(); };
 document.addEventListener('click', function (ev) { if (ev.target.id === 'tagNeu') eintragOeffnen(null, gewaehlt); });
 $('liste').onclick = function (ev) { var t = ev.target.closest('.tag'); if (!t) return; var e = daten.eintraege.filter(function (x) { return x.id === t.dataset.id; })[0]; if (e) eintragOeffnen(e); };
 $('eSpeichern').onclick = function () {
-  var d = $('eDatum').value, b = $('eBeginn').value, z = $('eEnde').value;
-  if (!d || !b || !z) { toast('Bitte Datum, Beginn und Ende ausfüllen'); return; }
-  var e = { id: bearbeite ? bearbeite.id : Date.now().toString(36) + Math.random().toString(36).slice(2, 6), d: d, b: b, e: z, p: Math.max(0, parseInt($('ePause').value, 10) || 0), n: $('eNotiz').value.trim() };
+  var d = $('eDatum').value, b = $('eBeginn').value, z = $('eEnde').value, id = bearbeite ? bearbeite.id : Date.now().toString(36) + Math.random().toString(36).slice(2, 6), e;
+  if (eNur) { var st = stdLesen($('eStunden').value); if (!d || st == null || st <= 0) { toast('Bitte Datum und Stunden eintragen, z. B. 7:30'); return; } e = { id: id, d: d, std: st, n: $('eNotiz').value.trim() }; }
+  else { if (!d || !b || !z) { toast('Bitte Datum, Beginn und Ende ausfüllen'); return; } e = { id: id, d: d, b: b, e: z, p: Math.max(0, parseInt($('ePause').value, 10) || 0), n: $('eNotiz').value.trim() }; }
   daten.eintraege = daten.eintraege.filter(function (x) { return x.id !== e.id; }); daten.eintraege.push(e); sichern();
   var dd = new Date(d + 'T12:00:00'); ansicht.j = dd.getFullYear(); ansicht.m = dd.getMonth(); gewaehlt = d;
   zeichne(); schliesse($('blattE')); toast('Gespeichert: ' + hm(dauer(e)) + ' Std.');
@@ -247,10 +269,12 @@ $('eLoeschen').onclick = function () { if (!bearbeite || !confirm('Diesen Eintra
 function monatSchritt(n) { ansicht.m += n; if (ansicht.m < 0) { ansicht.m = 11; ansicht.j--; } if (ansicht.m > 11) { ansicht.m = 0; ansicht.j++; } zeichne(); }
 $('mZurueck').onclick = function () { monatSchritt(-1); }; $('mVor').onclick = function () { monatSchritt(1); };
 // Einstellungen
-$('einstKnopf').onclick = function () { $('sName').value = daten.einst.name || ''; $('sLohn').value = daten.einst.lohn || ''; $('sPause').value = daten.einst.pause || ''; $('sVertrag').value = daten.einst.vertrag || ''; $('sLetzte').textContent = daten.einst.gesichert ? 'Letzte Sicherung: ' + new Date(daten.einst.gesichert).toLocaleString('de-DE', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr' : 'Noch keine Sicherung gemacht.'; oeffne('blattS'); };
+$('einstKnopf').onclick = function () { $('sName').value = daten.einst.name || ''; $('sLohn').value = daten.einst.lohn || ''; $('sPause').value = daten.einst.pause || ''; $('sVertrag').value = daten.einst.vertrag || ''; nurStdZeigen(); $('sLetzte').textContent = daten.einst.gesichert ? 'Letzte Sicherung: ' + new Date(daten.einst.gesichert).toLocaleString('de-DE', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr' : 'Noch keine Sicherung gemacht.'; oeffne('blattS'); };
 $('sName').onchange = function () { daten.einst.name = this.value.trim(); sichern(); zeichne(); };
 $('sLohn').onchange = function () { daten.einst.lohn = this.value.trim(); sichern(); zeichne(); };
 $('sPause').onchange = function () { daten.einst.pause = this.value.trim(); sichern(); };
+function nurStdZeigen() { $('sNurStd').classList.toggle('an', !!daten.einst.nurStd); }
+$('sNurStd').onclick = function () { daten.einst.nurStd = !daten.einst.nurStd; sichern(); nurStdZeigen(); toast(daten.einst.nurStd ? 'Ab jetzt nur Stunden eintragen' : 'Ab jetzt Beginn und Ende eintragen'); };
 $('sVertrag').onchange = function () { daten.einst.vertrag = this.value.trim(); sichern(); zeichne(); };
 // Datei teilen (Teilen-Menü: In Dateien sichern → iCloud Drive), sonst herunterladen
 function teile(name, blob) {
@@ -275,7 +299,10 @@ $('sDatei').onchange = function () {
   r.readAsText(f);
 };
 // PDF des angezeigten Monats
-$('pdfKnopf').onclick = function () {
+$('pdfKnopf').onclick = function () { if (!monatsEintraege().length) { toast('In diesem Monat ist nichts eingetragen'); return; } $('pMonat').textContent = MONATE[ansicht.m] + ' ' + ansicht.j; oeffne('blattP'); };
+$('pListe').onclick = function () { schliesse($('blattP')); pdfListe(); };
+$('pKal').onclick = function () { schliesse($('blattP')); pdfKalender(); };
+function pdfListe() {
   var L = monatsEintraege(); if (!L.length) { toast('In diesem Monat ist nichts eingetragen'); return; }
   var doc = new MiniPDF(); doc.W = 595; doc.H = 842; doc.addPage();
   var x0 = 40, y = 54, nm = (daten.einst.name || '').trim(), l = lohn(), sum = 0;
@@ -291,7 +318,7 @@ $('pdfKnopf').onclick = function () {
     var d = new Date(e.d + 'T12:00:00'), m = dauer(e); sum += m;
     doc.text(sp[0], y, d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear(), 10);
     doc.text(sp[1], y, WTL[d.getDay()].slice(0, 2), 10);
-    doc.text(sp[2], y, e.b, 10); doc.text(sp[3], y, e.e, 10); doc.text(sp[4], y, (+e.p || 0) + ' Min.', 10);
+    doc.text(sp[2], y, e.std != null ? '–' : e.b, 10); doc.text(sp[3], y, e.std != null ? '–' : e.e, 10); doc.text(sp[4], y, e.std != null ? '–' : (+e.p || 0) + ' Min.', 10);
     doc.text(515, y, hm(m), 10, false, 'r');
     if (e.n) doc.text(525, y, e.n.slice(0, 12), 8);
     doc.line(x0 - 6, y + 6, 595 - x0 + 6, y + 6, 0.3, 0.85); y += 18;
@@ -314,7 +341,53 @@ $('pdfKnopf').onclick = function () {
   }
   doc.text(x0, 812, 'Erstellt am ' + new Date().toLocaleDateString('de-DE'), 8);
   teile('Stunden ' + MONATE[ansicht.m] + ' ' + ansicht.j + '.pdf', new Blob([doc.bytes()], { type: 'application/pdf' }));
-};
+}
+// Kalender-PDF (A4 quer): Wochen als Zeilen Mo–So, in jedem Tag Datum, Wochentag und Stunden, rechts die Wochensumme (mit Soll und Plus/Minus)
+function pdfKalender() {
+  var doc = new MiniPDF(); doc.addPage(); var W = 842, x0 = 30, y0 = 92, nm = (daten.einst.name || '').trim(), V = vertrag(), l = lohn();
+  var proTag = {}; daten.eintraege.forEach(function (e) { proTag[e.d] = (proTag[e.d] || 0) + dauer(e); });
+  doc.text(x0, 42, 'Stundenübersicht ' + MONATE[ansicht.m] + ' ' + ansicht.j, 18, true);
+  if (nm) doc.text(x0, 60, nm, 11);
+  var spW = 92, wochW = W - 2 * x0 - 7 * spW, kopfH = 20, start = wocheVon(new Date(ansicht.j, ansicht.m, 1)), ende = new Date(ansicht.j, ansicht.m + 1, 0), zeilen = [];
+  for (var d = new Date(start); d <= ende; d.setDate(d.getDate() + 7)) zeilen.push(new Date(d));
+  var zH = Math.min(78, (595 - 40 - y0 - kopfH - 60) / zeilen.length), TN = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+  doc.rect(x0, y0, W - 2 * x0, kopfH, 0.9);
+  TN.forEach(function (t, i) { doc.text(x0 + i * spW + spW / 2, y0 + 14, t, 9, true, 'c'); });
+  doc.text(x0 + 7 * spW + wochW / 2, y0 + 14, 'Woche', 9, true, 'c');
+  var yz = y0 + kopfH, summeMonat = 0;
+  zeilen.forEach(function (mo) {
+    var wSum = 0;
+    for (var i = 0; i < 7; i++) {
+      var t = new Date(mo); t.setDate(mo.getDate() + i); var ds = iso(t), drin = t.getMonth() === ansicht.m, m = proTag[ds], cx = x0 + i * spW;
+      if (!drin) doc.rect(cx, yz, spW, zH, 0.96); else if (m) doc.rect(cx, yz, spW, zH, 0.9);
+      doc.text(cx + 6, yz + 13, t.getDate() + '.' + (t.getMonth() + 1) + '.', 8, false);
+      doc.text(cx + spW - 6, yz + 13, TN[i], 7, false, 'r');
+      if (m) doc.text(cx + spW / 2, yz + zH / 2 + 10, hm(m) + ' Std.', 12, true, 'c');
+      if (m) wSum += m; if (m && drin) summeMonat += m;
+    }
+    var wx = x0 + 7 * spW;
+    // Wochenspalte: Woche gehört zum Monat ihres Montags; laufende Woche markiert, künftige ohne Soll
+    var eigen = mo.getMonth() === ansicht.m, hmo = wocheVon(new Date()), lauf = iso(mo) === iso(hmo), kuenftig = mo > hmo, unter = '';
+    if (V && !eigen) unter = 'zählt zum ' + MONATE[mo.getMonth()];
+    else if (V && kuenftig) unter = 'Soll ' + hm(V);
+    else if (V) unter = 'Soll ' + hm(V) + '  (' + pm(wSum - V).replace('−', '-') + ')' + (lauf ? ' läuft' : '');
+    doc.text(wx + wochW / 2, yz + zH / 2 + (unter ? 0 : 5), hm(wSum) + ' Std.', 12, true, 'c');
+    if (unter) doc.text(wx + wochW / 2, yz + zH / 2 + 16, unter, 8, false, 'c');
+    yz += zH;
+  });
+  var yE = y0 + kopfH + zeilen.length * zH;
+  for (var k = 0; k <= 8; k++) { var gx = k < 8 ? x0 + k * spW : W - x0; doc.line(gx, y0, gx, yE, k === 7 ? 1 : 0.5, 0.6); }
+  for (var r = 0; r <= zeilen.length; r++) doc.line(x0, y0 + kopfH + r * zH, W - x0, y0 + kopfH + r * zH, 0.5, 0.6);
+  doc.line(x0, y0, W - x0, y0, 0.5, 0.6);
+  var yS = yE + 24;
+  doc.text(x0, yS, 'Summe ' + MONATE[ansicht.m] + ': ' + hm(summeMonat) + ' Std.', 12, true);
+  var info = [];
+  if (V) { var WO = monatsWochen(ansicht.j, ansicht.m), ist = WO.reduce(function (a, w) { return a + w.ist; }, 0); if (WO.length) info.push('Wochen (Mo–So, eine Woche zählt zum Monat ihres Montags): ' + hm(ist) + ' von ' + hm(V * WO.length) + ' Std. Soll (' + pm(ist - V * WO.length).replace('−', '-') + ')'); }
+  if (l) info.push('Brutto: ' + euro(summeMonat / 60 * l) + ' (' + euro(l) + ' pro Stunde)');
+  info.forEach(function (t, i) { doc.text(x0, yS + 18 + i * 14, t, 9); });
+  doc.text(x0, 575, 'Erstellt am ' + new Date().toLocaleDateString('de-DE'), 8);
+  teile('Stunden-Kalender ' + MONATE[ansicht.m] + ' ' + ansicht.j + '.pdf', new Blob([doc.bytes()], { type: 'application/pdf' }));
+}
 // Wischen vom linken Rand = Zurück (wie bei iOS)
 (function () {
   var sx = 0, sy = 0, t0 = 0, bl = null, inn = null, an = false, aktiv = false, dx = 0, w = 1;
