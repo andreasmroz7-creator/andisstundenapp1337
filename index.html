@@ -268,6 +268,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .dzr button.an{background:rgba(255,255,255,.14);color:#fff}
 .dwann{color:var(--grau);font-weight:500}
 /* (2.33) Beträge wie im Dashboard / bei Scalable: Euro groß, Cent klein oben, € darunter (.s = Cent und € klein daneben, für Listen) */
+.mgeld{display:grid;grid-template-columns:auto auto auto;justify-content:start;column-gap:8px;row-gap:6px;align-items:center;line-height:1.1;margin-top:6px}.mgeld .pxb{vertical-align:middle}.mgeld>span:nth-child(3n+1){color:var(--grau);margin-right:6px}.mgeld>i{font-style:normal;color:var(--grau)}.mgeld>span:nth-child(3n){justify-self:end}.mgeld .nt{font-weight:700;color:inherit!important}
 .pxb{display:inline-flex;align-items:flex-start;gap:.1em;letter-spacing:inherit;font-weight:inherit}.pxb .pi{color:inherit;line-height:1}
 .pxb .ps{display:flex;flex-direction:column;align-items:flex-start;font-size:.42em;font-weight:600;line-height:1.12;color:var(--grau);letter-spacing:0;margin-top:.1em}
 .pxb.kl{gap:.1em;vertical-align:top}.pxb.kl .ps{flex-direction:row;gap:.2em;font-size:.7em;margin-top:.04em;color:inherit;opacity:.72}
@@ -375,10 +376,10 @@ body.istoffline .sstand{color:#ff6b61}
   <span class="platz"></span>
 </div>
 <div class="summe">
-  <div id="jahrauf" style="cursor:pointer;min-width:0;flex:1"><div class="klein" style="white-space:nowrap">Gesamt diesen Monat <span style="color:var(--akzent,#b4b4b4)">· Jahr ›</span></div><div class="gross" id="msumme">0,00</div><div class="klein" id="mdetail"></div><div class="klein" id="mlohn" style="color:var(--gruen);margin-top:2px"></div><div class="klein" id="mfahrt" style="margin-top:2px"></div><div class="klein" id="sync" style="margin-top:4px"></div></div>
+  <div id="jahrauf" style="cursor:pointer;min-width:0;flex:1"><div class="klein" style="white-space:nowrap">Gesamt diesen Monat <span style="color:var(--akzent,#b4b4b4)">· Jahr ›</span></div><div class="gross" id="msumme">0,00</div><div class="klein" id="mdetail" style="display:none"></div><div class="klein" id="mlohn" style="color:var(--gruen);margin-top:2px"></div><div class="klein" id="mfahrt" style="margin-top:2px"></div><div class="klein" id="sync" style="margin-top:4px"></div></div>
   <div style="display:flex;gap:8px">
-    <button class="kugel" id="fkauf" aria-label="Fixkosten"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M16 14.5h2"/></svg></button>
-    <button class="kugel" id="nwknopf" aria-label="Arbeitsnachweis"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></svg></button>
+    <button class="kugel" id="fkauf" aria-label="Fixkosten" style="display:none"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M16 14.5h2"/></svg></button>
+    <button class="kugel" id="nwknopf" aria-label="Arbeitsnachweis" style="display:none"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></svg></button>
     <button class="kugel" id="pdfknopf" aria-label="PDF"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button>
     <button class="kugel" id="einstknopf" aria-label="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </div>
@@ -514,7 +515,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.51';
+var VERSION = '2.52';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -756,11 +757,12 @@ function zeichneEcht() {
   if ($('suche') && $('suche').value) sucheZeichnen();
   $('msumme').textContent = z(sum);
   var lohn = daten.einst.lohn != null && daten.einst.lohn !== '' ? +daten.einst.lohn : 16;
-  $('mlohn').innerHTML = sum ? '≈ ' + euroH(sum * lohn) + ' brutto' + (verpf ? ' + ' + euroH(verpf) + ' Verpfl.' : '') + '<br><b>≈ ' + euroH(netto(sum * lohn)) + ' netto</b>' : '';
+  // (2.52) sauber untereinander: Wort links, Betrag rechtsbündig (vorher in einer Zeile umgebrochen und schief)
+  $('mlohn').innerHTML = sum ? '<div class="mgeld"><span>Brutto</span><i>=</i><span>' + euroH(sum * lohn) + '</span>' + (verpf ? '<span>Verpflegung</span><i>+</i><span>' + euroH(verpf) + '</span>' : '') + '<span class="nt">Netto</span><i class="nt">≈</i><span class="nt">' + euroH(netto(sum * lohn)) + '</span></div>' : '';
   var fm = fahrtMonat(ansicht.j, ansicht.m);
   $('mfahrt').textContent = fm.min ? '🚗 ' + hm(fm.min) + ' Std. im Auto · ' + z(fm.bez) + ' bezahlt' : '';
   $('mgesamt').innerHTML = fm.min ? '<div class="mitfahrt"><span>Stunden + ganze Fahrzeit<small>' + z(sum) + ' − ' + z(fm.bez) + ' bezahlte Fahrt + ' + hm(fm.min) + ' im Auto</small></span><b>' + z(sum - fm.bez + fm.min / 60) + ' Std.</b></div>' : '';
-  $('mdetail').textContent = ls.length + (ls.length === 1 ? ' Tag' : ' Tage');
+  $('mdetail').textContent = ''; // (2.52) „24 Tage“ weg
 }
 
 // ---------- Formular ----------
