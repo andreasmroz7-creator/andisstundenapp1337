@@ -471,7 +471,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.14';
+var VERSION = '2.15';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1305,7 +1305,7 @@ function startZiel(z) {
     $(id).dataset.vonstart = '1'; document.body.classList.add('versteckt');
     if (z === 'kosten') { fixZeichnen(); $('blattF').classList.add('offen'); }
     else if (z === 'jarvis') { jvOeffnen(); }
-    else if (z === 'depot') { depotZeichnen(); $('blattD').classList.add('offen'); depotLiveRechnen(); }
+    else if (z === 'depot') { depotZr = '1d'; depotZeichnen(); $('blattD').classList.add('offen'); depotLiveRechnen(); }
     else if (z === 'geburtstage') { gbZeichnen(); $('blattG').classList.add('offen'); }
     else if (z === 'urlaub') { urlaubZeichnen(); $('blattU').classList.add('offen'); }
     else if (z === 'notizen') { notizenZeichnen(); $('blattNo').classList.add('offen'); }
@@ -1967,7 +1967,7 @@ function depotLinie(d, zu, gross) {
   var pf = l.map(function (v, i) { return (i ? 'L' : 'M') + x(i) + ' ' + y(v); }).join('');
   return '<svg class="dlinie' + (gross ? ' gross' : '') + '" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none"><path class="ref" d="M0 ' + y(d.ref) + 'H' + W + '"/><path class="l" d="' + pf + '" style="stroke:' + (d.heute_eur >= 0 ? 'var(--ok)' : 'var(--rot)') + '" vector-effect="non-scaling-stroke"/><path class="f" d="M0 ' + (H / 2) + 'H' + W + '" vector-effect="non-scaling-stroke"/></svg>';
 }
-var DZR = [['1d', '1T'], ['1w', '1W'], ['1m', '1M'], ['6m', '6M'], ['1y', '1J'], ['max', 'Max']], depotZr = (function () { try { return localStorage.getItem('cockpit_dzr') || '1d'; } catch (e) { return '1d'; } })();
+var DZR = [['1d', '1T'], ['1w', '1W'], ['1m', '1M'], ['6m', '6M'], ['1y', '1J'], ['max', 'Max']], depotZr = '1d'; // (2.15) öffnet immer mit 1 Tag
 var DZT = { '1d': 'heute', '1w': 'in 1 Woche', '1m': 'in 1 Monat', '6m': 'in 6 Monaten', '1y': 'in 1 Jahr', 'max': 'seit Beginn' };
 // Plus/Minus-Linie ohne Einzahlungen, gleiche Rechnung wie im Dashboard (perfSeries): bekannte Einzahlungen (fz) und sonstige Sprünge werden herausgerechnet, die Linie endet beim Gewinn des Zeitraums (dv)
 function depotPlusMinus(vs, dv, fz) {
@@ -2012,7 +2012,7 @@ function depotZeichnen() {
     '<div class="dheute" id="dAend">' + (R.leer ? '<span class="dwann">' + R.txt + ': kommt mit dem nächsten Stand vom Mac</span>' : depotAend(R.eur, R.pct, R.txt)) + '</div>' + depotGrafik(R) + '</div>' +
     '<div class="dzr" id="dZr">' + DZR.map(function (z) { return '<button type="button" data-r="' + z[0] + '" class="' + (z[0] === depotZr ? 'an' : '') + '">' + z[1] + '</button>'; }).join('') + '</div>' +
     '<p class="hinweis" style="margin-top:14px">' + (d.live ? (Date.now() - st > 20 * 60e3 ? 'Mac aus: mit' : 'Mit') + ' aktuellen Kursen weitergerechnet (' + (d.live.neuK ? 'Krypto live' : '') + (d.live.neuK && d.live.neuW ? ', ' : '') + (d.live.neuW ? 'Aktien/ETFs Stand ' + new Date(d.live.tW * 1000).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr' : '') + '). Letzter Stand vom Mac: ' : 'Stand ') + st.toLocaleString('de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr' + (d.live ? '' : ', vom Mac' + (alt ? ' (älter, der Mac ist wohl aus)' : '')) + '. Mit dem Finger über das Diagramm fahren zeigt den Wert zu jedem Zeitpunkt.</p>';
-  [].forEach.call(document.querySelectorAll('#dZr button'), function (b) { b.onclick = function () { depotZr = b.dataset.r; try { localStorage.setItem('cockpit_dzr', depotZr); } catch (e) {} depotZeichnen(); }; });
+  [].forEach.call(document.querySelectorAll('#dZr button'), function (b) { b.onclick = function () { depotZr = b.dataset.r; depotZeichnen(); }; });
   depotFinger(d, R);
 }
 // Finger über dem Diagramm: Linie und Punkt folgen, oben stehen Wert und Veränderung zu diesem Zeitpunkt; beim Loslassen wieder der aktuelle Stand
