@@ -473,7 +473,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.28';
+var VERSION = '2.29';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -602,7 +602,7 @@ function sync() {
     // (2.27) Urlaubskonto mitsyncen: neuerer Stand gewinnt
     var fu = fern.d.urlaub; if (fu && fu.jahre && (fu.stand || 0) > (daten.einst.urlaubStand || 0)) { daten.einst.urlaubJahr = fu.jahre; daten.einst.urlaubStand = fu.stand; m.urlaubNeu = 1; }
     var urlObj = daten.einst.urlaubStand ? { stand: daten.einst.urlaubStand, jahre: daten.einst.urlaubJahr || {} } : (fu || null);
-    sichern(true); if (m.urlaubNeu || JSON.stringify({ e: daten.eintraege, p: daten.profile, g: daten.geloescht }) !== alt) { zeichne(); if (!$('start').classList.contains('aus')) startZeichnen(true); }
+    sichern(true); if (m.urlaubNeu || JSON.stringify({ e: daten.eintraege, p: daten.profile, g: daten.geloescht }) !== alt) { zeichne(); if (!$('start').classList.contains('aus')) startZeichnen(true); if ($('blattJ').classList.contains('offen')) jahrZeichnen(); if ($('blattU') && $('blattU').classList.contains('offen')) urlaubZeichnen(); }
     var nO = { eintraege: daten.eintraege, profile: daten.profile, geloescht: daten.geloescht }, fO = { eintraege: fern.d.eintraege || [], profile: fern.d.profile || [], geloescht: fern.d.geloescht || {} };
     if (urlObj) nO.urlaub = urlObj; if (fu) fO.urlaub = fu;
     var neuText = JSON.stringify(nO, null, 1);
@@ -1423,10 +1423,13 @@ $('zurStart').onclick = function () { startZeigen(); };
   }, { passive: true });
 })();
 // ---------- Jahresübersicht (Andi: gerechnet wird erst ab September 2026) ----------
-var JAHR_AB = '2026-09';
+var JAHR_AB = '2026-01';
 function jahrZeichnen() {
+  // (2.29) ab dem ersten Monat des Jahres mit Einträgen
+  var _hj = String(new Date().getFullYear()), _erst = daten.eintraege.map(function (x) { return x.datum.slice(0, 7); }).filter(function (m) { return m.slice(0, 4) === _hj; }).sort()[0];
+  JAHR_AB = _erst || _hj + '-01';
   var mon = {}, heute = new Date(), bis = heute.getFullYear() + '-' + String(heute.getMonth() + 1).padStart(2, '0');
-  daten.eintraege.forEach(function (x) { var m = x.datum.slice(0, 7); if (m < JAHR_AB || m > bis) return; var r = R.berechne(x); mon[m] = mon[m] || { std: 0, vp: 0, tage: 0 }; mon[m].std += r.gesamt; mon[m].vp += r.verpflegung; if ((x.laeden || []).length) mon[m].tage++; });
+  daten.eintraege.forEach(function (x) { var m = x.datum.slice(0, 7); if (m < JAHR_AB || m > bis || (daten.geloescht || {})[x.id]) return; var r = R.berechne(x); mon[m] = mon[m] || { std: 0, vp: 0, tage: 0 }; mon[m].std += r.gesamt; mon[m].vp += r.verpflegung; if ((x.laeden || []).length) mon[m].tage++; });
   var keys = [], d = new Date(+JAHR_AB.slice(0, 4), +JAHR_AB.slice(5) - 1, 1);
   while (true) { var k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); if (k > bis) break; keys.push(k); d.setMonth(d.getMonth() + 1); }
   var lohn = +(daten.einst.lohn || 16), max = 0, top = null, sStd = 0, sVp = 0, jj = String(heute.getFullYear());
@@ -1435,7 +1438,7 @@ function jahrZeichnen() {
   var mn = function (k) { return MONATE[+k.slice(5) - 1] + ' ' + k.slice(0, 4); };
   var h = '<div class="nwk"><div><small>Stunden seit ' + MONATE[+JAHR_AB.slice(5) - 1] + '</small><b>' + z(sStd) + '</b></div><div><small>≈ Brutto</small><b>' + euro(sStd * lohn) + '</b></div>' +
     '<div><small>Verpflegung</small><b>' + euro(sVp) + '</b></div><div><small>Ø pro Monat</small><b>' + z(keys.length ? sStd / keys.length : 0) + '</b></div></div>';
-  h += '<div class="hinweis">Urlaubstage ' + jj + ': <b>' + urlT.length + '</b>' + (urlT.length ? ' (' + urlT.map(function (d) { return +d.slice(8) + '.' + +d.slice(5, 7) + '.'; }).join(', ') + ')' : '') + '</div>';
+  var _uk = urlaubKonto(+jj); h += '<div class="hinweis">Urlaubstage ' + jj + ': <b>' + _uk.genommen + '</b> genommen' + (_uk.rest != null ? ', <b>' + String(_uk.rest).replace('.', ',') + '</b> übrig' : '') + (urlT.length ? ' (' + urlT.map(function (d) { return +d.slice(8) + '.' + +d.slice(5, 7) + '.'; }).join(', ') + ')' : '') + '</div>';
   if (top) h += '<div class="hinweis">Stärkster Monat: <b>' + mn(top) + '</b> mit ' + z(max) + ' Std.</div>';
   keys.slice().reverse().forEach(function (k) {
     var m = mon[k], w = max ? Math.round(m.std / max * 100) : 0;
