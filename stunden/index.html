@@ -179,7 +179,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.12';
+var VERSION = '3.13';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -388,14 +388,14 @@ function monatSchrittStill(n) { ansicht.m += n; if (ansicht.m < 0) { ansicht.m =
 // (3.7) Woche in der Kachel „Diese Woche“: links/rechts wischen = Woche zurück/vor (KW 47, 46, 45 …); im Kalender ist sie umrandet.
 // Liegt die neue Woche ganz in einem anderen Monat, springt der Kalender mit. Wischen außerhalb der Kachel wechselt wie bisher den Monat.
 var wocheMo = null, wocheGewischt = 0, kalLang = 0;
-// (3.12) Tag im Kalender ca. 1 Sekunde gedrückt halten → Eintrag dieses Tages zum Ändern öffnen (kein Eintrag: neuer Eintrag für den Tag). Normales Tippen öffnet nichts.
+// (3.12/3.13) Tag im Kalender 0,6 Sekunden gedrückt halten → Eintrag dieses Tages zum Ändern öffnen (kein Eintrag: neuer Eintrag für den Tag). Normales Tippen öffnet nichts.
 (function () {
   var t = null, sx = 0, sy = 0, k = $('kalender');
   var stop = function () { clearTimeout(t); t = null; };
   k.addEventListener('touchstart', function (e) { var z = e.target.closest && e.target.closest('.zelle[data-d]'); stop(); if (!z || e.touches.length > 1) return; sx = e.touches[0].clientX; sy = e.touches[0].clientY;
     t = setTimeout(function () { t = null; kalLang = Date.now(); var d = z.dataset.d; gewaehlt = d; wocheMo = wocheVon(new Date(d + 'T12:00:00')); zeichne();
       var en = daten.eintraege.filter(function (x) { return x.d === d; }).sort(function (a, b) { return (a.b || '') < (b.b || '') ? -1 : 1; })[0];
-      if (navigator.vibrate) navigator.vibrate(12); en ? eintragOeffnen(en) : eintragOeffnen(null, d); }, 800); }, { passive: true });
+      if (navigator.vibrate) navigator.vibrate(12); en ? eintragOeffnen(en) : eintragOeffnen(null, d); }, 600); }, { passive: true });
   k.addEventListener('touchmove', function (e) { if (t && (Math.abs(e.touches[0].clientX - sx) > 10 || Math.abs(e.touches[0].clientY - sy) > 10)) stop(); }, { passive: true });
   k.addEventListener('touchend', stop, { passive: true }); k.addEventListener('touchcancel', stop, { passive: true });
   k.addEventListener('contextmenu', function (e) { e.preventDefault(); });
