@@ -243,7 +243,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 
 #blattJv .titel{background:transparent;border-bottom:0}
 .jvchips{display:flex;gap:8px;overflow-x:auto;padding:0 16px 10px;scrollbar-width:none;position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 128px)}
-.jvchips::-webkit-scrollbar{display:none}
+.jvchips::-webkit-scrollbar{display:none}.blatt .koerper.ohnescroll{overflow-y:hidden}
 .jvchips button{flex:none;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);color:var(--txt);border-radius:999px;padding:8px 14px;font:inherit;font-size:13.5px;cursor:pointer;transition:transform .15s,background .2s;white-space:nowrap}
 .jvchips button:active{transform:scale(.95);background:rgba(255,255,255,.18)}
 .jvein{background:linear-gradient(transparent,rgba(12,12,12,.9) 35%)!important}
@@ -473,7 +473,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.23';
+var VERSION = '2.24';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -916,6 +916,16 @@ function blattZu(bl) {
 }
 [].forEach.call(document.querySelectorAll('.schliessen'), function (b) { b.onclick = function () { blattZu($(b.dataset.zu)); }; });
 [].forEach.call(document.querySelectorAll('.blatt'), function (bl) { bl.addEventListener('click', function (ev) { if (ev.target === bl) blattZu(bl); }); });
+// (2.24) Fenster, deren Inhalt ganz hineinpasst, bekommen keinen Scrollbalken (der Abstand unten zählt nicht als Inhalt)
+(function () {
+  function pruefe(k) { if (!k.offsetParent) return; var pb = parseFloat(getComputedStyle(k).paddingBottom) || 0; k.classList.toggle('ohnescroll', k.scrollHeight - pb <= k.clientHeight + 1); }
+  var L = [].slice.call(document.querySelectorAll('.blatt .koerper')), plan = null;
+  function alle() { plan = null; L.forEach(pruefe); }
+  function bald() { if (!plan) plan = requestAnimationFrame(alle); }
+  if (window.MutationObserver) { var mo = new MutationObserver(bald); L.forEach(function (k) { mo.observe(k, { childList: true, subtree: true, characterData: true }); }); [].forEach.call(document.querySelectorAll('.blatt'), function (b) { mo.observe(b, { attributes: true, attributeFilter: ['class'] }); }); }
+  if (window.ResizeObserver) { var ro = new ResizeObserver(bald); L.forEach(function (k) { ro.observe(k); }); }
+  window.addEventListener('resize', bald);
+})();
 // (2.22) Wischen vom linken Rand nach rechts = Zurück (wie bei iOS): das oberste offene Fenster folgt dem Finger und geht zu; ohne Fenster zurück zur Startseite
 (function () {
   var sx = 0, sy = 0, t0 = 0, bl = null, inn = null, an = false, aus = false, w = 1, dx = 0, haupt = false, stKl = null;
