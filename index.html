@@ -98,7 +98,7 @@ input::placeholder{color:#646464}
 .nwt .m{flex:1;min-width:0}.nwt .m .l{color:var(--txt);font-size:14px}.nwt .m .x{color:var(--grau);font-size:12px;margin-top:2px}
 .nwt .v{text-align:right;flex:none;font-size:12px;color:var(--grau);white-space:nowrap}.nwt .v b{color:var(--txt);font-size:14px}
 .nwt .v .p{color:var(--gruen)}
-.jb{margin:14px 0}.jb .k{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px}.jb .k span{color:var(--grau);font-size:13px}
+.jb{margin:14px 0}.jb .k{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px}.jb .k>span{color:var(--grau);font-size:13px}
 .jb .s{height:12px;border-radius:7px;background:rgba(255,255,255,.06);overflow:hidden}.jb .s i{display:block;height:100%;border-radius:7px;background:linear-gradient(90deg,#747474,#b4b4b4)}
 .jb.top .s i{background:linear-gradient(90deg,#a4a4a4,#b4b4b4)}
 .nwst{margin-top:16px;background:rgba(255,255,255,.05);border:1px solid var(--rand);border-radius:14px;padding:12px 14px;font-size:14px}
@@ -302,7 +302,12 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .dpos{margin-top:26px}.dpos .dpt{font-size:13px;color:var(--grau);font-weight:600;margin-bottom:4px}
 .dprow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--rand)}
 .dprow .n{font-size:15px;font-weight:600}.dprow .s{font-size:12px;color:var(--grau);margin-top:2px}
-.dprow .r{text-align:right;position:relative;flex-shrink:0;min-width:84px}.dprow .r b{display:block;font-size:19px;font-weight:700;letter-spacing:-.2px}.dprow .r b .pxb.kl .ps{font-size:.74em;opacity:.8} /* (2.36) Beträge größer */.dprow .r small{display:block;font-size:12px;font-weight:600;margin-top:2px}
+.dprow .r{text-align:right;position:relative;flex-shrink:0;min-width:84px}.dprow .r b{display:block;font-size:19px;font-weight:700;letter-spacing:-.2px}.dprow .r b .pxb.kl .ps{font-size:.74em;opacity:.8}
+.pxb,.pxb.kl{vertical-align:baseline} /* (2.66) Betrag sitzt im Fließtext auf derselben Linie wie der Text */
+/* (2.66) Schutz: Regeln wie „.x span{font-size:…}“ dürfen die Teile des Betrags nicht verändern */
+.pxb .pi,.pxb .pd,.pxb .pc{font-size:inherit!important;padding:0!important;margin:0!important;min-width:0!important;vertical-align:baseline!important}
+.pxb .ps{font-size:.42em!important;padding:0!important;min-width:0!important}
+.pxb.kl .ps{font-size:.74em!important} /* (2.36) Beträge größer */.dprow .r small{display:block;font-size:12px;font-weight:600;margin-top:2px}
 .dprow .r .dpkt{right:0;top:0}
 .dprow .mini{width:96px;height:48px;flex-shrink:0;margin-left:auto}.dprow .mini path{fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.dprow .mini .ref{stroke:rgba(255,255,255,.2);stroke-dasharray:2 3;stroke-width:1}.verdeckt .dprow .mini{opacity:0}
 .dpt.sort{cursor:pointer;-webkit-tap-highlight-color:transparent;display:flex;justify-content:space-between;align-items:center}.dpt.sort span{font-weight:600;color:#cfcfcf}
@@ -559,7 +564,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.65';
+var VERSION = '2.66';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
