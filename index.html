@@ -517,7 +517,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.55';
+var VERSION = '2.56';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2452,7 +2452,7 @@ function posGrafik(S, up) {
 function posFinger(P, S) {
   var c = $('pChart'), Z = posGrafik.ziel; if (!c || !Z) return;
   var V = (S.vor || []).concat(S.heute), T = (S.vt || (S.vor || []).map(function () { return null; })).concat(S.ht || S.heute.map(function () { return null; })), nV = (S.vor || []).length;
-  var ref = S.ref != null ? S.ref : S.heute[0], q = P.watch ? 1 : (P.m.q || 1), aktiv = false, letzt = -1, oG = '', oA = '';
+  var ref = S.ref != null ? S.ref : S.heute[0], q = 1 /* (2.56) Andi: im Diagramm der Preis des Werts, nicht der Positionswert */, aktiv = false, letzt = -1, oG = '', oA = '';
   var pz = function (v) { return (v >= 0 ? '+' : '') + (Math.round(v * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %'; };
   var zeit = function (i) { var t = T[i]; if (i === V.length - 1) return 'jetzt'; if (!t) return i < nV ? 'Vortag' : (posZr === '1d' ? 'heute' : ''); var d = new Date(t * 1000);
     return posZr === '1d' ? d.toLocaleDateString('de-DE', { weekday: 'short' }) + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr' : posZr === '1w' ? d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'numeric' }) + ', ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr' : 'am ' + d.toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric', year: 'numeric' }); };
@@ -2461,7 +2461,7 @@ function posFinger(P, S) {
     if (i === letzt) return; letzt = i;
     $('pCur').style.left = (Z.x[i] / Z.W * b.width) + 'px'; $('pDot').style.left = (Z.x[i] / Z.W * b.width) + 'px'; $('pDot').style.top = (Z.p[i] / 170 * b.height) + 'px'; $('pDot').style.background = i < nV ? '#a0a0a0' : '#fff';
     var k_ = V[i], wert = q * k_, chg = q * (k_ - ref), pct = ref ? (k_ / ref - 1) * 100 : 0;
-    $('pGross').innerHTML = '<span class="dpkt">••••••</span><span class="dw">' + (P.watch && k_ < 1 ? k_.toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' €' : pxEuro(wert)) + '</span>';
+    $('pGross').innerHTML = '<span class="dpkt">••••••</span><span class="dw">' + (k_ < 1 ? k_.toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' €' : pxEuro(wert)) + '</span>';
     $('pAend').innerHTML = '<span class="dpkt">•••</span><span class="dw ' + (chg >= 0 ? 'dplus' : 'dminus') + '">' + (chg >= 0 ? '+' : '') + euroH(chg) + ' (' + pz(pct) + ') <span class="dwann">' + zeit(i) + '</span></span>';
     var st = c.querySelector('stop.g2'), st2 = st && st.nextElementSibling; if (st) { st.style.stopColor = chg >= 0 ? 'var(--ok)' : 'var(--rot)'; if (st2) st2.style.stopColor = st.style.stopColor; }
   };
@@ -2491,14 +2491,14 @@ function posZeichnen() {
   var pc0 = $('pChart'); if (pc0 && pc0.classList.contains('zieht') && $('blattP').classList.contains('offen')) return; // (2.44) Finger liegt auf dem Diagramm
   var P = posDaten(), zu = !depotSicht; if (!P) { $('pKoerper').innerHTML = '<p class="hinweis">Diese Position gibt es gerade nicht mehr.</p>'; return; }
   if (P.w == null) { $('pTitel').textContent = depotKurz(P.m.n); $('pKoerper').innerHTML = '<p class="hinweis">Kurs kommt gleich …</p>'; return; }
-  var m = P.m, w = P.w, heuteE = P.pct != null ? w - w / (1 + P.pct / 100) : null, c = m.c, gew = c ? w - c : null, gp = c ? gew / c * 100 : null, anteil = P.d.gesamt ? w / P.d.gesamt * 100 : null;
+  var m = P.m, w = P.w, kk = P.rente || P.kurs == null ? w : P.kurs, heuteE = P.pct != null ? kk - kk / (1 + P.pct / 100) : null, c = m.c, gew = c ? w - c : null, gp = c ? gew / c * 100 : null, anteil = P.d.gesamt ? w / P.d.gesamt * 100 : null;
   var pz = function (v) { return (v >= 0 ? '+' : '') + (Math.round(v * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %'; };
   var fe = function (v, cls) { return '<span class="' + (cls || '') + '">' + (v >= 0 ? '+' : '') + euroH(v) + '</span>'; };
   var kursT = P.kurs < 1 ? P.kurs.toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' €' : null;
   $('pTitel').textContent = depotKurz(m.n);
   var h = '<div class="dbox' + (zu ? ' verdeckt' : '') + '">' +
     '<div class="pkopf">' + esc(m.n) + '<br>' + esc([m.ty || (m.k === 'krypto' ? 'Kryptowährung' : ''), m.isin || m.sym].filter(Boolean).join(' · ')) + '</div>' +
-    '<div class="dgross" id="pGross"><span class="dpkt">••••••</span><span class="dw">' + (P.watch && w < 1 ? w.toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' €' : pxEuro(w)) + '</span></div>' +
+    '<div class="dgross" id="pGross"><span class="dpkt">••••••</span><span class="dw">' + (kk < 1 ? kk.toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' €' : pxEuro(kk)) + '</span></div>' +
     '<div class="dheute" id="pAend">' + (P.pct != null ? '<span class="dpkt">•••</span><span class="dw ' + (P.pct >= 0 ? 'dplus' : 'dminus') + '">' + (heuteE >= 0 ? '+' : '') + euroH(heuteE) + ' (' + pz(P.pct) + ') <span class="dwann">' + (m.k === 'krypto' ? 'seit 6 Uhr' : P.rente ? 'letzter Handelstag, ohne Einzahlung' : 'letzter Handelstag') + '</span></span>' : '<span class="dwann">Tagesveränderung kommt mit den nächsten Kursen</span>') + '</div>';
   var altC = $('pChartBox') && $('blattP').classList.contains('offen') ? $('pChartBox').innerHTML : ''; // beim Live-Update bleibt das Diagramm stehen, bis das neue da ist
   h += '<div id="pChartBox">' + (altC || '<div class="dchart"><svg class="dlinie gross" viewBox="0 0 300 170"></svg></div>') + '</div>';
@@ -2517,7 +2517,7 @@ function posZeichnen() {
     h += '<p class="hinweis" style="margin-top:16px">Wert aus den Fondskursen, gerechnet vom Mac wie im Dashboard (Stand ' + (daten.depotKurven && daten.depotKurven.stand ? new Date(daten.depotKurven.stand).toLocaleString('de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr' : 'kommt mit dem nächsten Abgleich') + '). Einzahlungen ohne Gebühren.</p></div>';
   } else
   if (P.watch) h += '<p class="hinweis" style="margin-top:18px">Auf deiner Watchlist (nicht im Depot).</p>'; else
-  h += '<div class="pgrid">' + kach('Stück', depotMenge(m)) + kach('Kurs', kursT || euroH(P.kurs)) +
+  h += '<div class="pgrid">' + kach('Stück', depotMenge(m)) + kach('Wert', euroH(w)) +
     (c ? kach('Kaufwert', euroH(c)) + kach('Ø Kaufkurs', m.q ? (c / m.q < 1 ? (c / m.q).toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' €' : euroH(c / m.q)) : '–') +
       kach('Seit Kauf', fe(gew), gew >= 0 ? 'dplus' : 'dminus') + kach('Seit Kauf in %', pz(gp), gp >= 0 ? 'dplus' : 'dminus') : '') +
     (anteil != null ? kach('Anteil am Depot', (Math.round(anteil * 10) / 10).toLocaleString('de-DE') + ' %') : '') + '</div>';
@@ -2531,7 +2531,7 @@ function posZeichnen() {
   if (!P.watch && !P.rente) h += '<p class="hinweis" style="margin-top:16px">' + (m.k === 'krypto' ? 'Kurse live von Binance (in Euro umgerechnet).' : 'Kurs live von gettex, Verlauf vom Mac (Stand ' + (daten.depotKurven && daten.depotKurven.stand ? new Date(daten.depotKurven.stand).toLocaleString('de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr' : 'kommt mit dem nächsten Abgleich') + ').') + (c ? '' : ' Kaufwert kommt mit dem nächsten Stand vom Mac.') + '</p></div>';
   if (P.watch) h += '</div>';
   var sc = $('pKoerper').scrollTop; $('pKoerper').innerHTML = h; $('pKoerper').scrollTop = sc;
-  rollZahl($('pGross').querySelector('.dw'), 'pW' + posKey, w);
+  if (kk >= 1) rollZahl($('pGross').querySelector('.dw'), 'pW' + posKey, kk);
   [].forEach.call(document.querySelectorAll('#pZr button'), function (b) { b.onclick = function () { posZr = b.dataset.r; posZeichnen(); }; });
   var zr0 = posZr, key0 = posKey;
   posReihe(P, function (S) {
