@@ -179,7 +179,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.10';
+var VERSION = '3.11';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -307,9 +307,7 @@ function eRechne() { if (eUrl) { $('eStd').textContent = 'ganzer Tag'; return; }
 ['eBeginn', 'eEnde', 'ePause', 'eStunden'].forEach(function (id) { $(id).addEventListener('input', eRechne); });
 $('plus').onclick = function () { eintragOeffnen(null, modus === 'kal' ? gewaehlt : null); };
 $('ansichtWahl').onclick = function (ev) { var k = ev.target.closest('button'); if (!k) return; modus = k.dataset.a; try { localStorage.setItem('stunden_einfach_ansicht', modus); } catch (e) {} zeichne(); };
-$('kalender').onclick = function (ev) { var z = ev.target.closest('.zelle[data-d]'); if (!z) return; gewaehlt = z.dataset.d; wocheMo = wocheVon(new Date(z.dataset.d + 'T12:00:00')); zeichne(); // (3.9) Tag antippen → seine KW oben in der Kachel und umrandet
-  var e = daten.eintraege.filter(function (x) { return x.d === gewaehlt; }).sort(function (a, b) { return (a.b || '') < (b.b || '') ? -1 : 1; })[0]; // (3.10) … und der Eintrag dieses Tages geht zum Ändern auf
-  if (e) setTimeout(function () { eintragOeffnen(e); }, 220); };
+$('kalender').onclick = function (ev) { var z = ev.target.closest('.zelle[data-d]'); if (!z) return; gewaehlt = z.dataset.d; wocheMo = wocheVon(new Date(z.dataset.d + 'T12:00:00')); zeichne(); }; // (3.9) Tag antippen → seine KW oben in der Kachel und umrandet (3.11: Eintrag öffnet sich NICHT mehr automatisch, auf Wunsch zurückgenommen)
 $('liste').onclick = function (ev) { var t = ev.target.closest('.tag'); if (!t) return; var e = daten.eintraege.filter(function (x) { return x.id === t.dataset.id; })[0]; if (e) eintragOeffnen(e); };
 $('eSpeichern').onclick = function () {
   var d = $('eDatum').value, b = $('eBeginn').value, z = $('eEnde').value, id = bearbeite ? bearbeite.id : Date.now().toString(36) + Math.random().toString(36).slice(2, 6), e;
