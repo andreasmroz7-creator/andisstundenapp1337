@@ -38,6 +38,23 @@ button{font:inherit;color:inherit}
 .tag .info{flex:1;min-width:0;font-size:13px;color:var(--grau)}.tag .info .z1{color:var(--txt);font-size:15px}
 .tag .h{font-size:20px;font-weight:700}
 .leer{color:var(--grau);text-align:center;padding:40px 10px}
+.umschalter{display:flex;gap:4px;padding:4px;border-radius:14px;background:rgba(255,255,255,.06);margin-bottom:14px}
+.umschalter button{flex:1;border:0;background:none;color:var(--grau);font-size:14px;font-weight:600;padding:8px 0;border-radius:10px;cursor:pointer;transition:background .25s,color .25s}
+.umschalter button.an{background:rgba(255,255,255,.14);color:#fff}
+.kal{background:var(--karte);border:1px solid var(--rand);border-radius:20px;padding:10px 8px 8px;margin-bottom:14px}
+.kal .wk,.kal .gitter{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.kal .wk span{text-align:center;font-size:11px;color:var(--grau);padding-bottom:6px;text-transform:uppercase;letter-spacing:.3px}
+.kal .zelle{aspect-ratio:1/1.15;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:6px;cursor:pointer;border:1px solid transparent;min-width:0}
+.kal .zelle .n{font-size:14px;color:var(--txt)}
+.kal .zelle .s{font-size:11px;font-weight:700;margin-top:3px;white-space:nowrap}
+.kal .zelle.leerz{cursor:default}
+.kal .zelle.we .n{color:var(--grau)}
+.kal .zelle.hat{background:rgba(255,255,255,.12)}
+.kal .zelle.heute{border-color:rgba(255,255,255,.45)}
+.kal .zelle.gew{background:#ededed}.kal .zelle.gew .n,.kal .zelle.gew .s{color:#000}
+.tagkopf{display:flex;justify-content:space-between;align-items:baseline;margin:2px 4px 8px;font-size:15px;font-weight:600}
+.tagkopf span{color:var(--grau);font-weight:500;font-size:13px}
+.btn.klein{flex:none;padding:10px 14px;font-size:14px}
 .knopfreihe{display:flex;gap:10px;margin:18px 0 6px}
 .btn{flex:1;border:1px solid var(--rand);background:rgba(255,255,255,.08);border-radius:14px;padding:13px;font-weight:600;cursor:pointer}
 .btn:active{transform:scale(.98)}
@@ -77,6 +94,8 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
   <button class="kugel" id="mVor" aria-label="Nächster Monat"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
 </div>
 <div class="summe"><div><small>Stunden</small><b id="sStd">0:00</b></div><div class="r"><small id="sTage">0 Tage</small><b id="sGeld"></b></div></div>
+<div class="umschalter" id="ansichtWahl"><button data-a="kal">Kalender</button><button data-a="liste">Liste</button></div>
+<div id="kalender"></div>
 <div id="liste"></div>
 <div class="knopfreihe"><button class="btn" id="pdfKnopf">Monat als PDF</button></div>
 <div class="version" id="version"></div>
@@ -88,7 +107,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
     <label>Datum</label><input type="date" id="eDatum">
     <div class="zwei"><div><label>Beginn</label><input type="time" id="eBeginn"></div><div><label>Ende</label><input type="time" id="eEnde"></div></div>
     <label>Pause (Minuten)</label><input type="number" id="ePause" inputmode="numeric" min="0" step="5" placeholder="0">
-    <label>Notiz (freiwillig)</label><input type="text" id="eNotiz" placeholder="z. B. Spätschicht" autocomplete="off">
+    <label>Ort / Notiz (freiwillig)</label><input type="text" id="eNotiz" placeholder="z. B. Filiale Mitte" autocomplete="off">
     <div class="ergebnis"><span style="color:var(--grau)">Arbeitszeit</span><b id="eStd">0:00 Std.</b></div>
     <div class="knopfreihe"><button class="btn haupt" id="eSpeichern">Speichern</button></div>
     <div class="knopfreihe" id="eLoeschZeile" style="margin-top:0"><button class="btn rot" id="eLoeschen">Eintrag löschen</button></div>
@@ -112,12 +131,12 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.0';
+var VERSION = '1.1';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 var WT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'], WTL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
-var daten = laden(), ansicht = { j: new Date().getFullYear(), m: new Date().getMonth() }, bearbeite = null;
+var daten = laden(), ansicht = { j: new Date().getFullYear(), m: new Date().getMonth() }, bearbeite = null, gewaehlt = iso(new Date()), modus = (function () { try { return localStorage.getItem('stunden_einfach_ansicht') || 'kal'; } catch (e) { return 'kal'; } })();
 function laden() { try { var d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (d && d.eintraege) return d; } catch (e) {} return { eintraege: [], einst: { name: '', lohn: '', pause: '' } }; }
 function sichern() { try { localStorage.setItem(KEY, JSON.stringify(daten)); } catch (e) { toast('Speichern fehlgeschlagen'); } }
 function toast(t) { var el = $('toast'); el.textContent = t; el.classList.add('an'); clearTimeout(toast.t); toast.t = setTimeout(function () { el.classList.remove('an'); }, 2200); }
@@ -139,11 +158,31 @@ function zeichne() {
   L.forEach(function (e) { sum += dauer(e); tage[e.d] = 1; });
   $('sStd').textContent = hm(sum); var nt = Object.keys(tage).length; $('sTage').textContent = nt + (nt === 1 ? ' Tag' : ' Tage');
   $('sGeld').textContent = lohn() ? '≈ ' + euro(sum / 60 * lohn()) : '';
-  $('liste').innerHTML = L.length ? L.map(function (e) {
-    var d = new Date(e.d + 'T12:00:00');
-    return '<div class="tag" data-id="' + e.id + '"><div class="d"><b>' + d.getDate() + '</b><span>' + WT[d.getDay()] + '</span></div><div class="info"><div class="z1">' + e.b + ' – ' + e.e + ' Uhr</div>' + ((+e.p ? 'Pause ' + e.p + ' Min.' : 'ohne Pause') + (e.n ? ' · ' + esc(e.n) : '')) + '</div><div class="h">' + hm(dauer(e)) + '</div></div>';
-  }).join('') : '<div class="leer">Noch keine Stunden in diesem Monat.<br>Tippe auf +</div>';
+  [].forEach.call(document.querySelectorAll('#ansichtWahl button'), function (k) { k.classList.toggle('an', k.dataset.a === modus); });
+  if (modus === 'kal') {
+    var proTag = {}; L.forEach(function (e) { proTag[e.d] = (proTag[e.d] || 0) + dauer(e); });
+    var erster = new Date(ansicht.j, ansicht.m, 1), versatz = (erster.getDay() + 6) % 7, nTage = new Date(ansicht.j, ansicht.m + 1, 0).getDate(), hi = iso(new Date());
+    if (gewaehlt.slice(0, 7) !== iso(erster).slice(0, 7)) gewaehlt = hi.slice(0, 7) === iso(erster).slice(0, 7) ? hi : iso(erster);
+    var g = '';
+    for (var i = 0; i < versatz; i++) g += '<div class="zelle leerz"></div>';
+    for (var t = 1; t <= nTage; t++) {
+      var ds = iso(new Date(ansicht.j, ansicht.m, t)), wd = (versatz + t - 1) % 7, m = proTag[ds];
+      g += '<div class="zelle' + (m != null ? ' hat' : '') + (wd >= 5 ? ' we' : '') + (ds === hi ? ' heute' : '') + (ds === gewaehlt ? ' gew' : '') + '" data-d="' + ds + '"><span class="n">' + t + '</span>' + (m != null ? '<span class="s">' + hm(m) + '</span>' : '') + '</div>';
+    }
+    $('kalender').innerHTML = '<div class="kal"><div class="wk"><span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span></div><div class="gitter">' + g + '</div></div>';
+    var TL = L.filter(function (e) { return e.d === gewaehlt; }), ts = TL.reduce(function (a, e) { return a + dauer(e); }, 0);
+    $('liste').innerHTML = '<div class="tagkopf">' + datumText(gewaehlt).replace(/ \d{4}$/, '') + '<span>' + (TL.length ? hm(ts) + ' Std.' : '') + '</span></div>' +
+      (TL.length ? TL.map(eintragHtml).join('') : '<div class="leer" style="padding:16px 10px">Nichts eingetragen.</div>') +
+      '<div class="knopfreihe" style="margin-top:8px"><button class="btn" id="tagNeu">+ Stunden für diesen Tag</button></div>';
+  } else {
+    $('kalender').innerHTML = '';
+    $('liste').innerHTML = L.length ? L.map(eintragHtml).join('') : '<div class="leer">Noch keine Stunden in diesem Monat.<br>Tippe auf +</div>';
+  }
   $('version').textContent = 'Stunden ' + VERSION;
+}
+function eintragHtml(e) {
+  var d = new Date(e.d + 'T12:00:00');
+  return '<div class="tag" data-id="' + e.id + '"><div class="d"><b>' + d.getDate() + '</b><span>' + WT[d.getDay()] + '</span></div><div class="info"><div class="z1">' + e.b + ' – ' + e.e + ' Uhr' + (e.n ? ' · ' + esc(e.n) : '') + '</div>' + (+e.p ? 'Pause ' + e.p + ' Min.' : 'ohne Pause') + '</div><div class="h">' + hm(dauer(e)) + '</div></div>';
 }
 function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 // Fenster
@@ -153,9 +192,9 @@ function schliesse(b) { if (!b.classList.contains('offen') || b.classList.contai
 function scrollPruefen() { [].forEach.call(document.querySelectorAll('.blatt.offen .koerper'), function (k) { var pb = parseFloat(getComputedStyle(k).paddingBottom) || 0; k.classList.toggle('ohnescroll', k.scrollHeight - pb <= k.clientHeight + 1); }); }
 window.addEventListener('resize', scrollPruefen);
 // Eintragen
-function eintragOeffnen(e) {
+function eintragOeffnen(e, tag) {
   bearbeite = e || null;
-  var heute = new Date(), vorschlag = (ansicht.j === heute.getFullYear() && ansicht.m === heute.getMonth()) ? iso(heute) : iso(new Date(ansicht.j, ansicht.m, 1));
+  var heute = new Date(), vorschlag = tag || ((ansicht.j === heute.getFullYear() && ansicht.m === heute.getMonth()) ? iso(heute) : iso(new Date(ansicht.j, ansicht.m, 1)));
   var letzter = daten.eintraege[daten.eintraege.length - 1];
   $('eTitel').textContent = e ? 'Eintrag ändern' : 'Stunden eintragen';
   $('eDatum').value = e ? e.d : vorschlag;
@@ -168,14 +207,17 @@ function eintragOeffnen(e) {
 }
 function eRechne() { $('eStd').textContent = hm(dauer({ b: $('eBeginn').value, e: $('eEnde').value, p: $('ePause').value })) + ' Std.'; }
 ['eBeginn', 'eEnde', 'ePause'].forEach(function (id) { $(id).addEventListener('input', eRechne); });
-$('plus').onclick = function () { eintragOeffnen(null); };
+$('plus').onclick = function () { eintragOeffnen(null, modus === 'kal' ? gewaehlt : null); };
+$('ansichtWahl').onclick = function (ev) { var k = ev.target.closest('button'); if (!k) return; modus = k.dataset.a; try { localStorage.setItem('stunden_einfach_ansicht', modus); } catch (e) {} zeichne(); };
+$('kalender').onclick = function (ev) { var z = ev.target.closest('.zelle[data-d]'); if (!z) return; gewaehlt = z.dataset.d; zeichne(); };
+document.addEventListener('click', function (ev) { if (ev.target.id === 'tagNeu') eintragOeffnen(null, gewaehlt); });
 $('liste').onclick = function (ev) { var t = ev.target.closest('.tag'); if (!t) return; var e = daten.eintraege.filter(function (x) { return x.id === t.dataset.id; })[0]; if (e) eintragOeffnen(e); };
 $('eSpeichern').onclick = function () {
   var d = $('eDatum').value, b = $('eBeginn').value, z = $('eEnde').value;
   if (!d || !b || !z) { toast('Bitte Datum, Beginn und Ende ausfüllen'); return; }
   var e = { id: bearbeite ? bearbeite.id : Date.now().toString(36) + Math.random().toString(36).slice(2, 6), d: d, b: b, e: z, p: Math.max(0, parseInt($('ePause').value, 10) || 0), n: $('eNotiz').value.trim() };
   daten.eintraege = daten.eintraege.filter(function (x) { return x.id !== e.id; }); daten.eintraege.push(e); sichern();
-  var dd = new Date(d + 'T12:00:00'); ansicht.j = dd.getFullYear(); ansicht.m = dd.getMonth();
+  var dd = new Date(d + 'T12:00:00'); ansicht.j = dd.getFullYear(); ansicht.m = dd.getMonth(); gewaehlt = d;
   zeichne(); schliesse($('blattE')); toast('Gespeichert: ' + hm(dauer(e)) + ' Std.');
 };
 $('eLoeschen').onclick = function () { if (!bearbeite || !confirm('Diesen Eintrag löschen?')) return; daten.eintraege = daten.eintraege.filter(function (x) { return x.id !== bearbeite.id; }); sichern(); zeichne(); schliesse($('blattE')); toast('Gelöscht'); };
