@@ -323,6 +323,8 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .lz{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:10px 0;border-bottom:1px solid var(--rand);font-size:15px}.lz small{display:block;color:var(--grau);font-size:12px;margin-top:2px}.lz .r{text-align:right;white-space:nowrap}.lz.lzs{font-weight:750;border-bottom:0}.lz.klick{cursor:pointer}
 .lknopf{display:block;width:100%;margin-top:18px;border:1px solid var(--rand);background:var(--karte);color:#fff;border-radius:16px;padding:14px;font:inherit;font-weight:700;text-align:center;text-decoration:none}
 .lnav{display:flex;gap:10px;margin-top:10px}.lnav button{flex:1;border:1px solid var(--rand);background:none;color:#fff;border-radius:14px;padding:11px;font:inherit}.lnav button:disabled{opacity:.3}
+.vzb{display:inline-flex;align-items:center;gap:2px}.vzb>i{font-style:normal;line-height:1}
+.lbild{overflow:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y}.lbild img{display:block;width:100%;height:auto;border-radius:10px;background:#fff;margin:0 auto}.lbild .hinweis{text-align:center}
 .pkauf{margin-top:24px}.pkauf .dpt{font-size:13px;color:var(--grau);font-weight:600;margin-bottom:4px}
 .pkauf .z{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--rand);font-size:14px}.pkauf .z small{display:block;color:var(--grau);font-size:12px;margin-top:2px}.pkauf .z .r{text-align:right;position:relative}
 .pkv{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:7px;font-size:12px;font-weight:800;margin-right:8px;background:rgba(52,199,89,.18);color:var(--ok)}.pkv.v{background:rgba(255,69,58,.18);color:var(--rot)}
@@ -507,6 +509,10 @@ body.istoffline .sstand{color:#ff6b61}
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattLd" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b id="ldTitel">Abrechnung</b></div></div>
   <div class="koerper" id="ldKoerper"></div>
 </div></div>
+<div class="blatt" id="blattLb" style="z-index:12"><div class="innen">
+  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattLb" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b id="lbTitel">Abrechnung</b></div></div>
+  <div class="koerper lbild" id="lbKoerper"></div>
+</div></div>
 <div class="blatt" id="blattP" style="z-index:11"><div class="innen">
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattP" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b id="pTitel">Position</b></div></div>
   <div class="koerper" id="pKoerper"></div>
@@ -553,7 +559,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.63';
+var VERSION = '2.64';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2480,6 +2486,7 @@ function lohnStd(x) { var u = 0, g = 0, satz = 0; x.b.forEach(function (b) { if 
 function lohnErfasst(k) { // Stunden, die im Cockpit für diesen Monat eingetragen sind
   var s = 0, n = 0; (daten.eintraege || []).forEach(function (x) { if (x.datum.slice(0, 7) === k && !(daten.geloescht || {})[x.id]) { s += R.berechne(x).gesamt || 0; n++; } }); return n ? s : null;
 }
+function lohnVz(n) { return '<span class="vzb"><i>' + (n >= 0 ? '+' : '−') + '</i>' + euroH(Math.abs(n)) + '</span>'; } // (2.64) Vorzeichen mittig neben dem Betrag
 function lohnZ(t, w, sub, kl) { return '<div class="lz' + (kl ? ' ' + kl : '') + '"><div>' + t + (sub ? '<small>' + sub + '</small>' : '') + '</div><div class="r">' + w + '</div></div>'; }
 function lohnZeichnen() {
   var L = lohnDaten(); if (!L) { $('lKoerper').innerHTML = '<p class="hinweis">Die Lohnabrechnungen kommen vom Mac, sobald er an ist.</p>'; return; }
@@ -2493,26 +2500,47 @@ function lohnZeichnen() {
   h += '<div class="lbalken">' + M.map(function (x) { return '<button type="button" data-k="' + x.m + '" class="' + (x.au === mx ? 'max' : '') + '"><i style="height:' + Math.max(4, x.au / mx * 92) + 'px"></i>' + lohnMonat(x.m, true).slice(0, 1) + '</button>'; }).join('') + '</div>';
   h += '<div class="lsek"><div class="dpt">Abrechnungen</div>' + M.slice().reverse().map(function (x) { var s = lohnStd(x);
     return '<div class="lz klick" data-k="' + x.m + '"><div>' + lohnMonat(x.m) + '<small>Brutto ' + euro(x.br) + (s.u ? ' · ' + s.u.toLocaleString('de-DE') + ' Überstd.' : '') + '</small></div><div class="r"><b>' + euroH(x.au) + '</b><small>ausgezahlt</small></div></div>'; }).join('') + '</div>';
-  if (L.bes && L.bes.length) h += '<div class="lsek"><div class="dpt">Bescheinigungen</div>' + L.bes.map(function (b) { return '<a class="lz klick" style="color:inherit;text-decoration:none" target="_blank" rel="noopener" href="https://drive.google.com/file/d/' + encodeURIComponent(b.d) + '/view"><div>' + esc(b.t) + '</div><div class="r" style="color:var(--grau)">PDF ›</div></a>'; }).join('') + '</div>';
+  if (L.bes && L.bes.length) h += '<div class="lsek"><div class="dpt">Bescheinigungen</div>' + L.bes.map(function (b, i) { return '<div class="lz klick" data-bes="' + i + '"><div>' + esc(b.t) + '</div><div class="r" style="color:var(--grau)">ansehen ›</div></div>'; }).join('') + '</div>';
   if (L.ordner) h += '<a class="lknopf" target="_blank" rel="noopener" href="https://drive.google.com/drive/folders/' + encodeURIComponent(L.ordner) + '">Alle Abrechnungen in Google Drive</a>';
   h += '<p class="hinweis" style="margin-top:14px">Stand ' + new Date(L.stand + 'T12:00').toLocaleDateString('de-DE') + '. Neue Abrechnung einfach Claude schicken.</p>';
   $('lKoerper').innerHTML = h;
   [].forEach.call(document.querySelectorAll('#lKoerper .ljahr button'), function (b) { b.onclick = function () { lohnJahr = b.dataset.j; lohnZeichnen(); }; });
   [].forEach.call(document.querySelectorAll('#lKoerper [data-k]'), function (b) { b.onclick = function () { lohnOeffnen(b.dataset.k); }; });
+  [].forEach.call(document.querySelectorAll('#lKoerper [data-bes]'), function (b) { b.onclick = function () { var x = L.bes[+b.dataset.bes]; lohnBild(x.k, x.t, x.d); }; });
+}
+// (2.64) Abrechnung direkt im Cockpit: Seitenbild aus dem privaten Daten-Repo (lohn/<monat>.png, legt der Mac ab); zwei Finger zoomen, doppelt tippen = 2,5-fach
+var lohnBilder = {};
+function lohnBild(k, titel, driveId) {
+  $('lbTitel').textContent = titel; var K = $('lbKoerper'); $('blattLb').classList.add('offen');
+  var zeig = function (url) {
+    K.innerHTML = '<img id="lbImg" alt="' + esc(titel) + '" src="' + url + '">'; var im = $('lbImg'), z = 1, d0 = 0, z0 = 1, mx = 0, my = 0, tl = 0;
+    var setz = function (nz, cx, cy) { nz = Math.max(1, Math.min(4, nz)); var r = K.getBoundingClientRect(), px = (K.scrollLeft + cx - r.left) / z, py = (K.scrollTop + cy - r.top) / z; z = nz; im.style.width = (z * 100) + '%'; K.scrollLeft = px * z - (cx - r.left); K.scrollTop = py * z - (cy - r.top); };
+    K.ontouchstart = function (e) { if (e.touches.length === 2) { var a = e.touches[0], b = e.touches[1]; d0 = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); z0 = z; mx = (a.clientX + b.clientX) / 2; my = (a.clientY + b.clientY) / 2; }
+      else if (e.touches.length === 1) { var t = Date.now(); if (t - tl < 300) { setz(z > 1.2 ? 1 : 2.5, e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); } tl = t; } };
+    K.ontouchmove = function (e) { if (e.touches.length === 2 && d0) { e.preventDefault(); var a = e.touches[0], b = e.touches[1]; setz(z0 * Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / d0, mx, my); } };
+    K.ontouchend = function (e) { if (e.touches.length < 2) d0 = 0; };
+  };
+  if (lohnBilder[k]) { zeig(lohnBilder[k]); K.scrollTop = 0; return; }
+  K.innerHTML = '<p class="hinweis" style="margin-top:40px">Abrechnung wird geladen …</p>';
+  var fehl = function () { K.innerHTML = '<p class="hinweis" style="margin-top:40px">Die Abrechnung ist noch nicht im Cockpit (der Mac legt sie beim nächsten Abgleich ab).</p>' + (driveId ? '<a class="lknopf" target="_blank" rel="noopener" href="https://drive.google.com/file/d/' + encodeURIComponent(driveId) + '/view">In Google Drive öffnen</a>' : ''); };
+  if (!daten.einst.token) return fehl();
+  fetch(GH.replace('daten.json', 'lohn/' + encodeURIComponent(k) + '.png'), { headers: { Authorization: 'Bearer ' + daten.einst.token, Accept: 'application/vnd.github.raw' }, cache: 'no-store' })
+    .then(function (r) { if (!r.ok) throw 0; return r.blob(); }).then(function (b) { lohnBilder[k] = URL.createObjectURL(b); if ($('lbTitel').textContent === titel) zeig(lohnBilder[k]); }).catch(fehl);
 }
 function lohnOeffnen(k) { lohnK = k; lohnDetail(); $('blattLd').classList.add('offen'); $('ldKoerper').scrollTop = 0; }
 function lohnDetail() {
   var L = lohnDaten(); if (!L) return; var i = -1; L.m.forEach(function (x, j) { if (x.m === lohnK) i = j; }); var x = L.m[i]; if (!x) return;
   var v = L.m[i - 1], s = lohnStd(x), er = lohnErfasst(x.m), pz = function (n) { return (n >= 0 ? '+' : '') + n.toLocaleString('de-DE', { maximumFractionDigits: 2 }); };
   $('ldTitel').textContent = lohnMonat(x.m);
-  var h = '<div class="lbox"><small>Ausgezahlt</small><div class="lgross">' + pxEuro(x.au) + '</div>' + (v ? '<small class="' + (x.au >= v.au ? 'dplus' : 'dminus') + '">' + (x.au >= v.au ? '+' : '') + euroH(x.au - v.au) + ' zum ' + lohnMonat(v.m).split(' ')[0] + '</small>' : '') + '</div>';
+  var h = '<div class="lbox"><small>Ausgezahlt</small><div class="lgross">' + pxEuro(x.au) + '</div>' + (v ? '<small class="' + (x.au >= v.au ? 'dplus' : 'dminus') + '">' + '<span class="vzb"><i>' + (x.au >= v.au ? '+' : '−') + '</i>' + euroH(Math.abs(x.au - v.au)) + '</span> zum ' + lohnMonat(v.m).split(' ')[0] + '</small>' : '') + '</div>';
   h += '<div class="lsek"><div class="dpt">Brutto</div>' + x.b.map(function (b) { return lohnZ(esc(b.t), euroH(b.e), b.h ? b.h.toLocaleString('de-DE') + ' Std. × ' + euro(b.s) : b.t === 'Grundgehalt' && s.g ? Math.round(s.g) + ' Std. × ' + euro(s.satz) : ''); }).join('') + lohnZ('Gesamt-Brutto', euroH(x.br), '', 'lzs') + '</div>';
-  h += '<div class="lsek"><div class="dpt">Abzüge</div>' + lohnZ('Steuern', '−' + euroH(x.st), 'Lohnsteuer, Kirchensteuer, Soli') + lohnZ('Sozialversicherung', '−' + euroH(x.sv), 'Kranken-, Renten-, Arbeitslosen-, Pflegeversicherung') + lohnZ('Netto', euroH(x.ne), Math.round(x.ne / x.br * 100) + ' % vom Brutto', 'lzs') + '</div>';
-  if (x.n.length) h += '<div class="lsek"><div class="dpt">Dazu und ab (steuerfrei)</div>' + x.n.map(function (n) { return lohnZ(esc(n.t), (n.e >= 0 ? '+' : '−') + euroH(Math.abs(n.e))); }).join('') + lohnZ('Ausgezahlt', euroH(x.au), '', 'lzs') + '</div>';
+  h += '<div class="lsek"><div class="dpt">Abzüge</div>' + lohnZ('Steuern', lohnVz(-x.st), 'Lohnsteuer, Kirchensteuer, Soli') + lohnZ('Sozialversicherung', lohnVz(-x.sv), 'Kranken-, Renten-, Arbeitslosen-, Pflegeversicherung') + lohnZ('Netto', euroH(x.ne), Math.round(x.ne / x.br * 100) + ' % vom Brutto', 'lzs') + '</div>';
+  if (x.n.length) h += '<div class="lsek"><div class="dpt">Dazu und ab (steuerfrei)</div>' + x.n.map(function (n) { return lohnZ(esc(n.t), lohnVz(n.e)); }).join('') + lohnZ('Ausgezahlt', euroH(x.au), '', 'lzs') + '</div>';
   h += '<div class="lsek"><div class="dpt">Stunden</div>' + lohnZ('Bezahlt', (Math.round((s.g + s.u) * 100) / 100).toLocaleString('de-DE') + ' Std.', s.g ? Math.round(s.g) + ' im Gehalt + ' + s.u.toLocaleString('de-DE') + ' Überstunden' : '') + (er != null ? lohnZ('Im Cockpit eingetragen', er.toLocaleString('de-DE', { maximumFractionDigits: 2 }) + ' Std.', 'Unterschied ' + pz(Math.round((s.g + s.u - er) * 100) / 100) + ' Std.') : '') + (s.satz ? lohnZ('Stundenlohn', euro(s.satz)) : '') + '</div>';
-  h += '<a class="lknopf" target="_blank" rel="noopener" href="https://drive.google.com/file/d/' + encodeURIComponent(x.d) + '/view">Abrechnung als PDF ansehen</a>';
+  h += '<button type="button" class="lknopf" id="ldBild">Abrechnung ansehen</button>';
   h += '<div class="lnav"><button type="button" id="ldVor"' + (v ? '' : ' disabled') + '>‹ ' + (v ? lohnMonat(v.m).split(' ')[0] : '') + '</button><button type="button" id="ldNach"' + (L.m[i + 1] ? '' : ' disabled') + '>' + (L.m[i + 1] ? lohnMonat(L.m[i + 1].m).split(' ')[0] : '') + ' ›</button></div>';
   $('ldKoerper').innerHTML = h;
+  $('ldBild').onclick = function () { lohnBild(x.m, 'Abrechnung ' + lohnMonat(x.m), x.d); };
   $('ldVor').onclick = function () { if (v) { lohnK = v.m; lohnDetail(); } }; $('ldNach').onclick = function () { if (L.m[i + 1]) { lohnK = L.m[i + 1].m; lohnDetail(); } };
 }
 // (2.41) Detail-Ansicht einer Position: Wert, heute, seit Kauf, Kennzahlen, Kursverlauf (1T/1M/1J), Käufe und Verkäufe
