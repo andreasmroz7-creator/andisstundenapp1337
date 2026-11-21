@@ -179,7 +179,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.15';
+var VERSION = '3.16';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -199,8 +199,17 @@ function vertrag() { var v = parseFloat(String(daten.einst.vertrag || '').replac
 function wocheIst(mo) { var so = new Date(mo); so.setDate(mo.getDate() + 6); var a0 = iso(mo), a1 = iso(so), m = 0; daten.eintraege.forEach(function (e) { if (e.d >= a0 && e.d <= a1) m += dauer(e); }); return m; }
 // Wochen eines Monats = alle Wochen, deren Montag im Monat liegt (bis zur laufenden Woche)
 function ersteWoche() { var m = null; daten.eintraege.forEach(function (e) { if (!m || e.d < m) m = e.d; }); return m ? iso(wocheVon(new Date(m + 'T12:00:00'))) : null; } // vor ihrem ersten Eintrag zählt kein Soll
-function monatsWochen(j, mo, alle) { var L = [], hm0 = wocheVon(new Date()), d = new Date(j, mo, 1), ew = ersteWoche(); while (d.getDay() !== 1) d.setDate(d.getDate() + 1); if (!ew) return L; while (d.getMonth() === mo && iso(d) < ew) d.setDate(d.getDate() + 7);
-  for (; d.getMonth() === mo && (alle || d <= hm0); d.setDate(d.getDate() + 7)) { var von = new Date(d), bis = new Date(d); bis.setDate(d.getDate() + 6); L.push({ von: von, bis: bis, ist: wocheIst(von), laeuft: iso(von) === iso(hm0) }); }
+// (3.16) Soll je Tag: Mo–Fr = Wochenstunden ÷ 5, ab ihrem ersten Eintrag; Samstag/Sonntag kein Soll (eingetragene Stunden zählen trotzdem).
+// Eine Woche über den Monatswechsel wird geteilt: jeder Monat bekommt nur seine Tage (Soll und Ist), so wie Andi es will.
+function erstesDatum() { var m = null; daten.eintraege.forEach(function (e) { if (!m || e.d < m) m = e.d; }); return m; }
+function teilWerte(von, bis) { var V = vertrag(), ers = erstesDatum(), a = iso(von), b = iso(bis), soll = 0, ist = 0;
+  for (var d = new Date(von); d <= bis; d.setDate(d.getDate() + 1)) { var wt = d.getDay(); if (wt >= 1 && wt <= 5 && ers && iso(d) >= ers) soll += V / 5; }
+  daten.eintraege.forEach(function (e) { if (e.d >= a && e.d <= b) ist += dauer(e); }); return { soll: Math.round(soll), ist: ist }; }
+function monatsWochen(j, m, alle) { var L = [], hm0 = wocheVon(new Date()), ers = erstesDatum(), erster = new Date(j, m, 1), letzter = new Date(j, m + 1, 0); if (!ers) return L;
+  for (var d = wocheVon(erster); d <= letzter && (alle || d <= hm0); d.setDate(d.getDate() + 7)) {
+    var von = d < erster ? new Date(erster) : new Date(d), bis = new Date(d); bis.setDate(d.getDate() + 6); if (bis > letzter) bis = new Date(letzter);
+    if (iso(bis) < ers) continue; var w = teilWerte(von, bis);
+    L.push({ von: von, bis: bis, ist: w.ist, soll: w.soll, teil: iso(von) !== iso(d) || bis.getDay() !== 0, laeuft: iso(d) === iso(hm0) }); }
   return L; }
 function pm(min) { return (min >= 0 ? '+' : '−') + hm(Math.abs(min)); }
 function wocheVon(d) { var m = new Date(d.getFullYear(), d.getMonth(), d.getDate()); m.setDate(m.getDate() - (m.getDay() + 6) % 7); return m; }
@@ -240,8 +249,10 @@ function zeichneEcht() {
   } else $('sollBox').style.display = 'none';
   var aw = anzeigeWoche(); // (3.7) gewählte Woche (in der Kachel wischbar), im Kalender umrandet
   if (V) {
-    var mo = aw, so = new Date(mo); so.setDate(mo.getDate() + 6); var wi = wocheIst(mo), ws = V, jetzt = iso(mo) === iso(wocheVon(heute));
-    $('woche').style.display = ''; $('wTitel').textContent = (jetzt ? 'Diese Woche' : 'KW ' + kwNr(mo)) + ' (' + mo.getDate() + '.' + (mo.getMonth() + 1) + '. – ' + so.getDate() + '.' + (so.getMonth() + 1) + '.)';
+    var mo = aw, so = new Date(mo); so.setDate(mo.getDate() + 6); var jetzt = iso(mo) === iso(wocheVon(heute));
+    var ma = new Date(ansicht.j, ansicht.m, 1), me = new Date(ansicht.j, ansicht.m + 1, 0), tv = mo < ma ? ma : mo, tb = so > me ? me : so, geteilt = tv !== mo || tb !== so; // (3.16) über den Monatswechsel: nur die Tage dieses Monats
+    var tw = teilWerte(tv, tb), wi = tw.ist, ws = tw.soll;
+    $('woche').style.display = ''; $('wTitel').textContent = (jetzt ? 'Diese Woche' : 'KW ' + kwNr(mo)) + (geteilt ? ' · nur ' + MONATE[ansicht.m] : '') + ' (' + tv.getDate() + '.' + (tv.getMonth() + 1) + '. – ' + tb.getDate() + '.' + (tb.getMonth() + 1) + '.)';
     $('wIst').textContent = hm(wi) + ' von ' + hm(ws); $('wSoll').textContent = '';
     $('wDiff').textContent = pm(wi - ws); $('wDiff').className = 'diff ' + (wi - ws >= 0 ? 'plusw' : 'minusw');
   } else $('woche').style.display = 'none';
@@ -481,11 +492,11 @@ function jahrZeichnen() {
   for (var m = 0; m < 12; m++) {
     var pre = J + '-' + ('0' + (m + 1)).slice(-2), L = daten.eintraege.filter(function (e) { return e.d.slice(0, 7) === pre; }), ms = 0, mt = {};
     L.forEach(function (e) { var d = dauer(e); if (istUrlaub(e)) { urlaub++; ms += d; } else if (e.std === 0) { } else { ms += d; mt[e.d] = 1; tage[e.d] = 1; } });
-    var WO = V ? monatsWochen(J, m) : [], ist = WO.reduce(function (a, w) { return a + w.ist; }, 0), diff = V && WO.length ? ist - V * WO.length : null;
+    var WO = V ? monatsWochen(J, m) : [], ist = WO.reduce(function (a, w) { return a + w.ist; }, 0), soll = WO.reduce(function (a, w) { return a + w.soll; }, 0), diff = V && WO.length ? ist - soll : null;
     var mb = Math.round(ms / 60 * l * 100) / 100; sum += ms; if (l) { br += mb; nt += netto(mb); }
     if (L.length || (diff != null && WO.length)) M.push({ m: m, std: ms, tage: Object.keys(mt).length, diff: diff, br: mb });
   }
-  var ueber = M.reduce(function (a, x) { return a + (x.diff || 0); }, 0), wochen = V ? M.reduce(function (a, x) { return a + monatsWochen(J, x.m).length; }, 0) : 0;
+  var ueber = M.reduce(function (a, x) { return a + (x.diff || 0); }, 0), wochen = V ? M.reduce(function (a, x) { return a + monatsWochen(J, x.m).reduce(function (b, w) { return b + w.soll; }, 0); }, 0) / V : 0; // in ganzen Soll-Wochen
   var h = '<div class="umschalter jjahre">' + JL.map(function (j) { return '<button data-j="' + j + '" class="' + (j === J ? 'an' : '') + '">' + j + '</button>'; }).join('') + '</div>';
   h += '<div class="jkarte"><small>Stunden ' + J + '</small><b class="g">' + hm(sum) + '</b><div class="jgrid">' +
     '<div><small>Arbeitstage</small><b>' + Object.keys(tage).length + '</b></div>' +
@@ -498,7 +509,7 @@ function jahrZeichnen() {
     return '<div class="jmon" data-m="' + x.m + '"><div class="mn">' + MONATE[x.m] + '<small>' + x.tage + (x.tage === 1 ? ' Tag' : ' Tage') + (l ? ' · ' + euro(x.br) + ' brutto' : '') + '</small></div><div class="st">' + hm(x.std) +
       (x.diff != null ? '<small class="' + (x.diff >= 0 ? 'plusw' : 'minusw') + '">' + pm(x.diff) + '</small>' : '') + '</div></div>';
   }).reverse().join('') : '<div class="leer">In ' + J + ' ist noch nichts eingetragen.</div>';
-  if (V) h += '<div class="hinweis">Überstunden: jede Woche zählt ganz von Montag bis Sonntag mit ' + hm(V) + ' Std. Soll, bis zur laufenden Woche. Monat antippen, um ihn zu öffnen.</div>';
+  if (V) h += '<div class="hinweis">Überstunden: jeder Arbeitstag Montag bis Freitag zählt mit ' + hm(V / 5) + ' Std. Soll (' + hm(V) + ' pro Woche), bis zur laufenden Woche. Eine Woche über den Monatswechsel wird auf beide Monate aufgeteilt. Samstag zählt nur, wenn Stunden eingetragen sind. Monat antippen, um ihn zu öffnen.</div>';
   $('jInhalt').innerHTML = h;
   setTimeout(scrollPruefen, 30);
 }
@@ -539,12 +550,12 @@ function pdfListe() {
   if (V) { // Wochen des Monats: jede Woche zählt ganz (Mo–So) mit den Vertragsstunden, auch über den Monatswechsel; sie gehört zu dem Monat, in dem ihr Montag liegt
     var WO = monatsWochen(ansicht.j, ansicht.m), ist = 0;
     y += 14; if (y > 680) { doc.addPage(); y = 54; }
-    doc.text(sp[0], y, 'Wochen (Soll ' + hm(V) + ' Std. pro Woche)', 11, true); y += 18;
+    doc.text(sp[0], y, 'Wochen (Soll ' + hm(V) + ' Std. pro Woche, ' + hm(V / 5) + ' pro Arbeitstag)', 11, true); y += 18;
     doc.rect(x0 - 6, y - 13, 595 - 2 * x0 + 12, 20, 0.92); doc.text(sp[0], y, 'Woche', 10, true); doc.text(330, y, 'Ist', 10, true, 'r'); doc.text(420, y, 'Soll', 10, true, 'r'); doc.text(515, y, 'Plus/Minus', 10, true, 'r'); y += 20;
     WO.forEach(function (w) { if (y > 790) { doc.addPage(); y = 54; } ist += w.ist;
-      doc.text(sp[0], y, w.von.getDate() + '.' + (w.von.getMonth() + 1) + '. – ' + w.bis.getDate() + '.' + (w.bis.getMonth() + 1) + '.' + (w.laeuft ? ' (läuft)' : ''), 10); doc.text(330, y, hm(w.ist), 10, false, 'r'); doc.text(420, y, hm(V), 10, false, 'r'); doc.text(515, y, pm(w.ist - V).replace('−', '-'), 10, false, 'r');
+      doc.text(sp[0], y, w.von.getDate() + '.' + (w.von.getMonth() + 1) + '. – ' + w.bis.getDate() + '.' + (w.bis.getMonth() + 1) + '.' + (w.laeuft ? ' (läuft)' : ''), 10); doc.text(330, y, hm(w.ist), 10, false, 'r'); doc.text(420, y, hm(w.soll), 10, false, 'r'); doc.text(515, y, pm(w.ist - w.soll).replace('−', '-'), 10, false, 'r');
       doc.line(x0 - 6, y + 6, 595 - x0 + 6, y + 6, 0.3, 0.85); y += 18; });
-    if (WO.length) { y += 4; doc.text(sp[0], y, 'Summe Wochen', 10, true); doc.text(330, y, hm(ist), 10, true, 'r'); doc.text(420, y, hm(V * WO.length), 10, true, 'r'); doc.text(515, y, pm(ist - V * WO.length).replace('−', '-'), 10, true, 'r'); y += 16; }
+    if (WO.length) { y += 4; doc.text(sp[0], y, 'Summe Wochen', 10, true); doc.text(330, y, hm(ist), 10, true, 'r'); doc.text(420, y, hm(WO.reduce(function (a, w) { return a + w.soll; }, 0)), 10, true, 'r'); doc.text(515, y, pm(ist - WO.reduce(function (a, w) { return a + w.soll; }, 0)).replace('−', '-'), 10, true, 'r'); y += 16; }
     doc.text(sp[0], y + 4, 'Wochen zählen immer ganz von Montag bis Sonntag, auch über den Monatswechsel (die Woche gehört zum Monat ihres Montags).', 8); y += 16;
   }
   doc.text(x0, 812, 'Erstellt am ' + new Date().toLocaleDateString('de-DE'), 8);
@@ -572,14 +583,14 @@ function pdfKalender() {
       doc.text(cx + spW - 6, yz + 13, TN[i], 7, false, 'r');
       if (urlTag[ds]) { doc.text(cx + spW / 2, yz + zH / 2 + (m ? 4 : 10), 'Urlaub', 12, true, 'c'); if (m) doc.text(cx + spW / 2, yz + zH / 2 + 18, hm(m) + ' Std.', 9, false, 'c'); }
       else if (m) doc.text(cx + spW / 2, yz + zH / 2 + 10, hm(m) + ' Std.', 12, true, 'c');
-      if (m) wSum += m; if (m && drin) summeMonat += m;
+      if (m && drin) { wSum += m; summeMonat += m; }
     }
     var wx = x0 + 7 * spW;
     // Wochenspalte: Woche gehört zum Monat ihres Montags; laufende Woche markiert, künftige ohne Soll
-    var eigen = mo.getMonth() === ansicht.m, hmo = wocheVon(new Date()), lauf = iso(mo) === iso(hmo), kuenftig = mo > hmo, unter = '';
-    if (V && !eigen) unter = 'zählt zum ' + MONATE[mo.getMonth()];
-    else if (V && kuenftig) unter = 'Soll ' + hm(V);
-    else if (V) unter = 'Soll ' + hm(V) + '  (' + pm(wSum - V).replace('−', '-') + ')' + (lauf ? ' läuft' : '');
+    var ma = new Date(ansicht.j, ansicht.m, 1), me = new Date(ansicht.j, ansicht.m + 1, 0), so7 = new Date(mo); so7.setDate(mo.getDate() + 6);
+    var wS = teilWerte(mo < ma ? ma : mo, so7 > me ? me : so7).soll, hmo = wocheVon(new Date()), lauf = iso(mo) === iso(hmo), kuenftig = mo > hmo, unter = ''; // (3.16) nur die Tage dieses Monats
+    if (V && kuenftig) unter = 'Soll ' + hm(wS);
+    else if (V) unter = 'Soll ' + hm(wS) + '  (' + pm(wSum - wS).replace('−', '-') + ')' + (lauf ? ' läuft' : '');
     doc.text(wx + wochW / 2, yz + zH / 2 + (unter ? 0 : 5), hm(wSum) + ' Std.', 12, true, 'c');
     if (unter) doc.text(wx + wochW / 2, yz + zH / 2 + 16, unter, 8, false, 'c');
     yz += zH;
@@ -591,7 +602,7 @@ function pdfKalender() {
   // unten nur: Soll des Monats, Ist und Differenz (alle Wochen, deren Montag im Monat liegt, je ganze Woche)
   var yS = yE + 26, MW = monatsWochen(ansicht.j, ansicht.m, true), istM = MW.reduce(function (a, w) { return a + w.ist; }, 0);
   if (V) {
-    var sollM = V * MW.length, df = istM - sollM;
+    var sollM = MW.reduce(function (a, w) { return a + w.soll; }, 0), df = istM - sollM;
     doc.text(x0, yS, 'Soll ' + MONATE[ansicht.m] + ':', 11); doc.text(x0 + 190, yS, hm(sollM) + ' Std.', 11, false, 'r');
     doc.text(x0, yS + 17, 'Gearbeitet:', 11); doc.text(x0 + 190, yS + 17, hm(istM) + ' Std.', 11, false, 'r');
     doc.text(x0, yS + 36, df >= 0 ? 'Plus:' : 'Minus:', 12, true); doc.text(x0 + 190, yS + 36, pm(df).replace('−', '-') + ' Std.', 12, true, 'r');
