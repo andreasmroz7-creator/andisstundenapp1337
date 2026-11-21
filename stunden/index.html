@@ -94,7 +94,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
   <button class="kugel" id="mVor" aria-label="Nächster Monat"><svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg></button>
 </div>
 <div class="summe"><div><small>Stunden</small><b id="sStd">0:00</b></div><div class="r"><small id="sTage">0 Tage</small><b id="sGeld"></b></div></div>
-<div class="umschalter" id="ansichtWahl"><button data-a="kal">Kalender</button><button data-a="liste">Liste</button></div>
+<div class="umschalter" id="ansichtWahl"><button data-a="liste">Liste</button><button data-a="kal">Kalender</button></div>
 <div id="kalender"></div>
 <div id="liste"></div>
 <div class="knopfreihe"><button class="btn" id="pdfKnopf">Monat als PDF</button></div>
@@ -131,12 +131,12 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '1.1';
+var VERSION = '1.2';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 var WT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'], WTL = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
-var daten = laden(), ansicht = { j: new Date().getFullYear(), m: new Date().getMonth() }, bearbeite = null, gewaehlt = iso(new Date()), modus = (function () { try { return localStorage.getItem('stunden_einfach_ansicht') || 'kal'; } catch (e) { return 'kal'; } })();
+var daten = laden(), ansicht = { j: new Date().getFullYear(), m: new Date().getMonth() }, bearbeite = null, gewaehlt = iso(new Date()), modus = (function () { try { return localStorage.getItem('stunden_einfach_ansicht') || 'liste'; } catch (e) { return 'liste'; } })();
 function laden() { try { var d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (d && d.eintraege) return d; } catch (e) {} return { eintraege: [], einst: { name: '', lohn: '', pause: '' } }; }
 function sichern() { try { localStorage.setItem(KEY, JSON.stringify(daten)); } catch (e) { toast('Speichern fehlgeschlagen'); } }
 function toast(t) { var el = $('toast'); el.textContent = t; el.classList.add('an'); clearTimeout(toast.t); toast.t = setTimeout(function () { el.classList.remove('an'); }, 2200); }
