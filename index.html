@@ -435,7 +435,7 @@ body.istoffline .sstand{color:#ff6b61}
   <div class="koerper" id="nwKoerper"></div>
 </div></div>
 <div class="blatt" id="blattS"><div class="innen">
-  <div class="titel"><b>Einstellungen</b><button class="kugel schliessen" data-zu="blattS" aria-label="Schließen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><div class="koerper">
+  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattS" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Einstellungen</b></div></div><div class="koerper">
   <label class="l">Name (steht im PDF)</label><input type="text" id="sName" placeholder="Mroz Andreas">
   <label class="l">Personalnummer (optional)</label><input type="text" id="sPers" placeholder="4048">
   <label class="l">Stundenlohn brutto (€)</label><input type="text" inputmode="decimal" id="sLohn" placeholder="16,00">
@@ -472,7 +472,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.19';
+var VERSION = '2.20';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
