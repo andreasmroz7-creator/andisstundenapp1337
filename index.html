@@ -489,7 +489,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.39';
+var VERSION = '2.40';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2095,7 +2095,7 @@ function depotLiveRechnen(stark) {
         if (S6[p.sym + 'USDT'] && S6.EURUSDT) pct = ((B[p.sym + 'USDT'] / B.EURUSDT) / (S6[p.sym + 'USDT'] / S6.EURUSDT) - 1) * 100; // seit 6 Uhr
         else if (BO[p.sym + 'USDT'] && BO.EURUSDT) pct = ((B[p.sym + 'USDT'] / B.EURUSDT) / (BO[p.sym + 'USDT'] / BO.EURUSDT) - 1) * 100; }
       else if (p.k === 'wp') { alleW++;
-        if (o && Date.now() - o.t < 15 * 60e3) { w = p.q * o.k; neuW++; tW = Math.max(tW, o.t / 1000); if (o.vt) { var tag0 = new Date(depotSechsTs()); tag0.setHours(0, 0, 0, 0); pct = o.dl >= tag0.getTime() ? (o.k / o.vt - 1) * 100 : 0; } } // seit 6 Uhr: ohne Handel seit dem Morgen 0 %
+        if (o && Date.now() - o.t < 15 * 60e3) { w = p.q * o.k; neuW++; tW = Math.max(tW, o.t / 1000); if (o.vt) pct = (o.k / o.vt - 1) * 100; } // (2.40) Aktien/ETFs: immer die letzte Tagesveränderung bis Börsenschluss (am Wochenende die vom Freitag)
         else if (macAlt && p.y && p.y_sym && K[p.y_sym] && K[p.y_sym][1] * 1000 > new Date(d.stand) - 15 * 60e3) { w = p.q * (p.p_y || p.p) * K[p.y_sym][0] / p.y; neuW++; tW = Math.max(tW, K[p.y_sym][1]); }
       }
       PL.push({ n: p.n, k: p.k, q: p.q, sym: p.sym, w: w, pct: pct });
