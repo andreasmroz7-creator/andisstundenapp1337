@@ -514,7 +514,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.50';
+var VERSION = '2.51';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -728,7 +728,7 @@ function zeichneEcht() {
   $('monat').textContent = MONATE[ansicht.m] + ' ' + ansicht.j;
   var ls = monatsEintraege(ansicht.j, ansicht.m), sum = 0, verpf = 0, html = '', kwVor = null, kwSum = {};
   ls.forEach(function (x) { var k = kwVon(x.datum); kwSum[k] = (kwSum[k] || 0) + R.berechne(x).gesamt; });
-  ls.forEach(function (x) {
+  ls.slice().reverse().forEach(function (x) { // (2.51) neuester Tag oben, der erste des Monats ganz unten
     var kw = kwVon(x.datum); if (kw !== kwVor) { kwVor = kw; html += '<div class="kwzeile"><span>KW ' + kw.split('-')[1] + (kwOrt(x.datum, ls) ? ' · ' + esc(kwOrt(x.datum, ls)) : '') + '</span><b>' + z(kwSum[kw]) + ' Std.</b></div>'; }
     var r = R.berechne(x); sum += r.gesamt; verpf += r.verpflegung;
     var d = new Date(x.datum + 'T12:00:00');
@@ -2303,7 +2303,7 @@ var DSORT = { wert: 'nach Wert', heute: 'nach heute', kauf: 'nach Gewinn seit Ka
 function depotRest(d) { var r = +d.fest || 0; (d.ex || []).forEach(function (x) { r -= +x.v || 0; }); return r; }
 function depotRenteHtml(d, zeile) {
   var E = (d.ex || []).filter(function (x) { return x.v > 0; }); if (!E.length) return '';
-  return '<div class="wltr" style="margin-top:6px">Rente</div>' + E.map(function (x) { var pc = x.p > 0 ? (x.v / x.p - 1) * 100 : null; return zeile(/allianz/i.test(x.n) ? 'Allianz-Rente' : depotKurz(x.n), x.p > 0 ? 'eingezahlt ' + euro(x.p) : 'Stand vom Mac', x.v, pc, null); }).join('');
+  return '<div class="wltr" style="margin-top:6px">Rente</div>' + E.map(function (x) { var pc = x.p > 0 ? (x.v / x.p - 1) * 100 : null; return zeile(/allianz/i.test(x.n) ? 'Allianz-Rente' : depotKurz(x.n), x.p > 0 ? 'eingezahlt ' + euro(x.p) : 'Stand vom Mac', x.v, pc, null, /allianz/i.test(x.n) ? posMini('rente', null) : ''); }).join(''); // (2.51) Mini-Diagramm wie im Dashboard (vom Mac: positionen.json k.rente)
 }
 function depotPosHtml(d) {
   if (!d.pos || !d.pos.length) return '';
