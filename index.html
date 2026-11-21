@@ -471,7 +471,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.10';
+var VERSION = '2.11';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1935,15 +1935,28 @@ function depotLinie(d, zu, gross) {
 }
 var DZR = [['1d', '1T'], ['1w', '1W'], ['1m', '1M'], ['6m', '6M'], ['1y', '1J'], ['max', 'Max']], depotZr = (function () { try { return localStorage.getItem('cockpit_dzr') || '1d'; } catch (e) { return '1d'; } })();
 var DZT = { '1d': 'heute', '1w': 'in 1 Woche', '1m': 'in 1 Monat', '6m': 'in 6 Monaten', '1y': 'in 1 Jahr', 'max': 'seit Beginn' };
+// Plus/Minus-Linie ohne Einzahlungen, gleiche Rechnung wie im Dashboard (perfSeries): bekannte Einzahlungen (fz) und sonstige Sprünge werden herausgerechnet, die Linie endet beim Gewinn des Zeitraums (dv)
+function depotPlusMinus(vs, dv, fz) {
+  var n = vs.length, st = [0], i; for (i = 1; i < n; i++) st.push(vs[i] - vs[i - 1]);
+  var D = (vs[n - 1] - vs[0]) - dv, pick = {}, cum = 0;
+  (fz || []).forEach(function (k) { if (k > 0 && !pick[k]) { pick[k] = 1; cum += st[k]; } });
+  if (Math.abs(D - cum) > 1) { var sg = Math.sign(D - cum), idx = []; for (i = 1; i < n; i++) if (!pick[i] && Math.sign(st[i]) === sg) idx.push(i);
+    idx.sort(function (a, b) { return Math.abs(st[b]) - Math.abs(st[a]); });
+    idx.forEach(function (k) { if (Math.abs(D - (cum + st[k])) < Math.abs(D - cum)) { cum += st[k]; pick[k] = 1; } }); }
+  var c = 0, a = [0]; for (i = 1; i < n; i++) { if (pick[i]) c += st[i]; a.push(vs[i] - vs[0] - c); }
+  var res = dv - a[n - 1]; return a.map(function (v, k) { return v + res * k / (n - 1); });
+}
 // Daten des gewählten Zeitraums: Werte, Zeitpunkte, Einzahlungen bis zum Punkt (e), Bezug und Veränderung (ohne Einzahlungen, wie im Dashboard)
 function depotReihe(d, r) {
-  if (r !== '1d' && d.z && d.z[r] && d.z[r].p && d.z[r].p.length > 1) { var Z = d.z[r]; return { v: Z.p.map(function (x) { return x[1]; }), t: Z.p.map(function (x) { return x[0]; }), e: Z.p.map(function (x) { return x[2] || 0; }), ref: null, eur: Z.eur, pct: Z.pct, txt: DZT[r], r: r }; }
+  if (r !== '1d' && d.z && d.z[r] && d.z[r].p && d.z[r].p.length > 1) { var Z = d.z[r], v = Z.p.map(function (x) { return x[1]; }), e = Z.p.map(function (x) { return x[2] || 0; });
+    var fz = []; for (var i = 1; i < e.length; i++) if (Math.abs(e[i] - e[i - 1]) > 0.5) fz.push(i);
+    return { v: v, g: Z.pl ? e : depotPlusMinus(v, Z.eur, fz), t: Z.p.map(function (x) { return x[0]; }), e: e, ref: 0, eur: Z.eur, pct: Z.pct, txt: DZT[r], r: r }; }
   if (r !== '1d') return { v: [], t: null, e: null, ref: null, eur: 0, pct: 0, txt: DZT[r], r: r, leer: true };
   var l = d.linie || []; return { v: l, t: d.lt && d.lt.length === l.length ? d.lt : null, e: null, ref: d.ref, eur: d.heute_eur, pct: d.heute_pct, txt: depotWann(d), r: '1d' };
 }
 function depotAend(eur, pct, txt) { return '<span class="dpkt">•••</span><span class="dw ' + (eur >= 0 ? 'dplus' : 'dminus') + '">' + (eur >= 0 ? '+' : '') + euro(eur) + ' (' + (pct >= 0 ? '+' : '') + String((Math.round(pct * 100) / 100)).replace('.', ',') + ' %) <span class="dwann">' + txt + '</span></span>'; }
 function depotGrafik(R) {
-  var l = R.v; if (l.length < 2) return '<p class="hinweis" style="margin-top:22px">Für diesen Zeitraum gibt es noch keine Daten vom Mac.</p>';
+  var l = R.g || R.v; if (l.length < 2) return '<p class="hinweis" style="margin-top:22px">Für diesen Zeitraum gibt es noch keine Daten vom Mac.</p>';
   var W = 300, H = 180, mm = R.ref != null ? l.concat([R.ref]) : l, mn = Math.min.apply(null, mm), mx = Math.max.apply(null, mm), sp = (mx - mn) || 1;
   var y = function (v) { return (H - 4 - (v - mn) / sp * (H - 8)); }, x = function (i) { return (i / (l.length - 1) * W).toFixed(1); };
   var pf = l.map(function (v, i) { return (i ? 'L' : 'M') + x(i) + ' ' + y(v).toFixed(1); }).join('');
@@ -1970,13 +1983,13 @@ function depotZeichnen() {
 }
 // Finger über dem Diagramm: Linie und Punkt folgen, oben stehen Wert und Veränderung zu diesem Zeitpunkt; beim Loslassen wieder der aktuelle Stand
 function depotFinger(d, R) {
-  var c = $('dChart'); if (!c || R.v.length < 2) return; var l = R.v, n = l.length, aktiv = false, letzt = -1;
+  var c = $('dChart'); if (!c || R.v.length < 2) return; var l = R.g || R.v, n = l.length, aktiv = false, letzt = -1;
   var zeig = function (cx) {
     var b = c.getBoundingClientRect(), i = Math.max(0, Math.min(n - 1, Math.round((cx - b.left) / b.width * (n - 1)))); if (i === letzt) return; letzt = i;
     var px = i / (n - 1) * b.width, py = depotGrafik.y(l[i]) / depotGrafik.H * b.height;
     $('dCur').style.left = px + 'px'; $('dDot').style.left = px + 'px'; $('dDot').style.top = py + 'px';
-    var v = l[i], chg, base;
-    if (R.ref != null) { chg = v - R.ref; base = R.ref; } else { chg = v - l[0] - (R.e[i] - R.e[0]); base = v - chg; }
+    var v = R.v[i], chg, base;
+    if (R.g) { chg = R.g[i]; base = v - chg; } else { chg = v - R.ref; base = R.ref; }
     $('dGross').innerHTML = '<span class="dpkt">••••••</span><span class="dw">' + euro(v) + '</span>';
     $('dAend').innerHTML = depotAend(chg, base > 0 ? chg / base * 100 : 0, R.t ? depotZeit(R.t[i], R.r) : (i === n - 1 ? R.txt : ''));
     var st = c.querySelector('path.l'); if (st) st.style.stroke = chg >= 0 ? 'var(--ok)' : 'var(--rot)';
