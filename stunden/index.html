@@ -138,7 +138,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
     <label>Sicherung</label>
     <div class="knopfreihe" style="margin-top:4px"><button class="btn" id="sSichern">In iCloud sichern</button><button class="btn" id="sLaden">Sicherung laden</button></div>
     <input type="file" id="sDatei" accept=".json,application/json" style="display:none">
-    <div class="hinweis">Deine Stunden liegen nur auf diesem iPhone. „In iCloud sichern“ öffnet das Teilen-Menü: dort „In Dateien sichern“ → iCloud Drive wählen. Mit „Sicherung laden“ holst du sie zurück, z. B. auf einem neuen iPhone.</div>
+    <div class="hinweis">Deine Stunden liegen nur auf diesem iPhone. „In iCloud sichern“ öffnet das Teilen-Menü: dort „In Dateien sichern“ → iCloud Drive wählen. Mit „Sicherung laden“ holst du sie zurück, z. B. auf einem neuen iPhone. Vorhandene Einträge bleiben dabei, nur fehlende kommen dazu.</div>
     <div class="hinweis" id="sLetzte"></div>
   </div>
 </div></div>
@@ -152,7 +152,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.6';
+var VERSION = '2.7';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -202,7 +202,7 @@ function zeichneEcht() {
     for (var i = 0; i < versatz; i++) g += '<div class="zelle leerz"></div>';
     for (var t = 1; t <= nTage; t++) {
       var ds = iso(new Date(ansicht.j, ansicht.m, t)), wd = (versatz + t - 1) % 7, m = proTag[ds];
-      g += '<div class="zelle' + (m != null ? ' hat' : '') + (wd >= 5 ? ' we' : '') + (ds === hi ? ' heute' : '') + (ds === gewaehlt ? ' gew' : '') + '" data-d="' + ds + '"><span class="n">' + t + '</span>' + (m != null ? '<span class="s">' + hm(m) + '</span>' : '') + '</div>';
+      g += '<div class="zelle' + (m != null ? ' hat' : '') + (wd >= 5 ? ' we' : '') + (ds === hi ? ' heute' : '') + (ds === gewaehlt ? ' gew' : '') + '" data-d="' + ds + '"><span class="n">' + t + '</span>' + (m != null ? '<span class="s">' + (m === 0 ? 'Urlaub' : hm(m)) + '</span>' : '') + '</div>';
     }
     $('kalender').innerHTML = '<div class="kal"><div class="wk"><span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span></div><div class="gitter">' + g + '</div></div>';
     var TL = L.filter(function (e) { return e.d === gewaehlt; }), ts = TL.reduce(function (a, e) { return a + dauer(e); }, 0);
@@ -216,7 +216,7 @@ function zeichneEcht() {
 }
 function eintragHtml(e) {
   var d = new Date(e.d + 'T12:00:00');
-  return '<div class="tag" data-id="' + e.id + '"><div class="d"><b>' + d.getDate() + '</b><span>' + WT[d.getDay()] + '</span></div><div class="info"><div class="z1">' + (e.std != null ? 'Stunden' : e.b + ' – ' + e.e + ' Uhr') + (e.n ? ' · ' + esc(e.n) : '') + '</div>' + (e.std != null ? 'direkt eingetragen' : +e.p ? 'Pause ' + e.p + ' Min.' : 'ohne Pause') + '</div><div class="h">' + hm(dauer(e)) + '</div></div>';
+  return '<div class="tag" data-id="' + e.id + '"><div class="d"><b>' + d.getDate() + '</b><span>' + WT[d.getDay()] + '</span></div><div class="info"><div class="z1">' + (e.std === 0 ? esc(e.n || 'Frei') : (e.std != null ? 'Stunden' : e.b + ' – ' + e.e + ' Uhr') + (e.n ? ' · ' + esc(e.n) : '')) + '</div>' + (e.std === 0 ? 'ohne Stunden' : e.std != null ? 'direkt eingetragen' : +e.p ? 'Pause ' + e.p + ' Min.' : 'ohne Pause') + '</div><div class="h">' + (e.std === 0 ? '–' : hm(dauer(e))) + '</div></div>';
 }
 function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 // Fenster
@@ -350,8 +350,13 @@ $('sDatei').onchange = function () {
   var f = this.files && this.files[0]; if (!f) return; var r = new FileReader();
   r.onload = function () {
     try { var j = JSON.parse(r.result), d = j && j.daten; if (!d || !Array.isArray(d.eintraege)) throw 0;
-      if (!confirm('Sicherung mit ' + d.eintraege.length + ' Einträgen laden? Die Einträge auf diesem iPhone werden dabei ersetzt.')) return;
-      daten = { eintraege: d.eintraege, einst: d.einst || {} }; sichern(); zeichne(); toast('Sicherung geladen'); schliesse($('blattS'));
+      // (2.7) zusammenführen statt ersetzen: neue Einträge kommen dazu, schon vorhandene (gleicher Tag und gleiche Zeiten bzw. Stunden) werden übersprungen
+      var schl = function (e) { return e.d + '|' + (e.std != null ? 's' + e.std : e.b + '-' + e.e); }, da = {}; daten.eintraege.forEach(function (e) { da[e.id] = 1; da[schl(e)] = 1; });
+      var neu = d.eintraege.filter(function (e) { return e && e.d && !da[e.id] && !da[schl(e)]; });
+      if (!neu.length) { toast('Alle ' + d.eintraege.length + ' Einträge sind schon da'); return; }
+      if (!confirm(neu.length + ' Einträge hinzufügen?' + (neu.length < d.eintraege.length ? ' (' + (d.eintraege.length - neu.length) + ' sind schon da und werden übersprungen)' : '') + ' Deine bisherigen Einträge bleiben.')) return;
+      daten.eintraege = daten.eintraege.concat(neu); Object.keys(d.einst || {}).forEach(function (k) { if (daten.einst[k] == null || daten.einst[k] === '') daten.einst[k] = d.einst[k]; });
+      sichern(); zeichne(); toast(neu.length + ' Einträge geladen'); schliesse($('blattS'));
     } catch (e) { toast('Das ist keine Stunden-Sicherung'); }
   };
   r.readAsText(f);
