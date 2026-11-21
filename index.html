@@ -266,6 +266,17 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .dzr button{flex:1;border:0;background:none;color:var(--grau);font:inherit;font-size:14px;font-weight:600;padding:8px 0;border-radius:10px;transition:background .25s,color .25s}
 .dzr button.an{background:rgba(255,255,255,.14);color:#fff}
 .dwann{color:var(--grau);font-weight:500}
+.dkopf{display:flex;align-items:center;justify-content:space-between;gap:10px}.dkopf .hinweis{margin-top:0}
+.dart{position:relative;display:inline-grid;grid-template-columns:1fr 1fr;padding:3px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);cursor:pointer;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.dart::before{content:"";position:absolute;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);border-radius:999px;background:rgba(255,255,255,.2);transition:transform .38s cubic-bezier(.3,.8,.3,1)}
+.dart.pm::before{transform:translateX(100%)}
+.dart span{position:relative;z-index:1;min-width:34px;padding:4px 10px;font-size:13px;font-weight:700;color:var(--grau);text-align:center;transition:color .3s}
+.dart:not(.pm) span:first-child,.dart.pm span:last-child{color:#fff}
+.dpos{margin-top:26px}.dpos .dpt{font-size:13px;color:var(--grau);font-weight:600;margin-bottom:4px}
+.dprow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--rand)}
+.dprow .n{font-size:15px;font-weight:600}.dprow .s{font-size:12px;color:var(--grau);margin-top:2px}
+.dprow .r{text-align:right;position:relative;flex-shrink:0;min-width:90px}.dprow .r b{display:block;font-size:15px;font-weight:700}.dprow .r small{display:block;font-size:12px;font-weight:600;margin-top:2px}
+.dprow .r .dpkt{right:0;top:0}
 .fkheld{background:linear-gradient(160deg,rgba(255,255,255,.09),rgba(255,255,255,.03));border:1px solid var(--rand);border-radius:22px;padding:18px 18px 16px;margin:12px 0 12px;animation:auftauchen .45s cubic-bezier(.2,.8,.2,1) backwards}
 .fkheld small{color:var(--grau);font-size:12.5px;text-transform:uppercase;letter-spacing:.5px}
 .fkheld .gross{font-size:42px;font-weight:800;letter-spacing:-1.2px;line-height:1.1;margin:4px 0 2px}
@@ -473,7 +484,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.31';
+var VERSION = '2.32';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2013,7 +2024,7 @@ var depotKopf = null, depotLive = null;
 //  - Aktien/ETFs/Silber: gettex-Kurs (Mitte aus Geld/Brief) von Onvista = derselbe Kurs, mit dem Scalable rechnet; zur Börsenzeit alle 10 s, sonst alle 2 Min.
 //  - Krypto: Binance alle 5 s.  - Fällt Onvista aus: wie bisher kurse.json (GitHub, Yahoo-Veränderung).  - Rente, Tagesgeld, eigene Werte: Mac-Stand.
 // Eigene Live-Punkte (alle 30 s, nur heute) verlängern die Tageslinie hinter dem letzten Mac-Punkt.
-var ONV = 'https://api.onvista.de/api/v1/instruments/', depotOnv = {}, depotOnvT = 0, depotBin = null, depotBinT = 0, depotKJ = null, depotKJT = 0, depotLiveBusy = false;
+var depotPosLive = null, ONV = 'https://api.onvista.de/api/v1/instruments/', depotOnv = {}, depotOnvT = 0, depotBin = null, depotBinO = {}, depotBinT = 0, depotKJ = null, depotKJT = 0, depotLiveBusy = false;
 var onvTyp = (function () { try { return JSON.parse(localStorage.getItem('cockpit_onvtyp') || '{}'); } catch (x) { return {}; } })();
 function boerseOffen() { var n = new Date(), d = n.getDay(), h = n.getHours(); return d >= 1 && d <= 5 && h >= 8 && h < 22; } // gettex Mo–Fr 8–22 Uhr
 function onvTypHolen(isin) {
@@ -2031,7 +2042,7 @@ function onvHolen(pos) {
       return fetch(ONV + t + '/ISIN:' + p.isin + '/quote?codeMarket=_TRO', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
         if (!j || j.isoCurrency !== 'EUR' || !j.market || j.market.codeMarket !== '_TRO') return;
         var m = (j.bid > 0 && j.ask > 0) ? (j.bid + j.ask) / 2 : j.last;
-        if (m > 0) depotOnv[p.isin] = { k: m, t: Date.now(), z: Date.parse(j.datetimeBid || j.datetimeLast) || Date.now() };
+        if (m > 0) depotOnv[p.isin] = { k: m, t: Date.now(), z: Date.parse(j.datetimeBid || j.datetimeLast) || Date.now(), vt: j.previousLast > 0 ? j.previousLast : null };
       });
     }).catch(function () {});
   }));
@@ -2051,21 +2062,24 @@ function depotLiveRechnen(stark) {
   var holeBin = kr.length && (stark || jetzt - depotBinT > 4500);
   var holeOnv = stark || jetzt - depotOnvT > (boerseOffen() ? 9500 : 120e3);
   var holeKJ = depotKopf && macAlt && jetzt - depotKJT > 5 * 60e3;
-  var bin = holeBin ? fetch('https://api.binance.com/api/v3/ticker/price?symbols=' + encodeURIComponent(JSON.stringify(['EURUSDT'].concat(kr.map(function (s) { return s + 'USDT'; })))), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (a) { if (a && a.length) { depotBin = {}; a.forEach(function (x) { depotBin[x.symbol] = +x.price; }); depotBinT = Date.now(); } }).catch(function () {}) : null;
+  var bin = holeBin ? fetch('https://api.binance.com/api/v3/ticker/24hr?type=MINI&symbols=' + encodeURIComponent(JSON.stringify(['EURUSDT'].concat(kr.map(function (s) { return s + 'USDT'; })))), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (a) { if (a && a.length) { depotBin = {}; depotBinO = {}; a.forEach(function (x) { depotBin[x.symbol] = +x.lastPrice; depotBinO[x.symbol] = +x.openPrice; }); depotBinT = Date.now(); } }).catch(function () {}) : null; // (2.32) 24-Std.-Ticker: aktueller Kurs + Kurs vor 24 Std. (Veränderung je Position)
   var onv = holeOnv ? (depotOnvT = jetzt, onvHolen(d.pos)) : null;
   var kj = holeKJ ? (depotKJT = jetzt, fetch(GH.replace('daten.json', 'kurse.json') + '?t=' + jetzt, { headers: depotKopf, cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (j) depotKJ = JSON.parse(b64dec(j.content) || '{}'); }).catch(function () {})) : null;
   return Promise.all([bin, onv, kj]).then(function () {
     var B = (depotBin && Date.now() - depotBinT < 120e3) ? depotBin : {}, K = (depotKJ && depotKJ.k) || {};
-    var sum = +d.fest, neuW = 0, neuK = 0, tW = 0, alleW = 0;
+    var sum = +d.fest, neuW = 0, neuK = 0, tW = 0, alleW = 0, PL = [], BO = depotBinO || {};
     d.pos.forEach(function (p) {
-      var w = p.v, o = p.isin && depotOnv[p.isin];
-      if (p.k === 'krypto' && B.EURUSDT && B[p.sym + 'USDT']) { w = p.q * B[p.sym + 'USDT'] / B.EURUSDT; neuK++; }
+      var w = p.v, o = p.isin && depotOnv[p.isin], pct = null;
+      if (p.k === 'krypto' && B.EURUSDT && B[p.sym + 'USDT']) { w = p.q * B[p.sym + 'USDT'] / B.EURUSDT; neuK++;
+        if (BO[p.sym + 'USDT'] && BO.EURUSDT) pct = ((B[p.sym + 'USDT'] / B.EURUSDT) / (BO[p.sym + 'USDT'] / BO.EURUSDT) - 1) * 100; }
       else if (p.k === 'wp') { alleW++;
-        if (o && Date.now() - o.t < 15 * 60e3) { w = p.q * o.k; neuW++; tW = Math.max(tW, o.t / 1000); }
+        if (o && Date.now() - o.t < 15 * 60e3) { w = p.q * o.k; neuW++; tW = Math.max(tW, o.t / 1000); if (o.vt) pct = (o.k / o.vt - 1) * 100; }
         else if (macAlt && p.y && p.y_sym && K[p.y_sym] && K[p.y_sym][1] * 1000 > new Date(d.stand) - 15 * 60e3) { w = p.q * (p.p_y || p.p) * K[p.y_sym][0] / p.y; neuW++; tW = Math.max(tW, K[p.y_sym][1]); }
       }
+      PL.push({ n: p.n, k: p.k, q: p.q, sym: p.sym, w: w, pct: pct });
       sum += w;
     });
+    depotPosLive = PL;
     var alt = depotLive;
     depotLive = (neuW || neuK) ? { gesamt: Math.round(sum * 100) / 100, t: Date.now(), neuW: neuW, neuK: neuK, tW: tW, alleW: alleW, macAlt: macAlt } : null;
     if (depotLive) depotTickMerken(depotLive.gesamt);
@@ -2148,14 +2162,62 @@ function depotReihe(d, r) {
   if (r !== '1d') return { v: [], t: null, e: null, ref: null, eur: 0, pct: 0, txt: DZT[r], r: r, leer: true };
   var l = d.linie || []; return { v: l, t: d.lt && d.lt.length === l.length ? d.lt : null, e: null, ref: d.ref, eur: d.heute_eur, pct: d.heute_pct, txt: depotWann(d), r: '1d' };
 }
+// (2.32) Diagramm-Art wie im Dashboard: € = Gesamtvermögen, ± = Gewinn/Verlust ohne Einzahlungen (Nulllinie gestrichelt)
+var depotArt = (function () { try { return localStorage.getItem('cockpit_depotart') === 'pm' ? 'pm' : 'eur'; } catch (x) { return 'eur'; } })();
+function depotLinieWahl(R) {
+  if (depotArt === 'pm') { R.l = R.g || (R.ref != null ? R.v.map(function (v) { return v - R.ref; }) : R.v); R.lref = (R.g || R.ref != null) ? 0 : null; }
+  else { R.l = R.v; R.lref = R.r === '1d' ? R.ref : null; }
+  return R;
+}
+// Kurze Namen wie im Dashboard
+function depotKurz(n) {
+  n = String(n || '');
+  if (/3x/i.test(n) && /silver|silber/i.test(n)) return 'Silber 3x';
+  if (/msci world/i.test(n)) return 'MSCI World';
+  if (/quantum/i.test(n)) return 'Quantum Computing ETF';
+  n = n.replace(/\s*(UCITS ETF.*|Corp\.?|Inc\.?|plc|AG)$/i, '').trim();
+  return n.length > 26 ? n.slice(0, 25) + '…' : n;
+}
+function depotMenge(p) { var q = +p.q; return p.k === 'krypto' ? q.toLocaleString('de-DE', { maximumFractionDigits: q >= 100 ? 2 : 4 }) + ' ' + (p.sym || '') : q.toLocaleString('de-DE', { maximumFractionDigits: 4 }) + ' Stück'; }
+// Positionen unter dem Diagramm: Stückzahl vom Mac, Werte live (gettex/Binance), sonst der Mac-Wert
+function depotPosHtml(d) {
+  if (!d.pos || !d.pos.length) return '';
+  var L = (depotLive && depotPosLive && depotPosLive.length === d.pos.length) ? depotPosLive : d.pos.map(function (p) { return { n: p.n, k: p.k, q: p.q, sym: p.sym, w: p.v, pct: null }; });
+  L = L.slice().sort(function (a, b) { return b.w - a.w; });
+  var zeile = function (n, s, w, pct) {
+    return '<div class="dprow"><div><div class="n">' + esc(n) + '</div>' + (s ? '<div class="s">' + s + '</div>' : '') + '</div><div class="r"><span class="dpkt">•••</span><span class="dw"><b>' + euro(w) + '</b>' +
+      (pct != null ? '<small class="' + (pct >= 0 ? 'dplus' : 'dminus') + '">' + (pct >= 0 ? '+' : '') + (Math.round(pct * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %</small>' : '') + '</span></div></div>';
+  };
+  return '<div class="dpos"><div class="dpt">Positionen</div>' + L.map(function (p) { return zeile(depotKurz(p.n), depotMenge(p), p.w, p.pct); }).join('') +
+    (d.fest ? zeile('Rente, Tagesgeld & eigene Werte', 'Stand vom Mac', +d.fest, null) : '') + '</div>';
+}
+// Weicher Übergang zwischen den Linien (Zeitraum, € / ±, neue Kurse): alte und neue Linie werden auf gleich viele Punkte gebracht und ineinander überblendet
+var depotAltLinie = null, depotMorphR = 0;
+function depotMorph() {
+  var c = $('dChart'), Z = depotGrafik.ziel; if (!c || !Z) { depotAltLinie = null; return; }
+  var pl = c.querySelector('path.l'), pr = c.querySelector('path.ref'), A = depotAltLinie;
+  cancelAnimationFrame(depotMorphR);
+  if (!A || !pl || matchMedia('(prefers-reduced-motion:reduce)').matches) { depotAltLinie = Z; return; }
+  var N = Math.min(240, Math.max(A.p.length, Z.p.length)), an = function (P, f) { var x = f * (P.length - 1), i = Math.floor(x), k = x - i, a = P[i], b = P[Math.min(P.length - 1, i + 1)]; return a + (b - a) * k; };
+  var a = [], b = [], i; for (i = 0; i < N; i++) { var f = N > 1 ? i / (N - 1) : 0; a.push(an(A.p, f)); b.push(an(Z.p, f)); }
+  var ra = A.ref != null ? A.ref : Z.ref, rb = Z.ref, t0 = performance.now(), DU = 650, W = Z.W;
+  var bild = function (P) { return P.map(function (y, i) { return (i ? 'L' : 'M') + (N > 1 ? i / (N - 1) * W : 0).toFixed(1) + ' ' + y.toFixed(1); }).join(''); };
+  var schritt = function (jetzt) {
+    var q = Math.min(1, (jetzt - t0) / DU), e = q < .5 ? 4 * q * q * q : 1 - Math.pow(-2 * q + 2, 3) / 2, P = a.map(function (y, i) { return y + (b[i] - y) * e; });
+    pl.setAttribute('d', bild(P)); if (pr && ra != null && rb != null) pr.setAttribute('d', 'M0 ' + (ra + (rb - ra) * e).toFixed(1) + 'H' + W);
+    depotAltLinie = { p: P, ref: ra != null && rb != null ? ra + (rb - ra) * e : rb, W: W };
+    if (q < 1) depotMorphR = requestAnimationFrame(schritt); else { pl.setAttribute('d', Z.d); depotAltLinie = Z; }
+  };
+  pl.setAttribute('d', bild(a)); depotMorphR = requestAnimationFrame(schritt);
+}
 function depotAend(eur, pct, txt) { return '<span class="dpkt">•••</span><span class="dw ' + (eur >= 0 ? 'dplus' : 'dminus') + '">' + (eur >= 0 ? '+' : '') + euro(eur) + ' (' + (pct >= 0 ? '+' : '') + String((Math.round(pct * 100) / 100)).replace('.', ',') + ' %) <span class="dwann">' + txt + '</span></span>'; }
 function depotGrafik(R) {
-  var l = R.g || R.v; if (l.length < 2) return '<p class="hinweis" style="margin-top:22px">Für diesen Zeitraum gibt es noch keine Daten vom Mac.</p>';
-  var W = 300, H = 180, mm = R.ref != null ? l.concat([R.ref]) : l, mn = Math.min.apply(null, mm), mx = Math.max.apply(null, mm), sp = (mx - mn) || 1;
+  var l = R.l || R.g || R.v, rf = R.lref !== undefined ? R.lref : R.ref; if (l.length < 2) { depotGrafik.ziel = null; return '<p class="hinweis" style="margin-top:22px">Für diesen Zeitraum gibt es noch keine Daten vom Mac.</p>'; }
+  var W = 300, H = 180, mm = rf != null ? l.concat([rf]) : l, mn = Math.min.apply(null, mm), mx = Math.max.apply(null, mm), sp = (mx - mn) || 1;
   var y = function (v) { return (H - 4 - (v - mn) / sp * (H - 8)); }, x = function (i) { return (i / (l.length - 1) * W).toFixed(1); };
   var pf = l.map(function (v, i) { return (i ? 'L' : 'M') + x(i) + ' ' + y(v).toFixed(1); }).join('');
-  depotGrafik.y = y; depotGrafik.H = H;
-  return '<div class="dchart" id="dChart"><svg class="dlinie gross" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + (R.ref != null ? '<path class="ref" d="M0 ' + y(R.ref).toFixed(1) + 'H' + W + '"/>' : '') + '<path class="l" d="' + pf + '" style="stroke:' + (R.eur >= 0 ? 'var(--ok)' : 'var(--rot)') + '" vector-effect="non-scaling-stroke"/><path class="f" d="M0 ' + (H / 2) + 'H' + W + '" vector-effect="non-scaling-stroke"/></svg><i class="dcur" id="dCur"></i><i class="ddot" id="dDot"></i></div>';
+  depotGrafik.y = y; depotGrafik.H = H; depotGrafik.ziel = { p: l.map(function (v) { return y(v); }), ref: rf != null ? y(rf) : null, W: W, d: pf };
+  return '<div class="dchart" id="dChart"><svg class="dlinie gross" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + (rf != null ? '<path class="ref" d="M0 ' + y(rf).toFixed(1) + 'H' + W + '"/>' : '') + '<path class="l" d="' + pf + '" style="stroke:' + (R.eur >= 0 ? 'var(--ok)' : 'var(--rot)') + '" vector-effect="non-scaling-stroke"/><path class="f" d="M0 ' + (H / 2) + 'H' + W + '" vector-effect="non-scaling-stroke"/></svg><i class="dcur" id="dCur"></i><i class="ddot" id="dDot"></i></div>';
 }
 function depotZeit(t, r) {
   var d = new Date(t * 1000);
@@ -2167,19 +2229,23 @@ function depotZeichnen() {
   var d = depotEff(), zu = !depotSicht;
   $('dAuge').innerHTML = zu ? AUGE_ZU : AUGE_AUF;
   if (!d) { $('dKoerper').innerHTML = '<p class="hinweis">Noch kein Depot-Stand. Er kommt vom Mac, sobald das Dashboard läuft.</p>'; return; }
-  var st = new Date(d.stand), alt = (Date.now() - st) > 3 * 3600e3, R = depotReihe(d, depotZr);
-  $('dKoerper').innerHTML = '<div class="dbox' + (zu ? ' verdeckt' : '') + '" id="dBox"><small class="hinweis">Gesamtvermögen</small><div class="dgross" id="dGross"><span class="dpkt">••••••</span><span class="dw">' + euro(d.gesamt) + '</span></div>' +
+  var st = new Date(d.stand), alt = (Date.now() - st) > 3 * 3600e3, R = depotLinieWahl(depotReihe(d, depotZr));
+  if (!$('blattD').classList.contains('offen')) depotAltLinie = null; // beim Öffnen ohne Übergang
+  $('dKoerper').innerHTML = '<div class="dbox' + (zu ? ' verdeckt' : '') + '" id="dBox"><div class="dkopf"><small class="hinweis">Gesamtvermögen</small><span class="dart' + (depotArt === 'pm' ? ' pm' : '') + '" id="dArt" role="switch" aria-checked="' + (depotArt === 'pm') + '" aria-label="Diagramm in Euro oder Plus/Minus"><span>€</span><span>±</span></span></div><div class="dgross" id="dGross"><span class="dpkt">••••••</span><span class="dw">' + euro(d.gesamt) + '</span></div>' +
     '<div class="dheute" id="dAend">' + (R.leer ? '<span class="dwann">' + R.txt + ': kommt mit dem nächsten Stand vom Mac</span>' : depotAend(R.eur, R.pct, R.txt)) + '</div>' + depotGrafik(R) + '</div>' +
     '<div class="dzr" id="dZr">' + DZR.map(function (z) { return '<button type="button" data-r="' + z[0] + '" class="' + (z[0] === depotZr ? 'an' : '') + '">' + z[1] + '</button>'; }).join('') + '</div>' +
     '<p class="hinweis" style="margin-top:14px">' + (d.live ? (Date.now() - st > 20 * 60e3 ? 'Mac aus: live' : 'Live') + ' gerechnet (' + (d.live.neuK ? 'Krypto alle 5 s' : '') + (d.live.neuK && d.live.neuW ? ', ' : '') + (d.live.neuW ? 'Aktien/ETFs ' + (boerseOffen() ? 'alle 10 s' : 'Börse zu') + ', Stand ' + new Date(d.live.tW * 1000).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' Uhr' : '') + '). Letzter Stand vom Mac: ' : 'Stand ') + st.toLocaleString('de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr' + (d.live ? '' : ', vom Mac' + (alt ? ' (älter, der Mac ist wohl aus)' : '')) + '. Mit dem Finger über das Diagramm fahren zeigt den Wert zu jedem Zeitpunkt.</p>';
   [].forEach.call(document.querySelectorAll('#dZr button'), function (b) { b.onclick = function () { depotZr = b.dataset.r; depotZeichnen(); }; });
+  $('dArt').onclick = function () { depotArt = depotArt === 'pm' ? 'eur' : 'pm'; try { localStorage.setItem('cockpit_depotart', depotArt); } catch (x) {} depotZeichnen(); }; // ganze Breite schaltet um
+  $('dKoerper').insertAdjacentHTML('beforeend', depotPosHtml(d));
+  depotMorph();
   rollZahl($('dGross').querySelector('.dw'), 'dG', d.gesamt);
   if (!R.leer) rollZahl($('dAend').querySelector('.dw'), 'dA' + depotZr, R.eur);
   depotFinger(d, R);
 }
 // Finger über dem Diagramm: Linie und Punkt folgen, oben stehen Wert und Veränderung zu diesem Zeitpunkt; beim Loslassen wieder der aktuelle Stand
 function depotFinger(d, R) {
-  var c = $('dChart'); if (!c || R.v.length < 2) return; var l = R.g || R.v, n = l.length, aktiv = false, letzt = -1;
+  var c = $('dChart'); if (!c || R.v.length < 2) return; var l = R.l || R.g || R.v, n = l.length, aktiv = false, letzt = -1;
   var zeig = function (cx) {
     var b = c.getBoundingClientRect(), i = Math.max(0, Math.min(n - 1, Math.round((cx - b.left) / b.width * (n - 1)))); if (i === letzt) return; letzt = i;
     var px = i / (n - 1) * b.width, py = depotGrafik.y(l[i]) / depotGrafik.H * b.height;
