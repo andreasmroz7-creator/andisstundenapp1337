@@ -56,16 +56,16 @@ button{font:inherit;color:inherit}
 .umschalter{display:flex;gap:4px;padding:4px;border-radius:14px;background:rgba(255,255,255,.06);margin-bottom:14px}
 .umschalter button{flex:1;border:0;background:none;color:var(--grau);font-size:14px;font-weight:600;padding:8px 0;border-radius:10px;cursor:pointer;transition:background .25s,color .25s}
 .umschalter button.an{background:rgba(255,255,255,.14);color:#fff}
-.kal{background:var(--karte);border:1px solid var(--rand);border-radius:20px;padding:10px 8px 8px;margin-bottom:14px}
+.kal{background:#0b0b0b;border:1px solid rgba(255,255,255,.16);border-radius:20px;padding:10px 8px 8px;margin-bottom:14px}
 .kal .wk,.kal .gitter{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.kal .wk span{text-align:center;font-size:11px;color:var(--grau);padding-bottom:6px;text-transform:uppercase;letter-spacing:.3px}
-.kal .zelle{aspect-ratio:1/1.15;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:6px;cursor:pointer;border:1px solid transparent;min-width:0}
-.kal .zelle .n{font-size:14px;color:var(--txt)}
-.kal .zelle .s{font-size:11px;font-weight:700;margin-top:3px;white-space:nowrap}
-.kal .zelle.leerz{cursor:default}
-.kal .zelle.we .n{color:var(--grau)}
-.kal .zelle.hat{background:rgba(255,255,255,.12)}
-.kal .zelle.heute{border-color:rgba(255,255,255,.45)}
+.kal .wk span{text-align:center;font-size:11px;font-weight:700;color:#c8c8c8;padding-bottom:6px;text-transform:uppercase;letter-spacing:.3px}
+.kal .zelle{aspect-ratio:1/1.15;border-radius:12px;background:rgba(255,255,255,.04);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:6px;cursor:pointer;border:1px solid transparent;min-width:0}
+.kal .zelle .n{font-size:15px;font-weight:600;color:#fff}
+.kal .zelle .s{font-size:13px;font-weight:800;margin-top:3px;white-space:nowrap;color:#fff;letter-spacing:-.2px}
+.kal .zelle.leerz{cursor:default;background:none}
+.kal .zelle.we .n{color:#b4b4b4}
+.kal .zelle.hat{background:#1e5a30;border-color:#34c759}.kal .zelle.hat .n{color:#fff}
+.kal .zelle.heute{border:2px solid #fff}
 .kal .zelle.gew{background:#ededed}.kal .zelle.gew .n,.kal .zelle.gew .s{color:#000}
 .tagkopf{display:flex;justify-content:space-between;align-items:baseline;margin:2px 4px 8px;font-size:15px;font-weight:600}
 .tagkopf span{color:var(--grau);font-weight:500;font-size:13px}
@@ -152,7 +152,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.1';
+var VERSION = '2.3';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
