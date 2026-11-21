@@ -125,7 +125,7 @@ body.versteckt .kopf,body.versteckt .summe,body.versteckt .suche,body.versteckt 
 #start.klein{opacity:0;transform:scale(.9);filter:blur(8px);transition:none}
 body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumstart #liste,body.zumstart .festpfeil,body.zumstart .plus{transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .25s ease!important;transform:scale(.92) translateY(10px)!important;opacity:0!important}
 .sgruss{font-size:13px;color:var(--grau);letter-spacing:.4px;text-transform:uppercase}
-.sname{font-size:30px;font-weight:800;letter-spacing:-.6px;margin:2px 0 16px}
+.sname{font-size:30px;font-weight:800;letter-spacing:-.6px;margin:2px 0 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
 .sheute{position:relative;overflow:hidden;border-radius:24px;padding:16px 18px;margin-bottom:12px;background:linear-gradient(135deg,rgba(180,180,180,.22),rgba(108,108,108,.16));border:1px solid rgba(255,255,255,.16);box-shadow:0 10px 30px rgba(0,0,0,.35)}
 .sheute small{color:rgba(255,255,255,.7);font-size:12px;letter-spacing:.3px;text-transform:uppercase}
 .sheute b{display:block;font-size:19px;margin:3px 0 2px}
@@ -449,6 +449,7 @@ body.istoffline .sstand{color:#ff6b61}
   <div class="sw" data-s="tl"><div>Teamleiter-Stunde</div><div class="knopf"></div></div>
   <div class="sw" data-s="fahrer"><div>Ich bin Fahrer<small>in der Probezeit: aus</small></div><div class="knopf"></div></div>
   <label class="l">Sicherheit</label>
+  <div class="sw" data-s="depotAuge" id="swAuge"><div>Depot-Beträge mit Auge verdecken<small>aus: Beträge immer sichtbar</small></div><div class="knopf"></div></div>
   <div class="sw" id="swSperre"><div>App-Sperre mit Face ID<small>beim Öffnen und nach 1 Min. im Hintergrund</small></div><div class="knopf"></div></div>
   <label class="l">Abgleich mit GitHub (stunden-raten)</label>
   <input type="password" id="sToken" placeholder="Schlüssel github_pat_…" autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -471,7 +472,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.18';
+var VERSION = '2.19';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -933,7 +934,7 @@ $('sLohn').oninput = function () { var v = this.value.trim().replace(',', '.'); 
 $('sName').oninput = function () { daten.einst.name = this.value; sichern(); };
 $('sPers').oninput = function () { daten.einst.pers = this.value; sichern(); };
 [].forEach.call(document.querySelectorAll('.sw[data-s]'), function (s) {
-  s.onclick = function () { var k = s.dataset.s; daten.einst[k] = !daten.einst[k]; s.classList.toggle('an', daten.einst[k]); sichern(); };
+  s.onclick = function () { var k = s.dataset.s; daten.einst[k] = !daten.einst[k]; s.classList.toggle('an', daten.einst[k]); sichern(); if (k === 'depotAuge') depotAugeSetzen(); };
 });
 function teile(name, blob, titel) {
   var f = new File([blob], name, { type: blob.type });
@@ -1193,7 +1194,7 @@ function startZeichnen(still) {
   var gr = d.getHours() < 11 ? 'Guten Morgen' : d.getHours() < 18 ? 'Hallo' : 'Guten Abend';
   var vorname = (daten.einst.name || 'Andi').split(' ').pop(); if (/andreas/i.test(vorname)) vorname = 'Andi';
   var stand = daten.letzterAbgleich ? new Date(daten.letzterAbgleich) : null, standTxt = !daten.einst.token ? 'nicht verbunden' : stand ? (iso2(stand) === hi ? 'Stand ' : 'Stand ' + stand.getDate() + '.' + (stand.getMonth() + 1) + '. ') + stand.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : 'noch nicht abgeglichen';
-  var h = '<div class="rein" style="animation-delay:0s"><div class="sgruss">' + wt + ', ' + d.getDate() + '. ' + MONATE[d.getMonth()] + '<span class="sstand" id="sstand">' + (document.body.classList.contains('istoffline') ? 'Offline' + (stand ? ' · Stand ' + stand.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '') : standTxt) + '</span></div><div class="sname">' + gr + ', ' + esc(vorname) + '</div>' + jvHinweisHtml() + '</div>';
+  var h = '<div class="rein" style="animation-delay:0s"><div class="sgruss">' + wt + ', ' + d.getDate() + '. ' + MONATE[d.getMonth()] + '<span class="sstand" id="sstand">' + (document.body.classList.contains('istoffline') ? 'Offline' + (stand ? ' · Stand ' + stand.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '') : standTxt) + '</span></div><div class="sname"><span>' + gr + ', ' + esc(vorname) + '</span><button class="kugel klein" id="startEinst" aria-label="Einstellungen"><svg viewBox=\"0 0 24 24\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z\"/></svg></button></div>' + jvHinweisHtml() + '</div>';
   h += '<div class="sheute rein kachel" data-ziel="heute" style="animation-delay:.06s;min-height:0"><small>Heute</small><b>' + hz + '</b><div class="zl">' + (eh ? 'Eingetragen: ' + z(R.berechne(eh).gesamt) + ' Std.' : heute && heute.tp ? 'Treffpunkt ' + esc(heute.tp) : 'Noch nichts eingetragen') + '</div>' + (fl ? '<div class="zl" style="margin-top:4px">' + fl.replace('class="fahrtzeile"', 'style="color:#e0e0e0"') + '</div>' : '') + '</div>';
   h += '<div class="sgrid">';
   var k0 = function (ziel, ic, farbe, titel, wert, unter, extra, breit, delay) {
@@ -1921,7 +1922,7 @@ $('jvMic').onclick = function () {
   try { e.start(); } catch (x) { jv.erk = null; mic.classList.remove('an'); $('jvText').focus(); }
 };
 // ---------- Depot (depot.json im Daten-Repo, schreibt der Mac alle 30 Min.; Beträge wie im Dashboard erst über das Auge sichtbar) ----------
-var GHD = GH.replace('daten.json', 'depot.json'), depotSicht = true /* (2.16) Beträge immer sichtbar, kein Auge mehr (Andi) */, AUGE_ZU = '<svg viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.1 6.1A17 17 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.9-2"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>', AUGE_AUF = '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+var GHD = GH.replace('daten.json', 'depot.json'), depotSicht = true /* (2.19) Auge nur, wenn in den Einstellungen „Depot-Beträge mit Auge verdecken“ an ist */, AUGE_ZU = '<svg viewBox="0 0 24 24"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.1 6.1A17 17 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.9-2"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>', AUGE_AUF = '<svg viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
 // (2.13) Ohne Mac weiterrechnen: Stückzahl × aktueller Kurs. Aktien/ETFs über kurse.json (holt GitHub alle 30 Min. bei Yahoo; nur die Veränderung
 // gegenüber dem Yahoo-Kurs zum Mac-Stand zählt, so passt es zu Scalable), Krypto live von Binance; Rente, Tagesgeld, eigene Werte bleiben beim Mac-Stand.
 var depotKopf = null, depotLive = null;
@@ -2040,6 +2041,9 @@ function depotFinger(d, R) {
   c.addEventListener('pointermove', function (e) { if (aktiv) zeig(e.clientX); });
   c.addEventListener('pointerup', ende); c.addEventListener('pointercancel', ende); c.addEventListener('lostpointercapture', ende);
 }
+$('start').addEventListener('click', function (e) { if (e.target.closest && e.target.closest('#startEinst')) { e.stopPropagation(); $('einstknopf').click(); } }, true); // (2.19) Zahnrad oben auf der Startseite
+function depotAugeSetzen() { var an = !!daten.einst.depotAuge; depotSicht = !an; $('dAuge').hidden = !an; $('dAuge').innerHTML = depotSicht ? AUGE_AUF : AUGE_ZU; depotNeuZeigen(); }
+try { depotSicht = !daten.einst.depotAuge; $('dAuge').hidden = !daten.einst.depotAuge; } catch (x) {}
 $('dAuge').onclick = function () {
   depotSicht = !depotSicht; var html = depotSicht ? AUGE_AUF : AUGE_ZU; this.innerHTML = html;
   [].forEach.call(document.querySelectorAll('#dBox, .sgrid [data-ziel=depot] .dbox'), function (x) { x.classList.toggle('verdeckt', !depotSicht); });
