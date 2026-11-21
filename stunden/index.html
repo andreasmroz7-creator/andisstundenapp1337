@@ -76,7 +76,7 @@ button{font:inherit;color:inherit}
 .kal .zelle{aspect-ratio:1/1.15;border-radius:12px;background:rgba(255,255,255,.04);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:6px;cursor:pointer;border:1px solid transparent;min-width:0}
 .kal .zelle .n{font-size:15px;font-weight:600;color:#fff}
 .kal .zelle .s{font-size:13px;font-weight:800;margin-top:3px;white-space:nowrap;color:#fff;letter-spacing:-.2px}
-.kal .zelle.leerz{cursor:default;background:none}
+.kal .zelle.leerz{cursor:default;background:none}.kal .zelle.fremd{opacity:.4}
 .kal .zelle.we .n{color:#b4b4b4}
 .kal .zelle.hat{background:#34c759;border-color:#34c759}.kal .zelle.hat .n,.kal .zelle.hat .s{color:#062b12}
 .kal .zelle.heute{border:2px solid #fff}.kal .zelle{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
@@ -179,7 +179,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.16';
+var VERSION = '3.17';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -250,10 +250,10 @@ function zeichneEcht() {
   var aw = anzeigeWoche(); // (3.7) gewählte Woche (in der Kachel wischbar), im Kalender umrandet
   if (V) {
     var mo = aw, so = new Date(mo); so.setDate(mo.getDate() + 6); var jetzt = iso(mo) === iso(wocheVon(heute));
-    var ma = new Date(ansicht.j, ansicht.m, 1), me = new Date(ansicht.j, ansicht.m + 1, 0), tv = mo < ma ? ma : mo, tb = so > me ? me : so, geteilt = tv !== mo || tb !== so; // (3.16) über den Monatswechsel: nur die Tage dieses Monats
-    var tw = teilWerte(tv, tb), wi = tw.ist, ws = tw.soll;
-    $('woche').style.display = ''; $('wTitel').textContent = (jetzt ? 'Diese Woche' : 'KW ' + kwNr(mo)) + (geteilt ? ' · nur ' + MONATE[ansicht.m] : '') + ' (' + tv.getDate() + '.' + (tv.getMonth() + 1) + '. – ' + tb.getDate() + '.' + (tb.getMonth() + 1) + '.)';
-    $('wIst').textContent = hm(wi) + ' von ' + hm(ws); $('wSoll').textContent = '';
+    var wi = wocheIst(mo), ws = V; // (3.17) KW immer ganz Mo–So (auch über den Monatswechsel) mit den vollen Wochenstunden
+    $('woche').style.display = ''; $('wTitel').textContent = (jetzt ? 'Diese Woche' : 'KW ' + kwNr(mo)) + ' (' + mo.getDate() + '.' + (mo.getMonth() + 1) + '. – ' + so.getDate() + '.' + (so.getMonth() + 1) + '.)';
+    $('wIst').textContent = hm(wi) + ' von ' + hm(ws);
+    $('wSoll').style.display = ''; $('wSoll').className = 'soll ' + (wi >= ws ? 'plusw' : ''); $('wSoll').textContent = wi >= ws ? '✓ ' + hm(ws) + ' Std. erreicht' : (jetzt || mo > wocheVon(heute) ? 'Noch ' + hm(ws - wi) + ' Std. bis ' + hm(ws) : hm(ws) + ' Std. nicht erreicht');
     $('wDiff').textContent = pm(wi - ws); $('wDiff').className = 'diff ' + (wi - ws >= 0 ? 'plusw' : 'minusw');
   } else $('woche').style.display = 'none';
   [].forEach.call(document.querySelectorAll('#ansichtWahl button'), function (k) { k.classList.toggle('an', k.dataset.a === modus); });
@@ -262,11 +262,15 @@ function zeichneEcht() {
     var erster = new Date(ansicht.j, ansicht.m, 1), versatz = (erster.getDay() + 6) % 7, nTage = new Date(ansicht.j, ansicht.m + 1, 0).getDate(), hi = iso(new Date());
     if (gewaehlt.slice(0, 7) !== iso(erster).slice(0, 7)) gewaehlt = hi.slice(0, 7) === iso(erster).slice(0, 7) ? hi : iso(erster);
     var g = '';
-    for (var i = 0; i < versatz; i++) g += '<div class="zelle leerz"></div>';
+    // (3.17) Tage vom Vor- und Folgemonat in der ersten/letzten Reihe zeigen (blasser), damit jede KW Mo–So vollständig zu sehen ist
+    var fremd = function (dt) { var fs = iso(dt), fm = 0, fh = false; daten.eintraege.forEach(function (e) { if (e.d === fs) { fm += dauer(e); fh = true; } }); var wd2 = (dt.getDay() + 6) % 7;
+      return '<div class="zelle fremd' + (fh ? ' hat' : '') + (wd2 >= 5 ? ' we' : '') + '" data-d="' + fs + '"><span class="n">' + dt.getDate() + '</span>' + (fh ? '<span class="s">' + hm(fm) + '</span>' : '') + '</div>'; };
+    for (var i = 0; i < versatz; i++) g += fremd(new Date(ansicht.j, ansicht.m, 1 - versatz + i));
     for (var t = 1; t <= nTage; t++) {
       var ds = iso(new Date(ansicht.j, ansicht.m, t)), wd = (versatz + t - 1) % 7, m = proTag[ds], nurUrl = m != null && L.filter(function (e) { return e.d === ds; }).every(istUrlaub);
       g += '<div class="zelle' + (m != null ? ' hat' : '') + (wd >= 5 ? ' we' : '') + (ds === hi ? ' heute' : '') + (ds === gewaehlt ? ' gew' : '') + '" data-d="' + ds + '"><span class="n">' + t + '</span>' + (m != null ? '<span class="s">' + (nurUrl ? 'Urlaub' : hm(m)) + '</span>' : '') + '</div>';
     }
+    for (var r = 1, rest = (7 - (versatz + nTage) % 7) % 7; r <= rest; r++) g += fremd(new Date(ansicht.j, ansicht.m + 1, r));
     $('kalender').innerHTML = '<div class="kal"><div class="wk"><span>Mo</span><span>Di</span><span>Mi</span><span>Do</span><span>Fr</span><span>Sa</span><span>So</span></div><div class="gitter">' + g + '</div></div>';
     if (V) wocheRahmen(aw);
     var TL = L.filter(function (e) { return e.d === gewaehlt; }), ts = TL.reduce(function (a, e) { return a + dauer(e); }, 0);
@@ -318,7 +322,7 @@ function eRechne() { if (eUrl) { $('eStd').textContent = 'ganzer Tag'; return; }
 ['eBeginn', 'eEnde', 'ePause', 'eStunden'].forEach(function (id) { $(id).addEventListener('input', eRechne); });
 $('plus').onclick = function () { eintragOeffnen(null, modus === 'kal' ? gewaehlt : null); };
 $('ansichtWahl').onclick = function (ev) { var k = ev.target.closest('button'); if (!k) return; modus = k.dataset.a; try { localStorage.setItem('stunden_einfach_ansicht', modus); } catch (e) {} zeichne(); };
-$('kalender').onclick = function (ev) { var z = ev.target.closest('.zelle[data-d]'); if (!z || Date.now() - kalLang < 900) return; gewaehlt = z.dataset.d; wocheMo = wocheVon(new Date(z.dataset.d + 'T12:00:00')); zeichne(); }; // (3.9) Tag antippen → seine KW oben in der Kachel und umrandet (3.11: Eintrag öffnet sich NICHT mehr automatisch, auf Wunsch zurückgenommen)
+$('kalender').onclick = function (ev) { var z = ev.target.closest('.zelle[data-d]'); if (!z || Date.now() - kalLang < 900) return; if (z.classList.contains('fremd')) { wocheMo = wocheVon(new Date(z.dataset.d + 'T12:00:00')); zeichne(); return; } gewaehlt = z.dataset.d; wocheMo = wocheVon(new Date(z.dataset.d + 'T12:00:00')); zeichne(); }; // (3.9) Tag antippen → seine KW oben in der Kachel und umrandet (3.11: Eintrag öffnet sich NICHT mehr automatisch, auf Wunsch zurückgenommen)
 $('liste').onclick = function (ev) { var t = ev.target.closest('.tag'); if (!t) return; var e = daten.eintraege.filter(function (x) { return x.id === t.dataset.id; })[0]; if (e) eintragOeffnen(e); };
 $('eSpeichern').onclick = function () {
   var d = $('eDatum').value, b = $('eBeginn').value, z = $('eEnde').value, id = bearbeite ? bearbeite.id : Date.now().toString(36) + Math.random().toString(36).slice(2, 6), e;
