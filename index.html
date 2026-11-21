@@ -518,7 +518,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.58';
+var VERSION = '2.59';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1353,7 +1353,7 @@ function startZeichnen(still) {
   // (2.58) nur der Wert, der heute am stärksten gestiegen ist; gemerkt, damit beim Neustart nicht erst ein falscher (halb geladener) Stand erscheint
   var wlBereit = wlL.length && wlW.length === wlL.length && wlL.every(function (x) { return x.k !== 'krypto' ? (wlOnvFertig || !!wlWert(x).live) : (depotSechs.ts === depotSechsTs() && depotSechs.k && depotSechs.k[x.sym + 'USDT']); });
   var wlTop = null; try { wlTop = JSON.parse(localStorage.getItem('cockpit_wltop') || 'null'); } catch (x) {}
-  if (wlBereit) { wlTop = { n: depotKurz(wlW[0].x.n), p: wlW[0].v.pct }; try { localStorage.setItem('cockpit_wltop', JSON.stringify(wlTop)); } catch (x) {} }
+  if (wlBereit) { var wlA = wlW[0].v.pct >= 0 ? wlW[0] : wlW[wlW.length - 1]; /* (2.59) nichts im Plus: der größte Verlierer */ wlTop = { n: depotKurz(wlA.x.n), p: wlA.v.pct }; try { localStorage.setItem('cockpit_wltop', JSON.stringify(wlTop)); } catch (x) {} }
   k('watchlist', IC.stern, 'linear-gradient(135deg,#a8a8a8,#5c5c5c)', 'Watchlist', wlTop ? '<span class="wltop">' + esc(wlTop.n) + '</span>' : '–', wlTop ? '<b class="' + (wlTop.p >= 0 ? 'dplus' : 'dminus') + '" style="font-size:17px">' + pzK(wlTop.p) + '</b> <span>heute</span>' : wlL.length ? 'Kurse kommen gleich' : 'kommt vom Mac, sobald er an ist', '', false);
   var tmL = tmListe(), tm0 = tmL[0];
   k('termine', IC.kalender, 'linear-gradient(135deg,#9e9e9e,#585858)', 'Termine', tm0 ? tmTagKurz(tm0) : '–', tm0 ? esc(tm0.ti) + (tm0.g ? '' : ' · ' + tmUhr(tm0)) + (tmL[1] ? '<br>danach ' + tmTagKurz(tmL[1]) + ': ' + esc(tmL[1].ti) : '') : 'kommt vom Mac, sobald er an ist', '', false);
