@@ -512,7 +512,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.43';
+var VERSION = '2.44';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2365,11 +2365,11 @@ function posKrypto(m, zr) { // Krypto-Verlauf direkt von Binance (in Euro über 
 }
 function posReihe(P, cb) { // → {vor:[werte grau], heute:[werte], ref}
   var m = P.m, kv = daten.depotKurven && daten.depotKurven.k && daten.depotKurven.k[posKey.replace(/^w:/, '')];
-  if (m.k === 'krypto') { posKrypto(m, posZr).then(function (v) { if (!v || v.length < 2) return cb(null); if (posZr !== '1d') return cb({ vor: [], heute: v.map(function (x) { return x[1]; }).concat([P.kurs]) });
-      var b6 = depotSechsTs() / 1000, vo = v.filter(function (x) { return x[0] < b6; }), he = v.filter(function (x) { return x[0] >= b6; }); cb({ vor: vo.map(function (x) { return x[1]; }), heute: he.map(function (x) { return x[1]; }).concat([P.kurs]), ref: vo.length ? vo[vo.length - 1][1] : null }); }); return; }
+  if (m.k === 'krypto') { posKrypto(m, posZr).then(function (v) { if (!v || v.length < 2) return cb(null); if (posZr !== '1d') return cb({ vor: [], heute: v.map(function (x) { return x[1]; }).concat([P.kurs]), ht: v.map(function (x) { return x[0]; }).concat([null]) });
+      var b6 = depotSechsTs() / 1000, vo = v.filter(function (x) { return x[0] < b6; }), he = v.filter(function (x) { return x[0] >= b6; }); cb({ vor: vo.map(function (x) { return x[1]; }), vt: vo.map(function (x) { return x[0]; }), heute: he.map(function (x) { return x[1]; }).concat([P.kurs]), ht: he.map(function (x) { return x[0]; }).concat([null]), ref: vo.length ? vo[vo.length - 1][1] : null }); }); return; }
   if (!kv) return cb(null);
   if (posZr === '1d') { var t = kv['1d']; if (!t || !t.today || t.today.length < 1) return cb(null); return cb({ vor: t.prev || [], heute: t.today.concat([P.kurs]), ref: t.base || (t.prev && t.prev.length ? t.prev[t.prev.length - 1] : null) }); }
-  var z = kv[posZr]; if (!z || z.length < 2) return cb(null); cb({ vor: [], heute: z.map(function (x) { return x[1]; }).concat([P.kurs]) });
+  var z = kv[posZr]; if (!z || z.length < 2) return cb(null); cb({ vor: [], heute: z.map(function (x) { return x[1]; }).concat([P.kurs]), ht: z.map(function (x) { return x[0]; }).concat([null]) });
 }
 function posGrafik(S, up) {
   var W = 300, H = 170, V = S.vor || [], He = S.heute, alle = V.concat(He).concat(S.ref != null ? [S.ref] : []), mn = Math.min.apply(null, alle), mx = Math.max.apply(null, alle), sp = (mx - mn) || 1;
@@ -2379,7 +2379,29 @@ function posGrafik(S, up) {
   posGrafik.ziel = { p: Y, x: X, W: W, xb: xb, d: d, ref: S.ref != null ? y(S.ref) : null };
   return '<div class="dchart" id="pChart"><svg class="dlinie gross" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none"><defs><linearGradient id="pGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="' + W + '" y2="0"><stop offset="0" style="stop-color:rgba(255,255,255,.38)"/><stop class="g1" offset="' + of + '" style="stop-color:rgba(255,255,255,.38)"/><stop class="g2" offset="' + of + '" style="stop-color:' + f + '"/><stop offset="1" style="stop-color:' + f + '"/></linearGradient></defs>' +
     '<path class="tg" d="M' + xb.toFixed(1) + ' 0V' + H + '" style="opacity:' + (V.length ? 1 : 0) + '" vector-effect="non-scaling-stroke"/>' + (S.ref != null ? '<path class="ref" d="M' + xb.toFixed(1) + ' ' + y(S.ref).toFixed(1) + 'H' + W + '"/>' : '') +
-    '<path class="l" d="' + d + '" style="stroke:url(#pGrad)" vector-effect="non-scaling-stroke"/><path class="f" d="M0 ' + (H / 2) + 'H' + W + '" vector-effect="non-scaling-stroke"/></svg></div>';
+    '<path class="l" d="' + d + '" style="stroke:url(#pGrad)" vector-effect="non-scaling-stroke"/><path class="f" d="M0 ' + (H / 2) + 'H' + W + '" vector-effect="non-scaling-stroke"/></svg><i class="dcur" id="pCur"></i><i class="ddot" id="pDot"></i></div>';
+}
+// (2.44) Finger über dem Detail-Diagramm (auch über dem grauen Vortag): Wert, Veränderung und Zeitpunkt oben
+function posFinger(P, S) {
+  var c = $('pChart'), Z = posGrafik.ziel; if (!c || !Z) return;
+  var V = (S.vor || []).concat(S.heute), T = (S.vt || (S.vor || []).map(function () { return null; })).concat(S.ht || S.heute.map(function () { return null; })), nV = (S.vor || []).length;
+  var ref = S.ref != null ? S.ref : S.heute[0], q = P.watch ? 1 : (P.m.q || 1), aktiv = false, letzt = -1, oG = '', oA = '';
+  var pz = function (v) { return (v >= 0 ? '+' : '') + (Math.round(v * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %'; };
+  var zeit = function (i) { var t = T[i]; if (i === V.length - 1) return 'jetzt'; if (!t) return i < nV ? 'Vortag' : (posZr === '1d' ? 'heute' : ''); var d = new Date(t * 1000);
+    return posZr === '1d' ? d.toLocaleDateString('de-DE', { weekday: 'short' }) + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr' : posZr === '1w' ? d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'numeric' }) + ', ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr' : 'am ' + d.toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric', year: 'numeric' }); };
+  var zeig = function (cx) {
+    var b = c.getBoundingClientRect(), fx = (cx - b.left) / b.width * Z.W, i = 0; for (var k = 1; k < Z.x.length; k++) if (Math.abs(Z.x[k] - fx) < Math.abs(Z.x[i] - fx)) i = k;
+    if (i === letzt) return; letzt = i;
+    $('pCur').style.left = (Z.x[i] / Z.W * b.width) + 'px'; $('pDot').style.left = (Z.x[i] / Z.W * b.width) + 'px'; $('pDot').style.top = (Z.p[i] / 170 * b.height) + 'px'; $('pDot').style.background = i < nV ? '#a0a0a0' : '#fff';
+    var k_ = V[i], wert = q * k_, chg = q * (k_ - ref), pct = ref ? (k_ / ref - 1) * 100 : 0;
+    $('pGross').innerHTML = '<span class="dpkt">••••••</span><span class="dw">' + (P.watch && k_ < 1 ? k_.toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' €' : pxEuro(wert)) + '</span>';
+    $('pAend').innerHTML = '<span class="dpkt">•••</span><span class="dw ' + (chg >= 0 ? 'dplus' : 'dminus') + '">' + (chg >= 0 ? '+' : '') + euroH(chg) + ' (' + pz(pct) + ') <span class="dwann">' + zeit(i) + '</span></span>';
+    var st = c.querySelector('stop.g2'), st2 = st && st.nextElementSibling; if (st) { st.style.stopColor = chg >= 0 ? 'var(--ok)' : 'var(--rot)'; if (st2) st2.style.stopColor = st.style.stopColor; }
+  };
+  var ende = function () { if (!aktiv) return; aktiv = false; letzt = -1; c.classList.remove('zieht'); $('pDot').style.background = '#fff'; delete ROLLK['pW' + posKey]; posZeichnen(); }; // frisch aufbauen (eine gerade rollende Zahl würde sonst doppelt zurückkommen)
+  c.addEventListener('pointerdown', function (e) { if (!depotSicht) return; aktiv = true; oG = $('pGross').innerHTML; oA = $('pAend').innerHTML; c.classList.add('zieht'); try { c.setPointerCapture(e.pointerId); } catch (x) {} zeig(e.clientX); });
+  c.addEventListener('pointermove', function (e) { if (aktiv) zeig(e.clientX); });
+  c.addEventListener('pointerup', ende); c.addEventListener('pointercancel', ende); c.addEventListener('lostpointercapture', ende);
 }
 function posMorph() { // gleicher weicher Übergang wie im Depot-Diagramm
   var c = $('pChart'), Z = posGrafik.ziel, A = posAlt; cancelAnimationFrame(posMorphR); if (!c || !Z) { posAlt = null; return; }
@@ -2399,6 +2421,7 @@ function posMorph() { // gleicher weicher Übergang wie im Depot-Diagramm
   posMorphR = requestAnimationFrame(schritt);
 }
 function posZeichnen() {
+  var pc0 = $('pChart'); if (pc0 && pc0.classList.contains('zieht') && $('blattP').classList.contains('offen')) return; // (2.44) Finger liegt auf dem Diagramm
   var P = posDaten(), zu = !depotSicht; if (!P) { $('pKoerper').innerHTML = '<p class="hinweis">Diese Position gibt es gerade nicht mehr.</p>'; return; }
   if (P.w == null) { $('pTitel').textContent = depotKurz(P.m.n); $('pKoerper').innerHTML = '<p class="hinweis">Kurs kommt gleich …</p>'; return; }
   var m = P.m, w = P.w, heuteE = P.pct != null ? w - w / (1 + P.pct / 100) : null, c = m.c, gew = c ? w - c : null, gp = c ? gew / c * 100 : null, anteil = P.d.gesamt ? w / P.d.gesamt * 100 : null;
@@ -2409,7 +2432,7 @@ function posZeichnen() {
   var h = '<div class="dbox' + (zu ? ' verdeckt' : '') + '">' +
     '<div class="pkopf">' + esc(m.n) + '<br>' + esc([m.ty || (m.k === 'krypto' ? 'Kryptowährung' : ''), m.isin || m.sym].filter(Boolean).join(' · ')) + '</div>' +
     '<div class="dgross" id="pGross"><span class="dpkt">••••••</span><span class="dw">' + (P.watch && w < 1 ? w.toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' €' : pxEuro(w)) + '</span></div>' +
-    '<div class="dheute">' + (P.pct != null ? '<span class="dpkt">•••</span><span class="dw ' + (P.pct >= 0 ? 'dplus' : 'dminus') + '">' + (heuteE >= 0 ? '+' : '') + euroH(heuteE) + ' (' + pz(P.pct) + ') <span class="dwann">' + (m.k === 'krypto' ? 'seit 6 Uhr' : 'letzter Handelstag') + '</span></span>' : '<span class="dwann">Tagesveränderung kommt mit den nächsten Kursen</span>') + '</div>';
+    '<div class="dheute" id="pAend">' + (P.pct != null ? '<span class="dpkt">•••</span><span class="dw ' + (P.pct >= 0 ? 'dplus' : 'dminus') + '">' + (heuteE >= 0 ? '+' : '') + euroH(heuteE) + ' (' + pz(P.pct) + ') <span class="dwann">' + (m.k === 'krypto' ? 'seit 6 Uhr' : 'letzter Handelstag') + '</span></span>' : '<span class="dwann">Tagesveränderung kommt mit den nächsten Kursen</span>') + '</div>';
   var altC = $('pChartBox') && $('blattP').classList.contains('offen') ? $('pChartBox').innerHTML : ''; // beim Live-Update bleibt das Diagramm stehen, bis das neue da ist
   h += '<div id="pChartBox">' + (altC || '<div class="dchart"><svg class="dlinie gross" viewBox="0 0 300 170"></svg></div>') + '</div>';
   h += '<div class="dzr" id="pZr">' + [['1d', '1T'], ['1w', '1W'], ['1m', '1M'], ['1y', '1J']].map(function (z) { return '<button type="button" data-r="' + z[0] + '" class="' + (z[0] === posZr ? 'an' : '') + '">' + z[1] + '</button>'; }).join('') + '</div>';
@@ -2436,7 +2459,7 @@ function posZeichnen() {
     if (zr0 !== posZr || key0 !== posKey || !$('pChartBox')) return;
     if (!S || !S.heute || S.heute.length < 2) { $('pChartBox').innerHTML = '<p class="hinweis" style="margin-top:22px">Für diesen Zeitraum ist noch kein Verlauf da' + (m.k === 'krypto' ? '.' : ' (kommt vom Mac).') + '</p>'; posAlt = null; return; }
     var up = S.ref != null ? S.heute[S.heute.length - 1] >= S.ref : S.heute[S.heute.length - 1] >= S.heute[0];
-    $('pChartBox').innerHTML = posGrafik(S, up); posMorph();
+    $('pChartBox').innerHTML = posGrafik(S, up); posMorph(); posFinger(P, S);
   });
 }
 function depotAend(eur, pct, txt) { return '<span class="dpkt">•••</span><span class="dw ' + (eur >= 0 ? 'dplus' : 'dminus') + '">' + (eur >= 0 ? '+' : '') + euroH(eur) + ' (' + (pct >= 0 ? '+' : '') + String((Math.round(pct * 100) / 100)).replace('.', ',') + ' %) <span class="dwann">' + txt + '</span></span>'; }
