@@ -362,6 +362,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .dprow{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .15s}.dprow:active{opacity:.6}.dprow.fest{cursor:default}.dprow.fest:active{opacity:1}
 .pkopf{font-size:13px;color:var(--grau)}
 .wltr{font-size:13px;color:var(--grau);font-weight:600;margin:22px 0 4px}.wltr:first-child{margin-top:4px}
+.tmzeit{display:grid;grid-template-columns:1fr 120px;gap:10px}.tmz.eig{cursor:pointer}.tmz .bt{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.tmz .bt .nobtn{padding:8px 16px;font-size:13px}
 .tmtag{font-size:13px;color:var(--grau);font-weight:700;margin:22px 0 4px;text-transform:uppercase;letter-spacing:.4px}.tmtag:first-child{margin-top:4px}
 .tmz{display:flex;gap:12px;padding:11px 0;border-top:1px solid var(--rand)}.tmz .uz{width:52px;flex-shrink:0;font-size:14px;font-weight:700}.tmz .uz small{display:block;color:var(--grau);font-size:11px;font-weight:600}
 .tmz .ti{font-size:15px;font-weight:600}.tmz .no{font-size:12px;color:var(--grau);margin-top:3px}
@@ -598,7 +599,7 @@ body.istoffline .sstand{color:#ff6b61}
 </div></div>
 <div class="blatt" id="blattT"><div class="innen">
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattT" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Termine</b></div></div>
-  <div class="koerper" id="tKoerper"></div>
+  <div class="koerper"><div class="noneu tmneu"><input type="text" id="tmTitel" placeholder="Neuer Arbeitstermin …" maxlength="120"><div class="tmzeit"><input type="date" id="tmDatum"><input type="time" id="tmUhr" aria-label="Uhrzeit (leer = ganztägig)"></div><button id="tmPlus" class="nobtn">Hinzufügen</button></div><div id="tKoerper"></div></div>
 </div></div>
 <div class="blatt" id="blattHt"><div class="innen">
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattHt" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Nächste Läden</b></div></div>
@@ -678,7 +679,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.14';
+var VERSION = '3.15';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -827,7 +828,7 @@ function sync() {
   }).then(function () { // (3.00) alles Weitere gleichzeitig statt nacheinander (vorher 10 Anfragen hintereinander)
     var ok = function (p) { return Promise.resolve().then(p).catch(function () {}); };
     return Promise.all([ok(function () { return fahrtenHolen(kopf).then(function () { fahrtenAuto(); }); }), ok(function () { return nachweisHolen(kopf); }), ok(function () { return lohnHolen(kopf); }), ok(function () { return reisetageHolen(kopf); }),
-      ok(function () { return fixkostenHolen(kopf); }), ok(function () { return notizenSync(kopf); }), ok(function () { return gbSync(kopf); }), ok(function () { return depotHolen(kopf); }), ok(function () { return stimmeHolen(kopf); }), ok(function () { return gemeinsamHolen(kopf); }), ok(function () { return reiseinfoHolen(kopf); })]);
+      ok(function () { return fixkostenHolen(kopf); }), ok(function () { return notizenSync(kopf); }), ok(function () { return termineSync(kopf); }), ok(function () { return gbSync(kopf); }), ok(function () { return depotHolen(kopf); }), ok(function () { return stimmeHolen(kopf); }), ok(function () { return gemeinsamHolen(kopf); }), ok(function () { return reiseinfoHolen(kopf); })]);
   }).then(function () {
     offlineZeigen(false); daten.letzterAbgleich = Date.now(); sichern(true); standPruefen(); if ($('sstand')) $('sstand').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     syncLaeuft = false; syncAnzeige('☁ abgeglichen ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
@@ -1537,7 +1538,7 @@ function startZeichnen(still) {
   k('lohn', IC.lohn, 'linear-gradient(135deg,#b0b0b0,#5a5a5a)', 'Lohn', lo0 ? pxEuro(lo0.au) : '–', lo0 ? 'ausgezahlt · ' + lohnMonat(lo0.m) : 'kommt vom Mac, sobald er an ist', '', false);
   var UB = ubMonate(), ub0 = UB.length ? UB[UB.length - 1] : null; // (2.68) Was übrig bleibt: letzte Abrechnung minus laufende Kosten und Sparpläne
   k('uebrig', IC.geld.replace('M3 10h18M16 14.5h2', 'M3 10h18M12 13v4M10 15h4'), 'linear-gradient(135deg,#b4b4b4,#5c5c5c)', 'Übrig', ub0 ? '<span class="' + (ub0.ue < 0 ? 'dminus' : '') + '">' + pxEuro(ub0.ue) + '</span>' : '–', ub0 ? lohnMonat(ub0.m) + (' · nach Kosten' + (ub0.sp ? (ubLeben() ? ', Sparen und Leben' : ' und Sparplänen') : ubLeben() ? ' und Leben' : '')) : !lohnDaten() ? 'kommt mit den Lohnabrechnungen' : 'laufende Kosten noch nicht geladen', '', false);
-  k('termine', IC.kalender, 'linear-gradient(135deg,#9e9e9e,#585858)', 'Termine', tm0 ? tmTagKurz(tm0) : '–', tm0 ? esc(tm0.ti) + (tm0.g ? '' : ' · ' + tmUhr(tm0)) + (tmL[1] ? '<br>danach ' + tmTagKurz(tmL[1]) + ': ' + esc(tmL[1].ti) : '') : 'kommt vom Mac, sobald er an ist', '', false);
+  k('termine', IC.kalender, 'linear-gradient(135deg,#9e9e9e,#585858)', 'Termine', tm0 ? tmTagKurz(tm0) : '–', tm0 ? esc(tm0.ti) + (tm0.g ? '' : ' · ' + tmUhr(tm0)) + (tmL[1] ? '<br>danach ' + tmTagKurz(tmL[1]) + ': ' + esc(tmL[1].ti) : '') : 'Tippen, um einen Arbeitstermin einzutragen', '', false);
   var PW = planWoche(); // (2.81) Einsatzplan der Woche (ab Samstag die nächste)
   k('plan', IC.kalender, 'linear-gradient(135deg,#a4a4a4,#5a5a5a)', 'Einsatzplan', 'KW ' + PW.kw, PW.text, '', false);
   var kr = kachelReihe(kdef), KG = kachelGroessen(), KB = kachelAutoBreit(kr, KG); kr.forEach(function (z, i) { h += kk[z](.12 + i * .06).replace('class="kachel rein', 'class="kachel rein' + (KG[z] === 'b' || KB === z ? ' breit' : KG[z] === 'k' ? ' klein' : '')).replace('<span class="pfeil">', '<button type="button" class="kweg" aria-label="Ausblenden"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></button><button type="button" class="kgr" aria-label="Größe ändern"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button><span class="pfeil">'); });
@@ -2800,19 +2801,58 @@ function wlZeichnen() {
   [].forEach.call(document.querySelectorAll('#wKoerper .dprow[data-key]'), function (z) { z.onclick = function () { posOeffnen(z.dataset.key); wlLiveRechnen(true); }; });
 }
 // (2.42) Termine (Kalender-Kachel): Quartalszahlen, Notenbanken, Konjunkturdaten, Börsenfeiertage, SpaceX – Liste vom Mac (positionen.json „termine“)
-function tmListe() { var k = daten.depotKurven, n = Date.now() - 2 * 36e5; return ((k && k.termine) || []).filter(function (e) { return Date.parse(e.t) >= (e.g ? n - 20 * 36e5 : n); }).sort(function (a, b) { return Date.parse(a.t) - Date.parse(b.t); }); }
+// (23.11.) Auf Andis Wunsch: nur noch eigene Arbeitstermine (termine.json im Daten-Repo, gleicht Handy und Mac-Cockpit ab), keine Börsen-Termine mehr
+function tmListe() { var h = new Date(); h.setHours(0, 0, 0, 0); var n = Date.now() - 2 * 36e5;
+  return (daten.meineTermine || []).map(function (x) { return { id: x.id, ti: x.ti, no: x.no || '', g: !x.u, t: x.u ? new Date(x.d + 'T' + x.u + ':00').toISOString() : x.d + 'T00:00:00', d: x.d }; })
+    .filter(function (e) { return e.g ? new Date(e.d + 'T23:59:59') >= h : Date.parse(e.t) >= n; }).sort(function (a, b) { return Date.parse(a.t) - Date.parse(b.t); }); }
 function tmUhr(e) { return new Date(e.t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr'; }
 function tmTagKurz(e) { var d = new Date(e.t), h = new Date(); h.setHours(0, 0, 0, 0); var t = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - h) / 864e5);
   return t === 0 ? 'Heute' : t === 1 ? 'Morgen' : ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][d.getDay()] + '. ' + d.getDate() + '.' + (d.getMonth() + 1) + '.'; }
 var TMK = { earn: 'Zahlen', fed: 'Fed', ecb: 'EZB', cpi: 'Inflation', jobs: 'Jobs', closed: 'Börse zu', spacex: 'SpaceX', boe: 'BoE', boj: 'BoJ', snb: 'SNB', witch: 'Verfall' };
 function tmZeichnen() {
-  var L = tmListe(); if (!L.length) { $('tKoerper').innerHTML = '<p class="hinweis">Die Termine kommen vom Mac, sobald er an ist.</p>'; return; }
+  var L = tmListe(); if (!$('tmDatum').value) $('tmDatum').value = iso2(new Date()); $('tmPlus').disabled = !$('tmTitel').value.trim();
+  if (!L.length) { $('tKoerper').innerHTML = '<div class="noleer">Keine Termine. Trag oben deinen nächsten Arbeitstermin ein.</div>'; return; }
   var h = '', tag = '';
   L.forEach(function (e) { var d = new Date(e.t), tg = d.toDateString();
     if (tg !== tag) { tag = tg; h += '<div class="tmtag">' + (tmTagKurz(e).length < 8 ? tmTagKurz(e) + ' · ' : '') + d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }) + '</div>'; }
-    h += '<div class="tmz"><div class="uz">' + (e.g ? '<small>ganztägig</small>' : d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })) + '</div><div><div class="ti">' + (TMK[e.k] ? '<span class="tmk">' + TMK[e.k] + '</span>' : '') + esc(e.ti) + '</div>' + (e.no ? '<div class="no">' + esc(e.no) + '</div>' : '') + '</div></div>';
+    h += '<div class="tmz eig" data-id="' + esc(e.id) + '"><div class="uz">' + (e.g ? '<small>ganztägig</small>' : d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })) + '</div><div style="flex:1;min-width:0"><div class="ti">' + esc(e.ti) + '</div>' + (e.no ? '<div class="no">' + esc(e.no) + '</div>' : '') + '</div></div>';
   });
-  $('tKoerper').innerHTML = h + '<p class="hinweis" style="margin-top:16px">Die nächsten 60 Tage. Stand vom Mac' + (daten.depotKurven && daten.depotKurven.stand ? ' (' + new Date(daten.depotKurven.stand).toLocaleString('de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr)' : '') + '.</p>';
+  $('tKoerper').innerHTML = h;
+  [].forEach.call($('tKoerper').querySelectorAll('.tmz.eig'), function (el) { el.onclick = function () {
+    if (el.querySelector('.bt')) return; var x = (daten.meineTermine || []).find(function (y) { return y.id === el.dataset.id; }); if (!x) return;
+    var bt = document.createElement('div'); bt.className = 'bt'; bt.innerHTML = '<button class="nobtn zweit">Abbrechen</button><button class="nobtn rot">Löschen</button>'; el.children[1].appendChild(bt);
+    bt.children[0].onclick = function (ev) { ev.stopPropagation(); tmZeichnen(); };
+    bt.children[1].onclick = function (ev) { ev.stopPropagation(); tmLoeschen(x); };
+  }; });
+}
+function tmLoeschen(x) {
+  var j = Date.now(); daten.meineTermine = (daten.meineTermine || []).filter(function (y) { return y.id !== x.id; }); daten.terminWeg = daten.terminWeg || {}; daten.terminWeg[x.id] = j; sichern(); tmZeichnen(); tmStartNeu();
+  toastAktion('Termin gelöscht', 'Rückgängig', function () { delete daten.terminWeg[x.id]; x.geaendert = Date.now(); daten.meineTermine.push(x); sichern(); tmZeichnen(); tmStartNeu(); });
+}
+function tmStartNeu() { try { if (!$('start').classList.contains('aus')) startZeichnen(true); } catch (x) {} }
+$('tmTitel').oninput = function () { $('tmPlus').disabled = !this.value.trim(); };
+$('tmTitel').onkeydown = function (ev) { if (ev.key === 'Enter') $('tmPlus').onclick(); };
+$('tmPlus').onclick = function () {
+  var t = $('tmTitel').value.trim(), d = $('tmDatum').value, u = $('tmUhr').value; if (!t || !d) return; var j = Date.now();
+  daten.meineTermine = daten.meineTermine || []; daten.meineTermine.push({ id: 't' + j, ti: t, d: d, u: u || '', erstellt: j, geaendert: j });
+  $('tmTitel').value = ''; $('tmUhr').value = ''; sichern(); tmZeichnen(); tmStartNeu();
+};
+var GHT = GH.replace('daten.json', 'termine.json');
+function termineSync(kopf) {
+  return fetch(GHT + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) {
+    if (r.status === 404) return { sha: null, d: {} };
+    if (!r.ok) throw 0;
+    return r.json().then(function (j) { return { sha: j.sha, d: JSON.parse(b64dec(j.content) || '{}') }; });
+  }).then(function (fern) {
+    var m = mische({ eintraege: daten.meineTermine || [], geloescht: daten.terminWeg || {} }, { eintraege: fern.d.termine || [], geloescht: fern.d.geloescht || {} });
+    var alt = JSON.stringify(daten.meineTermine || []);
+    daten.meineTermine = m.eintraege; daten.terminWeg = m.geloescht; sichern(true);
+    if (JSON.stringify(daten.meineTermine) !== alt) { if ($('blattT').classList.contains('offen') && !document.querySelector('#tKoerper .bt')) tmZeichnen(); tmStartNeu(); }
+    var neu = JSON.stringify({ termine: daten.meineTermine, geloescht: daten.terminWeg }, null, 1), alt2 = JSON.stringify({ termine: fern.d.termine || [], geloescht: fern.d.geloescht || {} }, null, 1);
+    if (neu === alt2) return;
+    var body = { message: 'Termine ' + new Date().toLocaleString('de-DE'), content: b64enc(neu) }; if (fern.sha) body.sha = fern.sha;
+    return fetch(GHT, { method: 'PUT', headers: kopf, body: JSON.stringify(body) });
+  }).catch(function () {});
 }
 // (2.63) Lohnabrechnungen: Daten vom Mac (positionen.json „lohn“), PDFs liegen in Google Drive (Cloud/Lohnabrechnungen)
 var lohnJahr = null, lohnK = null;
