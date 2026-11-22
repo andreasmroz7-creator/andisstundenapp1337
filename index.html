@@ -666,7 +666,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.87';
+var VERSION = '2.89';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2885,7 +2885,7 @@ function posDaten() {
 }
 function posKrypto(m, zr) { // Krypto-Verlauf direkt von Binance (in Euro über den aktuellen EURUSDT-Kurs)
   var k = m.sym + '|' + zr, c = posBin[k]; if (c && Date.now() - c.t < (zr === '1d' ? 60e3 : 15 * 60e3)) return Promise.resolve(c.v);
-  var iv = zr === '1d' ? '5m' : zr === '1w' ? '1h' : zr === '1m' ? '4h' : '1d', lim = zr === '1d' ? 360 : zr === '1w' ? 168 : zr === '1m' ? 180 : 365, st = zr === '1d' ? '&startTime=' + (depotSechsTs() - 6 * 36e5) : '';
+  var iv = zr === '1d' ? '5m' : zr === '1w' ? '1h' : zr === '1m' ? '4h' : zr === '5y' ? '1w' : '1d', lim = zr === '5y' ? 261 : zr === '1d' ? 360 : zr === '1w' ? 168 : zr === '1m' ? 180 : 365, st = zr === '1d' ? '&startTime=' + (depotSechsTs() - 6 * 36e5) : '';
   var holK = zr === '1d' ? (function () { var ab = Math.round((depotSechsTs() - 6 * 36e5) / 1000), u = function (s0) { return 'https://api.binance.com/api/v3/klines?symbol=' + m.sym + 'USDT&interval=1m&limit=1000&startTime=' + s0 * 1000; }; // (2.77) 1 Tag: jede Minute ein Punkt
       return fetch(u(ab), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (a) { if (!a || a.length < 1000) return a; return fetch(u(Math.round(a[a.length - 1][0] / 1000) + 60), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : []; }).then(function (b) { return a.concat(b || []); }); }); })()
     : fetch('https://api.binance.com/api/v3/klines?symbol=' + m.sym + 'USDT&interval=' + iv + '&limit=' + lim + st, { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; });
@@ -3328,12 +3328,31 @@ function marktReihe(w, zr) { // → {vor:[], heute:[], vt, ht, ref, cur}
   return marktQuote(w).then(function (q) {
     if (!q || !q.market) return null; var O = 'https://api.onvista.de/api/v1/instruments/' + w.t + '/' + w.ev, n = q.market.idNotation, tag = String(q.datetimeLast || '').slice(0, 10) || iso2(new Date());
     var plus = function (d, n2) { var x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + n2); return iso2(x); };
-    if (zr === '1d' || zr === '1w') return fetch(O + '/simple_chart_history?chartType=PRICE&idNotation=' + n + '&interval=' + (zr === '1d' ? 'PT5M' : 'PT30M') + '&startDate=' + (zr === '1d' ? tag : plus(tag, -7)) + '&endDate=' + plus(tag, 1), { cache: 'no-store' })
-      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (!j || !j.tick || j.tick.length < 2) return null;
+    // (2.88) Kurse innerhalb des Tages sind bei Onvista NICHT um Aktiensplits bereinigt (z. B. SanDisk 8:1 am 20.11.2026: Do 690 €, Fr 80 €).
+    // Die Tageskurse (eod_history) sind bereinigt → je Tag Faktor = Tagesschluss bereinigt / letzter Kurs des Tages, Ausreißer-Tage damit umrechnen.
+    var eodM = zr === '1w' ? fetch(O + '/eod_history?idNotation=' + n + '&range=M1&startDate=' + plus(tag, -31), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }) : Promise.resolve(null);
+    if (zr === '1d' || zr === '1w') return Promise.all([fetch(O + '/simple_chart_history?chartType=PRICE&idNotation=' + n + '&interval=' + (zr === '1d' ? 'PT5M' : 'PT30M') + '&startDate=' + (zr === '1d' ? tag : plus(tag, -7)) + '&endDate=' + plus(tag, 1), { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; }), eodM]).then(function (a2) { var j = a2[0], E = a2[1]; if (!j || !j.tick || j.tick.length < 2) return null;
+        if (E && E.last && E.datetimeLast) { var ez = {}; E.datetimeLast.forEach(function (t, i) { ez[iso2(new Date(t * 1000))] = E.last[i]; }); // Tageskurse liegen auf 12 Uhr UTC = derselbe Tag
+          var tagLetzt = {}; j.datetimeTick.forEach(function (t, i) { tagLetzt[iso2(new Date(t))] = j.tick[i]; });
+          var fak = {}, tg = Object.keys(tagLetzt).sort(), weiter = 1; // Tage ohne Tageskurs bekommen den Faktor des nächsten späteren Tags (vor einem Split derselbe)
+          for (var ti = tg.length - 1; ti >= 0; ti--) { var d = tg[ti], f = ez[d] ? ez[d] / tagLetzt[d] : null; fak[d] = f == null ? weiter : (f > 1.5 || f < 0.67) ? f : 1; weiter = fak[d]; }
+          j.tick = j.tick.map(function (v, i) { return v * fak[iso2(new Date(j.datetimeTick[i]))]; }); }
         return fertig({ vor: [], heute: j.tick.concat([q.last]), ht: j.datetimeTick.map(function (t) { return Math.round(t / 1000); }).concat([Math.round(Date.parse(q.datetimeLast) / 1000) || null]), ref: zr === '1d' ? (q.previousLast || j.tick[0]) : j.tick[0], cur: q.isoCurrency || 'EUR' }); });
-    return fetch(O + '/eod_history?idNotation=' + n + '&range=' + (zr === '1m' ? 'M1' : zr === '1y' ? 'Y1' : 'Y5') + '&startDate=' + plus(tag, zr === '1m' ? -31 : zr === '1y' ? -366 : -1827), { cache: 'no-store' })
-      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (!j || !j.last || j.last.length < 2) return null;
-        return fertig({ vor: [], heute: j.last, ht: j.datetimeLast, ref: j.last[0], cur: q.isoCurrency || 'EUR' }); });
+    var rg = zr === '1m' ? 'M1' : zr === '1y' ? 'Y1' : 'Y5', ab = plus(tag, zr === '1m' ? -31 : zr === '1y' ? -366 : -1827);
+    var eod = function (nn) { return fetch(O + '/eod_history?idNotation=' + nn + '&range=' + rg + '&startDate=' + ab, { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); };
+    return eod(n).then(function (j) {
+      // (2.88) Hat gettex eine kürzere Historie als der Zeitraum (z. B. SanDisk erst seit 06/2026), die Heimatbörse nehmen (Nasdaq seit Börsengang) und auf den Euro-Kurs umrechnen
+      var kurz = !j || !j.last || j.last.length < 2 || (j.datetimeStartAvailableHistory && j.datetimeStartAvailableHistory.slice(0, 10) > plus(ab, 10));
+      if (zr === '1m' || !kurz) return j;
+      return fetch('https://api.onvista.de/api/v1/instruments/' + w.t + '/' + w.ev + '/quote', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (h) {
+        if (!h || !h.market || h.market.idNotation === n) return j;
+        return eod(h.market.idNotation).then(function (k) { if (!k || !k.last || k.last.length < 2 || (j && j.last && j.last.length && k.datetimeLast[0] >= j.datetimeLast[0])) return j;
+          var f = (h.isoCurrency || '') === (q.isoCurrency || '') ? 1 : q.last / k.last[k.last.length - 1]; // gleiche Euro-Höhe wie gettex heute
+          return { last: k.last.map(function (v) { return v * f; }), datetimeLast: k.datetimeLast, umger: h.market.name }; });
+      }).catch(function () { return j; });
+    }).then(function (j) { if (!j || !j.last || j.last.length < 2) return null;
+      return fertig({ vor: [], heute: j.last, ht: j.datetimeLast, ref: j.last[0], cur: q.isoCurrency || 'EUR', umger: j.umger || null }); });
   }).catch(function () { return null; });
 }
 function marktBetrag(v, cur) { var t = v < 1 ? v.toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) : v.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); return t + ' ' + (cur === 'EUR' || !cur ? '€' : cur === 'USD' ? '$' : cur); }
@@ -3347,11 +3366,14 @@ function marktZeichnen() {
     [].forEach.call(K.querySelectorAll('#mZr button'), function (b) { b.onclick = function () { marktZr = b.dataset.r; marktZeichnen(); }; }); }
   [].forEach.call(K.querySelectorAll('#mZr button'), function (b) { b.classList.toggle('an', b.dataset.r === marktZr); });
   var zr = marktZr;
-  marktReihe(w, zr === '5y' && w.typ === 'krypto' ? '1y' : zr).then(function (S) {
+  marktReihe(w, zr).then(function (S) {
     if (w !== marktW || zr !== marktZr || !$('mChartBox')) return;
     if (!S) { $('mChartBox').innerHTML = '<p class="hinweis" style="margin-top:22px">Für diesen Zeitraum gibt es gerade keine Kurse.</p>'; return; }
     var last = S.heute[S.heute.length - 1], ref = S.ref, ch = last - ref, pc = ref ? ch / ref * 100 : 0, up = ch >= 0;
     var txt = { '1d': 'heute', '1w': 'seit 1 Woche', '1m': 'seit 1 Monat', '1y': 'seit 1 Jahr', '5y': 'seit 5 Jahren' }[zr];
+    var t0m = S.ht && S.ht[0] ? new Date(S.ht[0] * 1000) : null;
+    if ((zr === '5y' || zr === '1y') && t0m && Date.now() - t0m > 0 && (Date.now() - t0m) / 864e5 < (zr === '5y' ? 1800 : 355)) txt = 'seit ' + MONATE[t0m.getMonth()] + ' ' + t0m.getFullYear() + ' (ganze Laufzeit)';
+    if (S.umger) txt += ' · Kurse ' + S.umger + ', in € umgerechnet';
     $('mGross').innerHTML = '<span class="dw">' + marktBetrag(last, S.cur) + '</span>';
     var aend = '<span class="dw ' + (up ? 'dplus' : 'dminus') + '">' + (up ? '+' : '−') + marktBetrag(Math.abs(ch), S.cur) + ' (' + pzKurz(pc) + ') <span class="dwann">' + txt + '</span></span>'; $('mAend').innerHTML = aend;
     var V = S.vor || [], He = S.heute, alle = V.concat(He).concat([ref]), mn = Math.min.apply(null, alle), mx = Math.max.apply(null, alle), sp = (mx - mn) || 1, W = 300, H = 170;
