@@ -655,14 +655,18 @@ body.istoffline .sstand{color:#ff6b61}
 
 <div class="blatt" id="blattSu"><div class="innen">
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattSu" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Suchen</b></div></div>
-  <div class="koerper" id="suKoerper"><input type="search" class="sufeld" id="suFeld" placeholder="Laden, Ort, Position, Notiz, Name …" autocomplete="off" autocapitalize="off" spellcheck="false"><div id="suListe"></div></div>
+  <div class="koerper" id="suKoerper"><input type="search" class="sufeld" id="suFeld" placeholder="Laden, Position, Aktie, Krypto, Notiz …" autocomplete="off" autocapitalize="off" spellcheck="false"><div id="suListe"></div></div>
+</div></div>
+<div class="blatt" id="blattM" style="z-index:12"><div class="innen">
+  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattM" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b id="mTitel">Wert</b></div></div>
+  <div class="koerper" id="mKoerper"></div>
 </div></div>
 <div id="quer"><div class="qkopf"><b class="qt" id="qTitel"></b><span class="qw" id="qWert"></span><span class="qa" id="qAend"></span><span class="qinfo" id="qInfo"></span><div class="dzr qzr" id="qZr"></div></div><div class="qflaeche" id="qFlaeche"></div></div>
 <div class="toast" id="toast"></div>
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.86';
+var VERSION = '2.87';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -3280,12 +3284,97 @@ function suZeichnen() {
   if (gb.length) G.push(['Geburtstage', gb.map(function (x) { return '<div class="suz" data-ziel="geburtstage"><div><b>' + esc(x.name) + '</b><small>' + x.tag + '.' + x.monat + '.' + (x.jahr ? x.jahr : '') + '</small></div><i>›</i></div>'; }).join('')]);
   var tm = tmListe().filter(function (e) { return tr(e.ti); });
   if (tm.length) G.push(['Termine', tm.slice(0, 10).map(function (e) { return '<div class="suz" data-ziel="termine"><div><b>' + esc(e.ti) + '</b><small>' + tmTagKurz(e) + '</small></div><i>›</i></div>'; }).join('')]);
-  L.innerHTML = G.length ? G.map(function (g) { return '<div class="sugr">' + g[0] + '</div>' + g[1]; }).join('') : '<p class="hinweis" style="margin-top:16px">Nichts gefunden.</p>';
+  L.innerHTML = (G.length ? G.map(function (g) { return '<div class="sugr">' + g[0] + '</div>' + g[1]; }).join('') : '') + '<div id="suMarkt"><div class="sugr">Markt</div><p class="hinweis" style="margin-top:4px">Suche läuft …</p></div>';
+  suMarktSuchen(q);
   [].forEach.call(L.querySelectorAll('.suz[data-nr]'), function (z) { z.onclick = function () { var nr = z.dataset.nr; if (!nr) return; try { navigator.clipboard.writeText(nr).then(function () { toast('Marktnummer ' + nr + ' kopiert'); }, function () { toast('Marktnummer ' + nr); }); } catch (x) { toast('Marktnummer ' + nr); } }; });
   [].forEach.call(L.querySelectorAll('.suz[data-pos]'), function (z) { z.onclick = function () { try { $('suFeld').blur(); } catch (x) {} posOeffnen(z.dataset.pos); }; });
   [].forEach.call(L.querySelectorAll('.suz[data-ziel]'), function (z) { z.onclick = function () { var ziel = z.dataset.ziel; blattZu($('blattSu')); setTimeout(function () { startZiel(ziel); }, 380); }; });
 }
 $('suFeld').addEventListener('input', suZeichnen);
+
+// ================= (2.87) Suche im Markt: Aktien, ETFs, Fonds, Indizes (Onvista) und Kryptos (Binance), Diagramm ohne Besitz =================
+var KRYPTO_NAMEN = { bitcoin: 'BTC', btc: 'BTC', ethereum: 'ETH', eth: 'ETH', solana: 'SOL', sol: 'SOL', xrp: 'XRP', ripple: 'XRP', dogecoin: 'DOGE', doge: 'DOGE', cardano: 'ADA', ada: 'ADA', litecoin: 'LTC', polkadot: 'DOT', chainlink: 'LINK', avalanche: 'AVAX', shiba: 'SHIB', 'shiba inu': 'SHIB', pepe: 'PEPE', sui: 'SUI', tron: 'TRX', bnb: 'BNB', binance: 'BNB', toncoin: 'TON', polygon: 'POL', optimism: 'OP', arbitrum: 'ARB', near: 'NEAR', aptos: 'APT', stellar: 'XLM', uniswap: 'UNI', cosmos: 'ATOM', render: 'RENDER', injective: 'INJ', bonk: 'BONK', floki: 'FLOKI', hedera: 'HBAR', algorand: 'ALGO', 'internet computer': 'ICP', filecoin: 'FIL', aave: 'AAVE', kaspa: 'KAS', monero: 'XMR' };
+var suMarktT = 0, suMarktC = {};
+function suMarktSuchen(q) {
+  clearTimeout(suMarktT); suMarktT = setTimeout(function () {
+    var box = $('suMarkt'); if (!box || ($('suFeld').value || '').trim().toLowerCase() !== q) return;
+    var zeig = function (R) { var b = $('suMarkt'); if (!b || ($('suFeld').value || '').trim().toLowerCase() !== q) return;
+      b.innerHTML = '<div class="sugr">Markt</div>' + (R.length ? R.map(function (r, i) { return '<div class="suz" data-mi="' + i + '"><div><b>' + esc(r.n) + '</b><small>' + esc(r.s) + '</small></div><i>Diagramm ›</i></div>'; }).join('') : '<p class="hinweis" style="margin-top:4px">' + (R.fehler ? 'Markt-Suche gerade nicht erreichbar.' : 'Im Markt nichts gefunden.') + '</p>');
+      [].forEach.call(b.querySelectorAll('.suz[data-mi]'), function (z) { z.onclick = function () { try { $('suFeld').blur(); } catch (x) {} marktOeffnen(R[+z.dataset.mi]); }; }); };
+    if (suMarktC[q]) return zeig(suMarktC[q]);
+    var sym = KRYPTO_NAMEN[q] || (/^[a-z0-9]{2,6}$/.test(q) ? q.toUpperCase() : null);
+    var kr = sym ? fetch('https://api.binance.com/api/v3/ticker/price?symbol=' + sym + 'USDT', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { return j && j.price ? [{ typ: 'krypto', sym: sym, n: (Object.keys(KRYPTO_NAMEN).filter(function (k) { return KRYPTO_NAMEN[k] === sym && k.length > 3; })[0] || sym).replace(/^./, function (c) { return c.toUpperCase(); }), s: 'Krypto · ' + sym }] : []; }).catch(function () { return []; }) : Promise.resolve([]);
+    var ov = fetch('https://api.onvista.de/api/v1/instruments/search/facet?searchValue=' + encodeURIComponent(q), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      var out = []; ((j && j.facets) || []).forEach(function (f) { if (['STOCK', 'ETF', 'FUND', 'INDEX'].indexOf(f.type) < 0) return; (f.results || []).slice(0, f.type === 'STOCK' ? 5 : 3).forEach(function (r) { if (r.entityType === 'CRYPTO') return; out.push({ typ: 'wp', t: r.entityType, ev: r.entityValue, isin: r.isin, n: r.name, s: (r.displayType || f.label) + (r.isin ? ' · ' + r.isin : '') }); }); });
+      return out; }).catch(function () { return null; });
+    Promise.all([kr, ov]).then(function (a) { var R = a[0].concat(a[1] || []); if (!a[1] && !a[0].length) R.fehler = true; suMarktC[q] = R; zeig(R); });
+  }, 450);
+}
+var marktW = null, marktZr = '1d', marktC = {};
+function marktOeffnen(w) { marktW = w; marktZr = '1d'; $('mTitel').textContent = w.n.length > 26 ? w.n.slice(0, 25) + '…' : w.n; $('blattM').classList.add('offen'); marktZeichnen(); }
+function marktQuote(w) { // Onvista: idNotation und Kurse (gettex in Euro, sonst Heimatbörse)
+  if (w.q && Date.now() - w.qt < 60e3) return Promise.resolve(w.q);
+  var u = 'https://api.onvista.de/api/v1/instruments/' + w.t + '/' + w.ev + '/quote';
+  return fetch(u + '?codeMarket=_TRO', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { return j && j.last != null ? j : fetch(u, { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }); })
+    .then(function (j) { if (j && j.last != null) { w.q = j; w.qt = Date.now(); } return w.q || null; }).catch(function () { return w.q || null; });
+}
+function marktReihe(w, zr) { // → {vor:[], heute:[], vt, ht, ref, cur}
+  var k = (w.sym || w.ev) + '|' + zr; if (marktC[k] && Date.now() - marktC[k].t < (zr === '1d' ? 60e3 : 10 * 60e3)) return Promise.resolve(marktC[k].S);
+  var fertig = function (S) { if (S) marktC[k] = { t: Date.now(), S: S }; return S; };
+  if (w.typ === 'krypto') return posKrypto({ sym: w.sym }, zr).then(function (v) { if (!v || v.length < 2) return null;
+    if (zr !== '1d') return fertig({ vor: [], heute: v.map(function (x) { return x[1]; }), ht: v.map(function (x) { return x[0]; }), ref: v[0][1], cur: 'EUR' });
+    var b6 = depotSechsTs() / 1000, vo = v.filter(function (x) { return x[0] < b6; }), he = v.filter(function (x) { return x[0] >= b6; }); if (he.length < 2) return null;
+    return fertig({ vor: vo.map(function (x) { return x[1]; }), vt: vo.map(function (x) { return x[0]; }), heute: he.map(function (x) { return x[1]; }), ht: he.map(function (x) { return x[0]; }), ref: vo.length ? vo[vo.length - 1][1] : he[0][1], cur: 'EUR' }); });
+  return marktQuote(w).then(function (q) {
+    if (!q || !q.market) return null; var O = 'https://api.onvista.de/api/v1/instruments/' + w.t + '/' + w.ev, n = q.market.idNotation, tag = String(q.datetimeLast || '').slice(0, 10) || iso2(new Date());
+    var plus = function (d, n2) { var x = new Date(d + 'T12:00:00'); x.setDate(x.getDate() + n2); return iso2(x); };
+    if (zr === '1d' || zr === '1w') return fetch(O + '/simple_chart_history?chartType=PRICE&idNotation=' + n + '&interval=' + (zr === '1d' ? 'PT5M' : 'PT30M') + '&startDate=' + (zr === '1d' ? tag : plus(tag, -7)) + '&endDate=' + plus(tag, 1), { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (!j || !j.tick || j.tick.length < 2) return null;
+        return fertig({ vor: [], heute: j.tick.concat([q.last]), ht: j.datetimeTick.map(function (t) { return Math.round(t / 1000); }).concat([Math.round(Date.parse(q.datetimeLast) / 1000) || null]), ref: zr === '1d' ? (q.previousLast || j.tick[0]) : j.tick[0], cur: q.isoCurrency || 'EUR' }); });
+    return fetch(O + '/eod_history?idNotation=' + n + '&range=' + (zr === '1m' ? 'M1' : zr === '1y' ? 'Y1' : 'Y5') + '&startDate=' + plus(tag, zr === '1m' ? -31 : zr === '1y' ? -366 : -1827), { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (!j || !j.last || j.last.length < 2) return null;
+        return fertig({ vor: [], heute: j.last, ht: j.datetimeLast, ref: j.last[0], cur: q.isoCurrency || 'EUR' }); });
+  }).catch(function () { return null; });
+}
+function marktBetrag(v, cur) { var t = v < 1 ? v.toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) : v.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); return t + ' ' + (cur === 'EUR' || !cur ? '€' : cur === 'USD' ? '$' : cur); }
+function marktZeichnen() {
+  var w = marktW, K = $('mKoerper'); if (!w || !K) return; var mc0 = $('mChart'); if (mc0 && (mc0.classList.contains('zieht') || mc0.classList.contains('zwei'))) return;
+  var zrL = [['1d', '1T'], ['1w', '1W'], ['1m', '1M'], ['1y', '1J'], ['5y', '5J']];
+  if (!$('mBox') || K.dataset.w !== (w.sym || w.ev)) { K.dataset.w = w.sym || w.ev;
+    K.innerHTML = '<div class="dbox" id="mBox"><div class="pkopf">' + esc(w.n) + '<br>' + esc(w.s) + '</div><div class="dgross" id="mGross"><span class="dw">…</span></div><div class="dheute" id="mAend">&nbsp;</div><div id="mChartBox"><p class="hinweis" style="margin-top:22px">Kurse werden geladen …</p></div></div>' +
+      '<div class="dzr" id="mZr">' + zrL.map(function (z) { return '<button type="button" data-r="' + z[0] + '">' + z[1] + '</button>'; }).join('') + '</div>' +
+      '<p class="hinweis" style="margin-top:14px">Nicht in deinem Depot. Kurse: ' + (w.typ === 'krypto' ? 'Binance (in Euro umgerechnet)' : 'Onvista (gettex, sonst Heimatbörse)') + '. Zwei Finger aufs Diagramm = Veränderung zwischen zwei Zeitpunkten.</p>';
+    [].forEach.call(K.querySelectorAll('#mZr button'), function (b) { b.onclick = function () { marktZr = b.dataset.r; marktZeichnen(); }; }); }
+  [].forEach.call(K.querySelectorAll('#mZr button'), function (b) { b.classList.toggle('an', b.dataset.r === marktZr); });
+  var zr = marktZr;
+  marktReihe(w, zr === '5y' && w.typ === 'krypto' ? '1y' : zr).then(function (S) {
+    if (w !== marktW || zr !== marktZr || !$('mChartBox')) return;
+    if (!S) { $('mChartBox').innerHTML = '<p class="hinweis" style="margin-top:22px">Für diesen Zeitraum gibt es gerade keine Kurse.</p>'; return; }
+    var last = S.heute[S.heute.length - 1], ref = S.ref, ch = last - ref, pc = ref ? ch / ref * 100 : 0, up = ch >= 0;
+    var txt = { '1d': 'heute', '1w': 'seit 1 Woche', '1m': 'seit 1 Monat', '1y': 'seit 1 Jahr', '5y': 'seit 5 Jahren' }[zr];
+    $('mGross').innerHTML = '<span class="dw">' + marktBetrag(last, S.cur) + '</span>';
+    var aend = '<span class="dw ' + (up ? 'dplus' : 'dminus') + '">' + (up ? '+' : '−') + marktBetrag(Math.abs(ch), S.cur) + ' (' + pzKurz(pc) + ') <span class="dwann">' + txt + '</span></span>'; $('mAend').innerHTML = aend;
+    var V = S.vor || [], He = S.heute, alle = V.concat(He).concat([ref]), mn = Math.min.apply(null, alle), mx = Math.max.apply(null, alle), sp = (mx - mn) || 1, W = 300, H = 170;
+    var y = function (v) { return H - 4 - (v - mn) / sp * (H - 8); }, xb = V.length ? W / 6 : 0;
+    var X = V.map(function (v, i) { return V.length > 1 ? i / (V.length - 1) * xb : 0; }).concat(He.map(function (v, i) { return xb + (He.length > 1 ? i / (He.length - 1) : 0) * (W - xb); })), Y = V.concat(He).map(y);
+    var dV = V.length ? Y.slice(0, V.length).map(function (yy, i) { return (i ? 'L' : 'M') + X[i].toFixed(1) + ' ' + yy.toFixed(1); }).join('') + 'L' + X[V.length].toFixed(1) + ' ' + Y[V.length].toFixed(1) : '';
+    var dH = Y.slice(V.length).map(function (yy, i) { return (i ? 'L' : 'M') + X[V.length + i].toFixed(1) + ' ' + yy.toFixed(1); }).join('');
+    $('mChartBox').innerHTML = '<div class="dchart" id="mChart"><svg class="dlinie gross" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + (V.length ? '<path class="tg" d="M' + xb.toFixed(1) + ' 0V' + H + '" vector-effect="non-scaling-stroke"/>' : '') +
+      '<path class="ref" d="M' + xb.toFixed(1) + ' ' + y(ref).toFixed(1) + 'H' + W + '"/>' + (dV ? '<path d="' + dV + '" style="stroke:rgba(255,255,255,.38);fill:none;stroke-width:1.6" vector-effect="non-scaling-stroke"/>' : '') +
+      '<path class="l" d="' + dH + '" style="stroke:' + (up ? 'var(--ok)' : 'var(--rot)') + '" vector-effect="non-scaling-stroke"/></svg><i class="dcur" id="mCur"></i><i class="ddot" id="mDot"></i></div>';
+    var c = $('mChart'), T = (S.vt || V.map(function () { return null; })).concat(S.ht || He.map(function () { return null; })), A = V.concat(He), aktiv = false;
+    var zeig = function (cx) { if (c.classList.contains('zwei')) return; var b = c.getBoundingClientRect(), fx = (cx - b.left) / b.width * W, i = 0; for (var k = 1; k < X.length; k++) if (Math.abs(X[k] - fx) < Math.abs(X[i] - fx)) i = k;
+      $('mCur').style.left = (X[i] / W * b.width) + 'px'; $('mDot').style.left = (X[i] / W * b.width) + 'px'; $('mDot').style.top = (Y[i] / H * b.height) + 'px';
+      var d2 = A[i] - ref; $('mGross').innerHTML = '<span class="dw">' + marktBetrag(A[i], S.cur) + '</span>';
+      $('mAend').innerHTML = '<span class="dw ' + (d2 >= 0 ? 'dplus' : 'dminus') + '">' + (d2 >= 0 ? '+' : '−') + marktBetrag(Math.abs(d2), S.cur) + ' (' + pzKurz(ref ? d2 / ref * 100 : 0) + ') <span class="dwann">' + (T[i] ? zeitKurz(T[i], zr === '1d' ? '1w' : zr) : '') + '</span></span>'; };
+    var ende = function () { if (!aktiv) return; aktiv = false; c.classList.remove('zieht'); $('mGross').innerHTML = '<span class="dw">' + marktBetrag(last, S.cur) + '</span>'; $('mAend').innerHTML = aend; };
+    c.addEventListener('pointerdown', function (e) { aktiv = true; c.classList.add('zieht'); try { c.setPointerCapture(e.pointerId); } catch (x) {} zeig(e.clientX); });
+    c.addEventListener('pointermove', function (e) { if (aktiv) zeig(e.clientX); });
+    c.addEventListener('pointerup', ende); c.addEventListener('pointercancel', ende); c.addEventListener('lostpointercapture', ende);
+    spanneAn(c, { x: X, W: W }, A, A, T, zr === '5y' ? '1y' : zr, true);
+  });
+}
+setInterval(function () { if (!document.hidden && $('blattM') && $('blattM').classList.contains('offen') && marktZr === '1d') marktZeichnen(); }, 30000);
 // ---------- Geburtstage (geburtstage.json im Daten-Repo) ----------
 var GHG = GH.replace('daten.json', 'geburtstage.json');
 function gbSync(kopf) {
