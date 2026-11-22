@@ -644,6 +644,7 @@ body.istoffline .sstand{color:#ff6b61}
   <input type="password" id="sToken" placeholder="Schlüssel github_pat_…" autocomplete="off" autocapitalize="off" spellcheck="false">
   <div class="knopfzeile" style="margin-top:10px"><button class="btn zweit" id="syncJetzt">Jetzt abgleichen</button></div>
   <div class="hinweis">Damit landen deine Stunden im privaten Repo, und Claude kann sie für dich eintragen.</div>
+  <label class="l">Jarvis-Humor</label><div class="seg" id="sHumor"><button data-v="seriös">Seriös</button><button data-v="locker">Locker</button><button data-v="frech">Frech</button></div><div class="hinweis">Wie viele Sprüche und wie frech Jarvis im Cockpit ist.</div>
   <label class="l">Jarvis-Stimme (ElevenLabs)</label>
   <input type="password" id="sEleven" placeholder="ElevenLabs-Schlüssel sk_…" autocomplete="off" autocapitalize="off" spellcheck="false">
   <div class="hinweis">Bleibt nur auf diesem iPhone. Damit spricht Jarvis Antworten zu deinen Cockpit-Daten in etwa 1 Sekunde mit seiner echten Stimme (sonst über den Mac).</div>
@@ -670,7 +671,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.03';
+var VERSION = '3.04';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2071,6 +2072,10 @@ window.jvKernStart=function(){
 // Eine einzige Jarvis-Kugel: klein unten auf der Startseite, beim Antippen wächst genau diese Kugel in die Mitte (kein Umschalten zwischen zwei Kugeln)
 var jvMini = { an: false, gross: false, flug: false }, JV_HOEHE = .62;
 $('jvFab').onclick = function () { if (window.ordnen && ordnen.an) return; jvOeffnen(); };
+// (3.04) Humor-Stufe für Jarvis im Cockpit (wie am Dashboard): seriös / locker / frech
+function humorSeg() { var h = 'locker'; try { h = localStorage.getItem('jvHumorStufe') || 'locker'; } catch (x) {} [].forEach.call(document.querySelectorAll('#sHumor button'), function (b) { b.classList.toggle('an', b.dataset.v === h); }); }
+[].forEach.call(document.querySelectorAll('#sHumor button'), function (b) { b.onclick = function () { try { localStorage.setItem('jvHumorStufe', b.dataset.v); } catch (x) {} humorSeg(); toast('Jarvis ist jetzt ' + b.textContent.toLowerCase()); }; });
+humorSeg();
 $('jvGriff').onclick = function () { if (window.ordnen && ordnen.an) return; jv.ursprung = { x: innerWidth / 2, y: innerHeight - 20 }; jvMiniStart(); jvKugel(false, false); jvOeffnen(); };
 // (Andi, 20.11.) Jarvis unsichtbar: lange auf eine freie Stelle der Startseite drücken. Beim Halten erscheint er unter dem Finger, beim Loslassen kommt er groß (Mikrofon darf nur beim Loslassen starten)
 (function () {
