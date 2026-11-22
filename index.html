@@ -626,7 +626,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.79';
+var VERSION = '2.80';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2809,7 +2809,7 @@ function lohnDetail() {
 // (2.41) Detail-Ansicht einer Position: Wert, heute, seit Kauf, Kennzahlen, Kursverlauf (1T/1M/1J), Käufe und Verkäufe
 var posKey = null, posZr = '1d', posAlt = null, posMorphR = 0, posBin = {};
 var posAendC = {};
-function posOeffnen(key) { posKey = key; posZr = key === 'rente' ? 'max' : '1d'; posAlt = null; posZeichnen(); var b = $('blattP'); b.classList.add('offen'); }
+function posOeffnen(key) { posKey = key; posZr = key === 'rente' ? 'max' : '1d'; posAlt = null; posMorph.art = null; posZeichnen(); var b = $('blattP'); b.classList.add('offen'); }
 function posDaten() {
   var d = depotEff();
   if (/^w:/.test(posKey)) { var wk = posKey.slice(2), x = wlListe().filter(function (y) { return (y.isin || y.sym) === wk; })[0]; if (!x) return null; var v = wlWert(x);
@@ -2879,8 +2879,9 @@ function posFinger(P, S) {
 function posMorph() { // gleicher weicher Übergang wie im Depot-Diagramm
   var c = $('pChart'), Z = posGrafik.ziel, A = posAlt; cancelAnimationFrame(posMorphR); if (!c || !Z) { posAlt = null; return; }
   var pl = c.querySelector('path.l'), pr = c.querySelector('path.ref'), ptg = c.querySelector('path.tg'), g1 = c.querySelector('stop.g1'), g2 = c.querySelector('stop.g2');
-  if (!A || matchMedia('(prefers-reduced-motion:reduce)').matches) { posAlt = Z; return; }
-  var N = Math.min(240, Math.max(A.p.length, Z.p.length)), an = function (P, f) { var x = f * (P.length - 1), i = Math.floor(x), k = x - i, a = P[i], b = P[Math.min(P.length - 1, i + 1)]; return a + (b - a) * k; };
+  var art = posKey + '|' + posZr, wechsel = posMorph.art !== art; posMorph.art = art; // (2.80) nur beim Wechsel von Position oder Zeitraum verformen; neue Kurse ohne Animation (vorher alle 5 s grob → fein)
+  if (!A || !wechsel || matchMedia('(prefers-reduced-motion:reduce)').matches) { posAlt = Z; return; }
+  var N = Math.max(A.p.length, Z.p.length), an = function (P, f) { var x = f * (P.length - 1), i = Math.floor(x), k = x - i, a = P[i], b = P[Math.min(P.length - 1, i + 1)]; return a + (b - a) * k; };
   var a = [], b = [], xa = [], xz = [], i; for (i = 0; i < N; i++) { var f = N > 1 ? i / (N - 1) : 0; a.push(an(A.p, f)); b.push(an(Z.p, f)); xa.push(an(A.x, f)); xz.push(an(Z.x, f)); }
   var t0 = performance.now(), W = Z.W, ba = A.xb || 0, bz = Z.xb || 0, ra = A.ref != null ? A.ref : Z.ref, rb = Z.ref;
   var schritt = function (jetzt) {
