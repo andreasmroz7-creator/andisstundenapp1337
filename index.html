@@ -501,7 +501,7 @@ body.istoffline .sstand{color:#ff6b61}
   <div id="jahrauf" style="cursor:pointer;min-width:0;flex:1"><div class="klein" style="white-space:nowrap">Gesamt diesen Monat <span style="color:var(--akzent,#b4b4b4)">· Jahr ›</span></div><div class="gross" id="msumme">0,00</div><div class="klein" id="mdetail" style="display:none"></div><div class="klein" id="mlohn" style="color:var(--gruen);margin-top:2px"></div><div class="klein" id="mfahrt" style="margin-top:2px"></div><div class="klein" id="sync" style="margin-top:4px"></div></div>
   <div style="display:flex;gap:8px">
     <button class="kugel" id="fkauf" aria-label="Fixkosten" style="display:none"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M16 14.5h2"/></svg></button>
-    <button class="kugel" id="nwknopf" aria-label="Arbeitsnachweis" style="display:none"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></svg></button>
+    <button class="kugel" id="nwknopf" aria-label="Steuererklärung" style="display:none"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 13h18"/></svg></button>
     <button class="kugel" id="pdfknopf" aria-label="PDF"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button>
     <button class="kugel" id="einstknopf" aria-label="Einstellungen"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </div>
@@ -617,7 +617,7 @@ body.istoffline .sstand{color:#ff6b61}
   <div class="koerper" id="pKoerper"></div>
 </div></div>
 <div class="blatt" id="blattN"><div class="innen">
-  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattN" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b id="nwTitel">Arbeitsnachweis</b></div><div style="display:flex;gap:8px"><button class="kugel" id="nwpdf" aria-label="PDF erstellen"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button></div></div>
+  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattN" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b id="nwTitel">Steuererklärung</b></div><div style="display:flex;gap:8px"><button class="kugel" id="nwpdf" aria-label="PDF erstellen"><svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></button></div></div>
   <div class="koerper" id="nwKoerper"></div>
 </div></div>
 <div class="blatt" id="blattS"><div class="innen">
@@ -669,7 +669,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.94';
+var VERSION = '2.95';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1497,7 +1497,8 @@ function startZeichnen(still) {
   var k = function (ziel, ic, farbe, titel, wert, unter, extra, breit) { kk[ziel] = function (delay) { return k0(ziel, ic, farbe, titel, wert, unter, extra, breit, delay); }; };
   k('stunden', IC.uhr, 'linear-gradient(135deg,#b4b4b4,#737373)', 'Stunden ' + MONATE[d.getMonth()], z(std.s), std.s ? '<div class="mgeld kz"><span>Brutto</span><i>=</i><span>' + euroH(std.s * lohn) + '</span><span class="nt">Netto</span><i class="nt">≈</i><span class="nt">' + euroH(netto(std.s * lohn)) + '</span></div>' : '', '', false, .12); // (2.55) ohne Tage, Beträge sauber untereinander
   k('kosten', IC.geld, 'linear-gradient(135deg,#b0b0b0,#5a5a5a)', 'Laufende Kosten', f ? pxEuro(fk) : '–', f ? (naechste ? 'nächste: ' + esc(naechste.p.name.split(' (')[0]) + ' am ' + naechste.p.tag + '.' : '') : 'noch nicht geladen', '', false, .18);
-  k('nachweis', IC.koffer, 'linear-gradient(135deg,#a6a6a6,#909090)', 'Arbeitsnachweis ' + hi.slice(0, 4), nt + ' Tage', '', '', false, .24); // (2.55) nur die große Zahl
+  var _sj = stJahrStart(), _ss = stSumme(_sj); // (2.95) Steuererklärung: absetzbar im Steuerjahr
+  k('nachweis', IC.koffer, 'linear-gradient(135deg,#a6a6a6,#909090)', 'Steuererklärung ' + _sj, _ss ? pxEuro(_ss.wk) : nt + ' Tage', _ss ? 'absetzbar (Schätzung)' : '', '', false, .24);
   k('jahr', IC.balken, 'linear-gradient(135deg,#7a7a7a,#666666)', 'Jahresübersicht', 'Jahr ›', 'Stunden, Brutto und Verpflegung pro Monat', '', false, .30);
   var uk = urlaubKonto(+hi.slice(0, 4));
   k('urlaub', IC.sonne, 'linear-gradient(135deg,#a0a0a0,#606060)', (uk.anspruch != null ? 'Resturlaub ' : 'Urlaub ') + hi.slice(0, 4), uk.anspruch != null ? tg(uk.rest) : tg(uk.genommen), uk.anspruch != null ? '' : 'genommen · Anspruch noch nicht eingetragen', '', false); // (2.55) nur der Resturlaub
@@ -1546,7 +1547,7 @@ function kachelReihe(def) {
   var aus = kachelAus(); return r.filter(function (z) { return aus.indexOf(z) < 0; }); // (2.73) ausgeblendete Kacheln weglassen
 }
 // ---------- (2.73) Kacheln ausblenden: beim Anordnen „–“ oben links, zurückholen unten beim Anordnen oder in den Einstellungen ----------
-var KNAMEN = { stunden: 'Stunden', kosten: 'Laufende Kosten', nachweis: 'Arbeitsnachweis', jahr: 'Jahresübersicht', urlaub: 'Urlaub', notizen: 'Notizen', geburtstage: 'Geburtstage', depot: 'Depot', watchlist: 'Watchlist', termine: 'Termine', lohn: 'Lohn', uebrig: 'Was übrig bleibt', plan: 'Einsatzplan' };
+var KNAMEN = { stunden: 'Stunden', kosten: 'Laufende Kosten', nachweis: 'Steuererklärung', jahr: 'Jahresübersicht', urlaub: 'Urlaub', notizen: 'Notizen', geburtstage: 'Geburtstage', depot: 'Depot', watchlist: 'Watchlist', termine: 'Termine', lohn: 'Lohn', uebrig: 'Was übrig bleibt', plan: 'Einsatzplan' };
 function kachelAus() { try { var a = JSON.parse(localStorage.getItem('cockpit_kaus') || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
 function kachelAusSetzen(a) { try { localStorage.setItem('cockpit_kaus', JSON.stringify(a)); } catch (e) {} }
 function kachelAusblenden(k) {
@@ -3603,7 +3604,12 @@ function nachweisHolen(kopf) {
   return fetch(GHN + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) {
     if (!r.ok) return null;
     return r.json().then(function (j) { var n = JSON.parse(b64dec(j.content) || '{}'); if (n && n.tage) { daten.nachweis = n; sichern(true); if ($('blattN').classList.contains('offen')) nachweisZeichnen(); } });
-  }).catch(function () {});
+  }).catch(function () {}).then(function () { // (2.95) frühere Jahre: nachweis_<jahr>.json
+    var J = []; for (var y = 2025; y <= new Date().getFullYear(); y++) if (!daten.nachweis || y !== daten.nachweis.jahr) J.push(y);
+    return Promise.all(J.map(function (y) { return fetch(GH.replace('daten.json', 'nachweis_' + y + '.json') + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      if (!j) return; var n = JSON.parse(b64dec(j.content) || '{}'); if (n && n.tage) { (daten.nachweise = daten.nachweise || {})[y] = n; } }).catch(function () {}); }))
+      .then(function () { sichern(true); if ($('blattN').classList.contains('offen')) nachweisZeichnen(); });
+  });
 }
 // (2.94) Reisetage aus alten Einsatzplänen (reisetage.json, z. B. 2025 vor der App) fürs Deutschland-Ticket
 function reisetageHolen(kopf) {
@@ -3634,11 +3640,36 @@ function nwSteuerHtml(s, jahr) {
     '<p class="hinweis" style="margin:8px 0 0">Unterkunft hat die Firma gebucht und bezahlt, dafür gibt es nichts einzutragen. Pauschalen gelten pro Einsatzort nur für die ersten 3 Monate am selben Ort; bei dir wechseln die Filialen ständig. Keine Steuerberatung.</p></div>';
 }
 
+// (2.95) Steuererklärung: je Jahr Einsätze/Verpflegung (nachweis), Lohn (Abrechnungen), Deutschland-Ticket; absetzbar = Verpflegungs-Differenz (ohne eintägige) + Ticket
+var nwJahr = null;
+function nwDaten(j) { var n = daten.nachweis; return n && n.jahr === +j ? n : (daten.nachweise || {})[j] || null; }
+function nwJahre() { var J = Object.keys(daten.nachweise || {}).map(Number); if (daten.nachweis && daten.nachweis.jahr) J.push(daten.nachweis.jahr); return J.filter(function (x, i) { return J.indexOf(x) === i; }).sort(); }
+function stJahrStart() { var J = nwJahre(), h = new Date(), j = h.getMonth() < 7 ? h.getFullYear() - 1 : h.getFullYear(); if (J.length && J.indexOf(j) < 0) j = J[J.length - 1]; return j; } // bis Juli: Vorjahr (Abgabe bis 31.7.)
+function stLohn(j) { var L = lohnDaten(), r = { n: 0, br: 0, st: 0, sv: 0, vp: 0, ne: 0, m: [] }; if (!L || !L.m) return r;
+  L.m.forEach(function (x) { if (String(x.m).slice(0, 4) !== String(j)) return; var vp = 0; (x.n || []).forEach(function (y) { if (/verpfl/i.test(y.t)) vp += +y.e || 0; });
+    r.n++; r.br += +x.br || 0; r.st += +x.st || 0; r.sv += +x.sv || 0; r.vp += vp; r.ne += +x.ne || 0; r.m.push({ m: x.m, br: +x.br || 0, st: +x.st || 0, sv: +x.sv || 0, vp: vp }); });
+  r.m.sort(function (a, b) { return a.m < b.m ? -1 : 1; }); return r; }
+function stTicket(j) { var M = dtMonate(j), r = { sum: 0, n: 0, reisen: 0, m: M, gesetzt: !!dtDaten().ab }; M.forEach(function (x) { if (!x.aus) { r.sum += x.preis; r.n++; } r.reisen += x.reisen; }); return r; }
+function stSumme(j) { var n = nwDaten(j); if (!n || !n.tage) return null; var s = nwSumme(n.tage), t = stTicket(j); return { s: s, t: t, vp: s.ges - s.erh, wk: s.ges - s.erh + t.sum }; }
+function stHtml(j, n, s) { var L = stLohn(j), T = stTicket(j), h = '';
+  h += '<div class="nwst"><h3>Werbungskosten ' + j + ' (Anlage N)</h3>' +
+    '<div><span>Verpflegungsmehraufwand (Differenz)</span><b>' + euroH(s.ges - s.erh) + '</b></div>' +
+    '<div><span>Deutschland-Ticket (' + T.n + ' Monate)</span><b>' + (T.gesetzt ? euroH(T.sum) : '–') + '</b></div>' +
+    '<div class="sum"><span>Zusammen absetzbar</span><b style="color:var(--gruen)">' + euroH(s.ges - s.erh + T.sum) + '</b></div>' +
+    (s.bed ? '<div><span>Evtl. dazu: eintägige über 8 Std.</span><b style="white-space:nowrap">bis ' + euroH(s.bed) + '</b></div>' : '') +
+    (T.gesetzt ? '' : '<p class="hinweis" style="margin:8px 0 0">Deutschland-Ticket: in der Jahresübersicht eintragen, seit wann du es hast.</p>') + '</div>';
+  if (L.n) h += '<div class="nwst"><h3>Lohn ' + j + ' laut deinen Abrechnungen (' + L.n + ' Monate)</h3>' +
+    '<div><span>Brutto</span><b>' + euroH(L.br) + '</b></div><div><span>Lohnsteuer</span><b>' + euroH(L.st) + '</b></div><div><span>Sozialversicherung</span><b>' + euroH(L.sv) + '</b></div>' +
+    '<div><span>Steuerfreie Verpflegung ausgezahlt</span><b>' + euroH(L.vp) + '</b></div>' +
+    (Math.abs(L.vp - s.erh) < 1 ? '<p class="hinweis" style="margin:8px 0 0">✓ Passt genau zur Verpflegung laut Einsatzplänen.</p>' : '<p class="hinweis" style="margin:8px 0 0">Laut Einsatzplänen ' + euroH(s.erh) + ' – kleine Abweichungen kommen von Monaten, in denen die Verpflegung erst später abgerechnet wurde.</p>') +
+    '<p class="hinweis" style="margin:4px 0 0">Die genauen Zahlen stehen auf der Lohnsteuerbescheinigung, die die Firma dem Finanzamt schickt; ELSTER übernimmt sie meist von selbst.</p></div>';
+  return h; }
 function nachweisZeichnen() {
-  var n = daten.nachweis, k = $('nwKoerper');
-  if (!n || !n.tage) { k.innerHTML = '<p class="leer">' + (daten.einst.token ? 'Wird geladen …' : 'Für den Arbeitsnachweis braucht die App den GitHub-Schlüssel (Einstellungen).') + '</p>'; return; }
-  $('nwTitel').textContent = 'Arbeitsnachweis ' + n.jahr;
-  var s = nwSumme(n.tage), html = '<div class="nwk">' +
+  var J = nwJahre(); if (nwJahr == null || J.indexOf(nwJahr) < 0) nwJahr = stJahrStart();
+  var n = nwDaten(nwJahr), k = $('nwKoerper');
+  if (!n || !n.tage) { k.innerHTML = '<p class="leer">' + (daten.einst.token ? 'Wird geladen …' : 'Für die Steuererklärung braucht die App den GitHub-Schlüssel (Einstellungen).') + '</p>'; return; }
+  $('nwTitel').textContent = 'Steuererklärung ' + n.jahr;
+  var s = nwSumme(n.tage), html = (J.length > 1 ? '<div class="dtjahr"><button type="button" id="nwVor">‹</button><b>' + n.jahr + '</b><button type="button" id="nwNach">›</button></div>' : '') + stHtml(n.jahr, n, s) + '<div class="nwk">' +
     '<div><small>Arbeitstage</small><b>' + s.tage + '</b></div><div><small>Übernachtungen</small><b>' + s.naechte + '</b></div>' +
     '<div><small>Verpflegung erhalten</small><b>' + euroH(s.erh) + '</b></div><div><small>Gesetzlich (Reise)</small><b>' + euroH(s.ges) + '</b></div>' +
     '<div style="grid-column:1/3"><small>Differenz: kannst du als Werbungskosten angeben</small><b class="gr">' + euroH(s.ges - (s.erh)) + '</b>' + (s.bed ? '<small>dazu bis zu ' + euroH(s.bed) + ' für eintägige Einsätze (nur bei über 8 Std. Abwesenheit)</small>' : '') + '</div></div>' +
@@ -3659,20 +3690,44 @@ function nachweisZeichnen() {
   });
   html += '<p class="hinweis" style="margin-top:14px">erhalten / gesetzlich · * nur wenn du an dem Tag über 8 Stunden von zu Hause weg warst. Keine Steuerberatung: im Zweifel Lohnsteuerhilfe oder Steuerberater fragen.</p>';
   k.innerHTML = html;
+  if ($('nwVor')) { $('nwVor').onclick = function () { var i = J.indexOf(nwJahr); if (i > 0) { nwJahr = J[i - 1]; nachweisZeichnen(); } }; $('nwNach').onclick = function () { var i = J.indexOf(nwJahr); if (i < J.length - 1) { nwJahr = J[i + 1]; nachweisZeichnen(); } }; }
 }
 $('nwknopf').onclick = function () {
   nachweisZeichnen(); $('blattN').classList.add('offen');
   if (daten.einst.token) nachweisHolen({ Authorization: 'Bearer ' + daten.einst.token, Accept: 'application/vnd.github+json' });
 };
 $('nwpdf').onclick = function () {
-  var n = daten.nachweis; if (!n || !n.tage) { toast('Noch keine Daten'); return; }
-  var doc = new MiniPDF(), y = 0, seite = 0, s = nwSumme(n.tage);
+  var n = nwDaten(nwJahr || stJahrStart()); if (!n || !n.tage) { toast('Noch keine Daten'); return; }
+  var doc = new MiniPDF(), y = 0, seite = 0, s = nwSumme(n.tage), tab1 = true;
+  var L = stLohn(n.jahr), T = stTicket(n.jahr), wr = function (a, b, fett, gr) { doc.text(40, y, a, gr || 9, fett); doc.text(470, y, b, gr || 9, fett, 'r'); y += 13; };
+  // (2.95) Seite 1: Übersicht für die Steuererklärung
+  doc.addPage(); seite++;
+  doc.text(40, 36, daten.einst.name || 'Mroz Andreas', 11, true); doc.text(40, 50, 'Pers.-Nr. ' + (daten.einst.pers || '4048'), 9); doc.text(802, 36, 'Seite ' + seite, 9, false, 'r');
+  doc.text(40, 78, 'Unterlagen für die Steuererklärung ' + n.jahr, 16, true);
+  doc.text(40, 94, 'Zusammengestellt aus Einsatzplänen/Reiseinfos (E-Mail), Lohnabrechnungen und eigenen Angaben zum Deutschland-Ticket. Stand ' + new Date().toLocaleDateString('de-DE') + '. Keine Steuerberatung.', 8);
+  y = 122; doc.text(40, y, '1. Werbungskosten (Anlage N)', 12, true); y += 16;
+  wr('Verpflegungsmehraufwand: ' + s.t24 + ' Tage × 28 €, ' + s.tAn + ' An-/Abreisetage × 14 €', euro(s.ges));
+  wr('abzüglich steuerfrei vom Arbeitgeber erstattet', '- ' + euro(s.erh));
+  wr('Verpflegungsmehraufwand absetzbar', euro(s.ges - s.erh), true);
+  if (s.bed) wr('ggf. zusätzlich eintägige Einsätze über 8 Std. (' + s.t8 + ' × 14 €, nur wenn zutreffend)', 'bis ' + euro(s.bed));
+  wr('Deutschland-Ticket für Dienstreisen (' + T.n + ' Monate, eigene Kosten; Details Anhang)', T.gesetzt ? euro(T.sum) : 'nicht eingetragen');
+  doc.line(40, y - 8, 470, y - 8, 0.6); y += 3; wr('Werbungskosten zusammen (ohne eintägige)', euro(s.ges - s.erh + T.sum), true, 10);
+  doc.text(40, y, 'Unterkunft: von der Firma gebucht und bezahlt (nichts einzutragen). Fahrten Hotel–Filialen im Firmenwagen, ICE von der Firma bezahlt, Taxi erstattet.', 7.5); y += 22;
+  doc.text(40, y, '2. Lohn laut Lohnabrechnungen (' + L.n + ' Monate)', 12, true); y += 16;
+  if (L.n) {
+    doc.rect(36, y - 10, 440, 15, 0.92); ['Monat', 'Brutto', 'Lohnsteuer', 'Sozialvers.', 'stfr. Verpfl.'].forEach(function (t, i) { doc.text(i ? 190 + (i - 1) * 90 : 40, y, t, 8, true, i ? 'r' : null); }); y += 14;
+    L.m.forEach(function (x) { doc.text(40, y, MONATE[+x.m.slice(5) - 1] + ' ' + x.m.slice(0, 4), 8); [x.br, x.st, x.sv, x.vp].forEach(function (v, i) { doc.text(190 + i * 90, y, euro(v), 8, false, 'r'); }); y += 11.5; });
+    doc.line(40, y - 7, 470, y - 7, 0.6); doc.text(40, y, 'Summe', 8, true); [L.br, L.st, L.sv, L.vp].forEach(function (v, i) { doc.text(190 + i * 90, y, euro(v), 8, true, 'r'); }); y += 14;
+    doc.text(40, y, 'Maßgeblich ist die Lohnsteuerbescheinigung des Arbeitgebers (wird elektronisch ans Finanzamt übermittelt).' + (Math.abs(L.vp - s.erh) < 1 ? ' Steuerfreie Verpflegung stimmt mit den Einsatzplänen überein.' : ''), 7.5); y += 12;
+  } else { doc.text(40, y, 'Keine Lohnabrechnungen für ' + n.jahr + ' gespeichert.', 9); y += 12; }
+  y += 10; doc.text(40, y, '3. Anhang', 12, true); y += 15;
+  ['Einsätze, Übernachtungen und Verpflegung je Tag (Seiten danach)', 'Deutschland-Ticket: Monate, Preis und An-/Abreisen (letzte Seite)'].forEach(function (t) { doc.text(48, y, '- ' + t, 9); y += 12; });
   var X = [40, 98, 122, 180, 420, 560, 650, 712, 802];
   function kopf() {
     doc.addPage(); seite++;
     doc.text(40, 36, daten.einst.name || 'Mroz Andreas', 11, true); doc.text(40, 50, 'Pers.-Nr. ' + (daten.einst.pers || '4048'), 9);
     doc.text(802, 36, 'Seite ' + seite, 9, false, 'r');
-    if (seite === 1) {
+    if (tab1) { tab1 = false;
       doc.text(40, 78, 'Arbeitsnachweis ' + n.jahr + ' – Einsätze, Übernachtungen und Verpflegung', 16, true);
       doc.text(40, 94, 'Grundlage: Einsatzpläne und Reiseinfos der Dornick Dienstleistungen GmbH & Co.KG (per E-Mail erhalten), Stand ' + new Date(n.stand).toLocaleDateString('de-DE') + '.', 8);
       y = 112;
@@ -3710,7 +3765,19 @@ $('nwpdf').onclick = function () {
   [['Tage mit 24 Std. Abwesenheit', s.t24 + ' × 28 € = ' + euro(s.t24 * 28)], ['An- und Abreisetage', s.tAn + ' × 14 € = ' + euro(s.tAn * 14)], ['Eintägig über 8 Std. (nur wenn zutreffend)', s.t8 + ' × 14 € = ' + euro(s.t8 * 14)], ['Vom Arbeitgeber steuerfrei erstattet', euro(s.erh)]].forEach(function (r) { doc.text(40, y, r[0], 9); doc.text(470, y, r[1], 9, false, 'r'); y += 13; });
   y += 8; doc.text(40, y, 'Pauschalen nach § 9 Abs. 4a EStG (2026): 14 € für An- und Abreisetag sowie bei über 8 Std. Abwesenheit, 28 € für Tage mit 24 Std. Abwesenheit. Erhalten: 10 € An-/Abreisetag, 20 € voller Tag.', 7.5);
   y += 11; doc.text(40, y, 'Die Differenz zwischen gesetzlicher Pauschale und steuerfreier Erstattung kann als Werbungskosten angegeben werden. Keine Steuerberatung.', 7.5);
-  teile('Arbeitsnachweis-' + n.jahr + '-' + (daten.einst.name || 'Mroz Andreas').replace(/\s+/g, '-') + '.pdf', new Blob([doc.bytes()], { type: 'application/pdf' }), 'Arbeitsnachweis ' + n.jahr);
+  // (2.95) letzte Seite: Deutschland-Ticket
+  doc.addPage(); seite++; doc.text(40, 36, daten.einst.name || 'Mroz Andreas', 11, true); doc.text(802, 36, 'Seite ' + seite, 9, false, 'r');
+  doc.text(40, 78, 'Deutschland-Ticket ' + n.jahr + ' – genutzt für die An- und Abreise zu Dienstreisen (Regionalverkehr)', 14, true);
+  doc.text(40, 94, 'ICE-Teilstrecken hat die Firma bezahlt, Taxi wurde erstattet. Das Ticket (Abo) habe ich selbst bezahlt. Preis = offizieller Monatspreis, sofern nicht anders eingetragen.', 8);
+  y = 118; doc.rect(36, y - 10, 770, 15, 0.92); ['Monat', 'Preis', 'An-/Abreisen (Datum, Team)'].forEach(function (t, i) { doc.text([40, 200, 220][i], y, t, 8, true, i === 1 ? 'r' : null); }); y += 14;
+  var RT = {}; n.tage.forEach(function (x) { if (x.an || x.ab || x.nurReise) RT[x.datum] = (x.nurReise || x.an ? 'An ' : 'Ab ') + x.team; });
+  daten.eintraege.forEach(function (x) { if ((x.anreise || x.abreise) && x.datum.slice(0, 4) === String(n.jahr) && !RT[x.datum]) RT[x.datum] = x.anreise ? 'Anreise' : 'Abreise'; });
+  if (!T.gesetzt) { doc.text(40, y, 'Noch nicht eingetragen, seit wann du das Ticket hast (Cockpit → Jahresübersicht).', 9); y += 14; }
+  T.m.forEach(function (x) { if (y > 556) { doc.addPage(); seite++; y = 60; }
+    var tg = Object.keys(RT).filter(function (d) { return d.slice(0, 7) === x.k; }).sort().map(function (d) { return +d.slice(8) + '.' + +d.slice(5, 7) + '. ' + RT[d]; }).join(', ');
+    doc.text(40, y, MONATE[+x.k.slice(5) - 1] + ' ' + x.k.slice(0, 4), 8); doc.text(200, y, x.aus ? 'ohne Ticket' : euro(x.preis), 8, false, 'r'); doc.text(220, y, (tg || '–').slice(0, 150), 8); doc.line(40, y + 3.5, 802, y + 3.5, 0.3, 0.85); y += 12.5; });
+  y += 4; doc.text(40, y, 'Summe ' + T.n + ' Monate', 9, true); doc.text(200, y, euro(T.sum), 9, true, 'r');
+  teile('Steuererklaerung-' + n.jahr + '-' + (daten.einst.name || 'Mroz Andreas').replace(/\s+/g, '-') + '.pdf', new Blob([doc.bytes()], { type: 'application/pdf' }), 'Steuererklärung ' + n.jahr);
 };
 
 new MutationObserver(function () {
