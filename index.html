@@ -671,7 +671,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.04';
+var VERSION = '3.05';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2214,7 +2214,7 @@ function jvDepot(q) {
     if ([kz, n, w1.length >= 4 ? w1 : null, sy.length >= 3 ? sy : null].some(function (a) { return a && qq.indexOf(' ' + a + ' ') >= 0; })) treffer = k; });
   if (treffer) {
     if (treffer.pos) { var p = treffer.p, kurs = p.kurs || (p.q ? p.w / p.q : null), m = (d.pos || []).filter(function (y) { return (y.isin || y.sym) === (p.isin || p.sym); })[0] || {};
-      return spr(p.n) + ' steht bei ' + eur(kurs) + (p.pct != null ? ', ' + (p.k === 'krypto' ? 'seit 6 Uhr ' : 'heute ') + pz(p.pct) : '') + '. Deine ' + (p.k === 'krypto' ? spr(p.n) : (Math.round(p.q * 100) / 100).toLocaleString('de-DE') + ' Stück') + ' sind ' + eur(p.w) + ' wert' + (m.c ? ', seit Kauf ' + pm(p.w - m.c) : '') + '.'; }
+      return spr(p.n) + ' steht bei ' + eur(kurs) + (p.pct != null ? ', ' + (p.k === 'krypto' ? 'seit 6 Uhr ' : 'heute ') + pz(p.pct) : '') + '. Deine ' + (p.k === 'krypto' ? spr(p.n) : (Math.round(p.q * 100) / 100).toLocaleString('de-DE') + ' Stück') + ' sind ' + eur(p.w) + ' wert' + (m.c ? ', seit Kauf ' + pm(p.w - m.c) : '') + '.' + (window.jvPosKommentar ? (function (k) { return k ? ' ' + k : ''; })(window.jvPosKommentar(spr(p.n), m.c ? (p.w / m.c - 1) * 100 : null)) : ''); }
     var v = wlWert(treffer.x); if (v.kurs == null) return spr(treffer.x.n) + ' steht auf deiner Watchlist, der Kurs kommt gleich.';
     return spr(treffer.x.n) + ' steht bei ' + eur(v.kurs) + (v.pct != null ? ', ' + (treffer.x.k === 'krypto' ? 'seit 6 Uhr ' : 'heute ') + pz(v.pct) : '') + '. Der Wert steht auf deiner Watchlist.'; }
   if (/allianz|rente\b|rentenversicherung/.test(q) && (d.ex || []).length) { var al = d.ex[0]; return 'Deine Allianz-Rente steht bei ' + eur(al.v) + (al.p > 0 ? ', eingezahlt hast du ' + eur(al.p) + ', das sind ' + pm(al.v - al.p) + ' oder ' + pz((al.v / al.p - 1) * 100) : '') + '.'; }
@@ -2477,6 +2477,26 @@ function jvMacStimme2(t) {
     if(!o)try{const X=(window.__jvExtra||{}).eggs||[];for(let j=0;j<X.length;j++){let rx=null;try{rx=new RegExp('^(?:'+X[j].muster+')$')}catch(_){}if(rx&&rx.test(g)){const w=wahl('egg_'+j,X[j].antworten);hMerk(w,'hoch');o=w.t;break}}}catch(_){}
     return o};
   window.__smallTalk=smallTalk;
+  var pct1 = function (v) { return String(Math.round(v * 10) / 10).replace('.', ',') + ' Prozent'; };
+  // (3.05) Kommentar zu einer Position wie am Dashboard (Humor-Stufe beachten), plus Hebel-Spruch
+  window.jvPosKommentar = function (name, c) { try { if (hStufe() === 'seriös' || c == null || !isFinite(c)) return ''; var n = name, r = { name: name, chg: c }, p = pct1(Math.abs(c)), pm = (c >= 0 ? 'plus ' : 'minus ') + p;
+    if (Math.random() > hP(.75, 'kommentar')) return hebelSpr(name).trim();
+    window.__jvCtx={name:n,p,pm};let w,emo='';
+    if(c<=-30){w=HW('kmTief',['Ehrlich, Meister? An deiner Stelle hätte ich '+n+' nicht gekauft. Minus '+p+' seit dem Kauf. Aber jetzt halten wir zusammen durch.',n+' liegt bei minus '+p+'. Das ist kein Investment mehr, das ist eine Charakterprüfung.','Minus '+p+' bei '+n+'. Ich sage mal so: teures Lehrgeld, Meister.',n+' und du, das ist eine komplizierte Beziehung. Minus '+p+'.','Lieber nicht hinschauen, Meister. '+n+' steht bei minus '+p+'.','Minus '+p+'. '+n+' gibt sich echt Mühe, dich zu ärgern.','Minus '+p+' bei '+n+'. Hast du schon mal über Privatinsolvenz nachgedacht, Meister? Spaß.','Minus '+p+'. Wenn das so weitergeht, verkaufen wir bald Lose vor dem Supermarkt, Meister.'],
+      ['Minus '+p+'. Meister, das war kein Kauf, das war eine Spende.','Minus '+p+' bei '+n+'. Selbst eine geworfene Münze hätte besser entschieden.',n+' bei minus '+p+'. Wenn das ein Restaurant wäre, hätte es null Sterne.']);emo='hoch'}
+    else if(c<=-10){w=HW('kmRot',[n+' steht bei minus '+p+'. Kein Drama, aber auch kein Grund für Champagner.','Minus '+p+' bei '+n+'. Abwarten und Tee trinken, Meister.',n+' hängt etwas durch, minus '+p+'. Der braucht wohl noch einen Kaffee.',n+' liegt bei minus '+p+'. Das wird schon, Meister. Wahrscheinlich.','Minus '+p+'. '+n+' ist gerade in der Selbstfindungsphase.'],
+      ['Minus '+p+'. Ganz ehrlich, Meister, da hätte ein Sparbuch mehr Spaß gemacht.',n+' bei minus '+p+'. Geduld ist eine Tugend, Meister. Viel Geduld.'])}
+    else if(c<10){w=HW('kmFlach',[n+' dümpelt bei '+pm+' herum. Weder Fisch noch Fleisch.',n+' liegt bei '+pm+'. Langweilig, aber immerhin kein Drama.',n+' macht gerade Dienst nach Vorschrift: '+pm+'.','Bei '+n+' tut sich nicht viel, '+pm+'. Die Ruhe vor dem Sturm, Meister?'],
+      [n+' bewegt sich weniger als ein Faultier im Winterschlaf: '+pm+'.'])}
+    else if(c<50){w=HW('kmGut',[n+' liegt bei plus '+p+'. Gutes Händchen, Meister!','Plus '+p+' bei '+n+'. Da hat jemand aufgepasst.',n+' macht Freude: plus '+p+'. Weiter so.','Plus '+p+'. '+n+' ist einer von den Guten, Meister.',n+' steht bei plus '+p+'. Da kann man nicht meckern.'],
+      ['Plus '+p+'. Auch ein blindes Huhn findet mal ein Korn. Kleiner Scherz, Meister.']);emo='hoch'}
+    else{w=HW('kmMond',[n+' bei plus '+p+'! Meister, du bist ein Genie. Oder hattest Glück. Ich sage Genie.','To the moon, Meister! '+n+' liegt bei plus '+p+'.','Plus '+p+' bei '+n+'. Wenn das so weitergeht, brauchst du einen Butler. Ach, du hast ja mich.',n+' plus '+p+'. Warren Buffett ruft gleich an und fragt nach Tipps.'],
+      ['Plus '+p+'. Okay, Meister, gib zu, du hattest Insiderwissen.']);emo='hoch'}
+    let o=w.t;const sp=spitz(r);
+    if(sp&&sp.z===1)o+=' Ich nenne '+n+' ab jetzt übrigens '+akk(sp.n)+'.';
+    else if(sp&&Math.random()<.6){o=wahl('gag'+sp.kat,sp.kat==='tief'?['Ah, '+sp.n+'.','Ach ja, '+sp.n+' mal wieder.','Unser Klassiker: '+sp.n+'.']:['Ah, '+sp.n+'.','Mein Liebling: '+sp.n+'.','Ah, '+sp.n+', mal wieder.']).t+' '+o;
+      if(sp.z>=3&&Math.random()<.5)o+=' '+(sp.kat==='tief'?'Das '+n+'-Drama, Folge '+sp.z+'.':'Die '+n+'-Erfolgsgeschichte, Teil '+sp.z+'.')}
+    window.__jvCtx = null; hMerk(w, emo); var hs = hebelSpr(name); return o + hs; } catch (x) { return ''; } };
   var nr = function (L) { return wahl('ck_' + L[0].slice(0, 12), L).t; };
   var extra = function (g) { var d = new Date(), h = d.getHours(), zeit = d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     if (/^(?:wie spät|wie viel uhr|wieviel uhr|uhrzeit)/.test(g)) return nr(['Es ist ' + zeit + ' Uhr, Meister.', zeit + ' Uhr, Meister.', 'Genau ' + zeit + ' Uhr.']);
