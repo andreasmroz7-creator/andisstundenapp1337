@@ -626,7 +626,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.74';
+var VERSION = '2.75';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2466,7 +2466,48 @@ function depotReihe(d, r) {
     var fz = []; for (var i = 1; i < e.length; i++) if (Math.abs(e[i] - e[i - 1]) > 0.5) fz.push(i);
     return { v: v, g: Z.pl ? e : depotPlusMinus(v, Z.eur, fz), t: Z.p.map(function (x) { return x[0]; }), e: e, ref: 0, eur: Z.eur, pct: Z.pct, txt: DZT[r], r: r }; }
   if (r !== '1d') return { v: [], t: null, e: null, ref: null, eur: 0, pct: 0, txt: DZT[r], r: r, leer: true };
-  var l = d.linie || []; return { v: l, t: d.lt && d.lt.length === l.length ? d.lt : null, e: null, ref: d.ref, eur: d.heute_eur, pct: d.heute_pct, txt: depotWann(d), r: '1d', vor: !d.seitMac && d.ax ? d.vor : null, ax: d.ax };
+  var l = d.linie || [], lt = d.lt && d.lt.length === l.length ? d.lt : null, vor = !d.seitMac && d.ax ? d.vor : null;
+  if (lt && !d.seitMac) { depotFeinHolen(d, vor && vor.length ? vor[0][0] : lt[0]); var F = depotFein(l, lt); l = F.v; lt = F.t; // (2.75) Minuten-Feinheit für den Krypto-Anteil
+    if (vor && vor.length > 1) { var Fv = depotFein(vor.map(function (q) { return q[1]; }), vor.map(function (q) { return q[0]; })); vor = Fv.t.map(function (t, i) { return [t, Fv.v[i]]; }); } }
+  return { v: l, t: lt, e: null, ref: d.ref, eur: d.heute_eur, pct: d.heute_pct, txt: depotWann(d), r: '1d', vor: vor, ax: d.ax };
+}
+// ---------- (2.75) Tagesdiagramm feiner: der Mac liefert alle 5 Minuten einen Punkt. Dazwischen zeichnen wir den Krypto-Anteil Minute für Minute
+// (Binance 1-Minuten-Kerzen × Stückzahl). Die Mac-Punkte bleiben genau; was die Kryptos nicht erklären (Aktien, ETFs), wird gleichmäßig verteilt.
+var depotFeinK = { t: 0, ab: 0, m: null, busy: false };
+function depotFeinHolen(d, ab) {
+  var kr = (d.pos || []).filter(function (p) { return p.k === 'krypto' && p.sym && +p.q > 0; }); if (!kr.length || depotFeinK.busy) return;
+  ab = Math.floor(ab / 60) * 60; if (depotFeinK.m && depotFeinK.ab === ab && Date.now() - depotFeinK.t < 60e3) return;
+  depotFeinK.busy = true;
+  var seiten = function (sym) { // bis zu 2 × 1000 Minuten (ganzer Tag ab Mitternacht)
+    var url = function (st) { return 'https://api.binance.com/api/v3/klines?symbol=' + sym + '&interval=1m&limit=1000&startTime=' + st * 1000; };
+    return fetch(url(ab), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : []; }).then(function (a) {
+      if (a.length < 1000) return a; return fetch(url(Math.round(a[a.length - 1][0] / 1000) + 60), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : []; }).then(function (b) { return a.concat(b); });
+    }).catch(function () { return []; });
+  };
+  Promise.all(kr.map(function (p) { return seiten(p.sym + 'USDT'); }).concat([fetch('https://api.binance.com/api/v3/ticker/price?symbol=EURUSDT', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })])).then(function (A) {
+    depotFeinK.busy = false; var eu = A.pop(), e = eu && +eu.price; if (!e) return;
+    var m = {}, n = 0; // Minute (Sekunden) → Summe Stück × Kurs in Euro
+    var reihen = kr.map(function (p, i) { var r = {}; (A[i] || []).forEach(function (k) { r[Math.round(k[0] / 1000)] = +k[4] / e * +p.q; }); return r; });
+    if (reihen.some(function (r) { return !Object.keys(r).length; })) return;
+    var alle = Object.keys(reihen[0]).map(Number).sort(function (a, b) { return a - b; });
+    alle.forEach(function (t) { var s = 0, ok = true; reihen.forEach(function (r) { if (r[t] == null) ok = false; else s += r[t]; }); if (ok) { m[t] = s; n++; } });
+    if (n < 2) return; depotFeinK.m = m; depotFeinK.ab = ab; depotFeinK.t = Date.now();
+    try { if ($('blattD').classList.contains('offen') && depotZr === '1d') depotZeichnen(); } catch (x) {}
+  });
+}
+function depotFeinC(t) { var m = depotFeinK.m; if (!m) return null; t = Math.floor(t / 60) * 60; for (var i = 0; i < 6; i++) { if (m[t - 60 * i] != null) return m[t - 60 * i]; } return null; }
+function depotFein(v, t) {
+  if (!depotFeinK.m || !t || t.length !== v.length || v.length < 2) return { v: v, t: t };
+  var ov = [v[0]], ot = [t[0]];
+  for (var j = 0; j < v.length - 1; j++) {
+    var a = t[j], b = t[j + 1], ca = depotFeinC(a), cb = depotFeinC(b);
+    if (b - a > 90 && ca != null && cb != null) {
+      var rest = (v[j + 1] - v[j]) - (cb - ca); // Teil, den die Kryptos nicht erklären → gleichmäßig verteilen
+      for (var x = Math.floor(a / 60) * 60 + 60; x < b - 30; x += 60) { var cx = depotFeinC(x); if (cx == null) continue; ov.push(Math.round((v[j] + (cx - ca) + rest * (x - a) / (b - a)) * 100) / 100); ot.push(x); }
+    }
+    ov.push(v[j + 1]); ot.push(b);
+  }
+  return { v: ov, t: ot };
 }
 // (2.32) Diagramm-Art wie im Dashboard: € = Gesamtvermögen, ± = Gewinn/Verlust ohne Einzahlungen (Nulllinie gestrichelt)
 var depotArt = (function () { try { return localStorage.getItem('cockpit_depotart2') === 'eur' ? 'eur' : 'pm'; } catch (x) { return 'pm'; } })(); // (2.34) ± zuerst (Standard), € als zweites
