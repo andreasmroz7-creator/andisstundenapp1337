@@ -261,6 +261,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 #jvGriff i{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) * .6);width:110px;height:5px;margin-left:-55px;border-radius:2px;background:rgba(255,255,255,.28);transition:background .2s,width .2s,margin .2s}
 #jvGriff:active i{background:rgba(255,255,255,.6);width:130px;margin-left:-65px}
 #jvGriff.weg{opacity:0;pointer-events:none}
+#jvGriff{display:none!important} /* (3.02) Andi: eigene Jarvis-Linie unten weg, unten gehört die Apple-Leiste; Jarvis über langes Drücken */
 #blattJv{background:transparent}
 #blattJv .innen{background:rgba(6,7,9,.16);-webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px);opacity:0;transition:opacity .55s ease}
 #blattJv.auf .innen{opacity:1}
@@ -669,7 +670,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.01';
+var VERSION = '3.02';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
