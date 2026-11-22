@@ -297,7 +297,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .spanne{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .12s}.spanne.an{opacity:1}
 .spanne .sf{position:absolute;top:0;bottom:0;background:rgba(255,255,255,.08)}.spanne .s1,.spanne .s2{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.55)}
 .spanne .sl{position:absolute;top:4px;z-index:2;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:13px;font-weight:700;padding:5px 10px;border-radius:10px;background:rgba(30,30,30,.95);border:1px solid var(--rand)}
-.spanne .sl.plus{color:var(--ok)}.spanne .sl.minus{color:var(--rot)}
+.spanne .sl.spp{color:var(--ok)}.spanne .sl.spm{color:var(--rot)}
 .dchart.zwei .dcur,.dchart.zwei .ddot{opacity:0!important}
 /* (2.81) Querformat: Diagramm groß */
 #quer{position:fixed;inset:0;z-index:60;background:#111;display:none;flex-direction:column;padding:max(env(safe-area-inset-top),10px) max(env(safe-area-inset-right),16px) max(env(safe-area-inset-bottom),8px) max(env(safe-area-inset-left),16px)}
@@ -662,7 +662,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.85';
+var VERSION = '2.86';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -3123,7 +3123,7 @@ function spanneAn(c, Z, V, B, T, zr, preis) {
     box.querySelector('.s1').style.left = x1 + 'px'; box.querySelector('.s2').style.left = x2 + 'px';
     var f = box.querySelector('.sf'); f.style.left = x1 + 'px'; f.style.width = Math.max(1, x2 - x1) + 'px';
     var d = V[j] - V[i], p = B[i] > 0 ? d / B[i] * 100 : null, l = box.querySelector('.sl'), z1 = zeitKurz(T[i], zr), z2 = zeitKurz(T[j], zr);
-    l.className = 'sl ' + (d >= 0 ? 'plus' : 'minus');
+    l.className = 'sl ' + (d >= 0 ? 'spp' : 'spm'); // (2.86) nicht „plus“: die Klasse gehört schon dem ausgeblendeten Plus-Knopf
     l.textContent = (z1 && z2 ? z1 + ' bis ' + z2 + ': ' : '') + (depotSicht ? betragKurz(d, preis) + (p != null ? ' (' + pzKurz(p) + ')' : '') : p != null ? pzKurz(p) : '');
     l.style.left = ((x1 + x2) / 2) + 'px';
   };
