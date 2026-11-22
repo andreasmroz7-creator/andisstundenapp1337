@@ -661,7 +661,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.82';
+var VERSION = '2.83';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -803,7 +803,7 @@ function sync() {
       if (r.status === 404 || r.status === 403) throw new Error('Schlüssel darf nur lesen. Contents auf „Read and write“ stellen');
       if (!r.ok) throw new Error('Hochladen ' + r.status);
     });
-  }).then(function () { return fahrtenHolen(kopf); }).then(function () { fahrtenAuto(); return nachweisHolen(kopf); }).then(function () { return fixkostenHolen(kopf); }).then(function () { return notizenSync(kopf); }).then(function () { return gbSync(kopf); }).then(function () { return depotHolen(kopf); }).then(function () { return stimmeHolen(kopf); }).then(function () {
+  }).then(function () { return fahrtenHolen(kopf); }).then(function () { fahrtenAuto(); return nachweisHolen(kopf); }).then(function () { return lohnHolen(kopf); }).then(function () { return fixkostenHolen(kopf); }).then(function () { return notizenSync(kopf); }).then(function () { return gbSync(kopf); }).then(function () { return depotHolen(kopf); }).then(function () { return stimmeHolen(kopf); }).then(function () {
     offlineZeigen(false); daten.letzterAbgleich = Date.now(); sichern(true); standPruefen(); if ($('sstand')) $('sstand').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     syncLaeuft = false; syncAnzeige('☁ abgeglichen ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
   }).catch(function (x) {
@@ -2709,7 +2709,14 @@ function tmZeichnen() {
 }
 // (2.63) Lohnabrechnungen: Daten vom Mac (positionen.json „lohn“), PDFs liegen in Google Drive (Cloud/Lohnabrechnungen)
 var lohnJahr = null, lohnK = null;
-function lohnDaten() { var L = daten.depotKurven && daten.depotKurven.lohn; return L && L.m && L.m.length ? L : null; }
+function lohnDaten() { var A = daten.depotKurven && daten.depotKurven.lohn, B = daten.lohnRepo; A = A && A.m && A.m.length ? A : null; B = B && B.m && B.m.length ? B : null;
+  if (!B) return A; if (!A) return B; // neuerer Stand / mehr Abrechnungen gewinnt, Arbeitszeitkonto immer aus dem Repo
+  var nehmeB = (B.stand || '') >= (A.stand || '') || B.m.length >= A.m.length; return nehmeB ? B : Object.assign({}, A, { azk: B.azk }); }
+function azkHtml(L) { var Z = L && L.azk; if (!Z) return '';
+  var satz = 0; L.m.slice().reverse().some(function (x) { var s = lohnStd(x); if (s.satz) { satz = s.satz; return true; } return false; });
+  var f = function (n) { return (Math.round(n * 100) / 100).toLocaleString('de-DE'); }, h = '<div class="lsek"><div class="dpt">Arbeitszeitkonto</div>' + lohnZ('Stand', f(Z.stand) + ' Std.', 'laut Abrechnung ' + lohnMonat(Z.monat) + (satz ? ' · ≈ ' + euro(Z.stand * satz) + ' brutto' : ''), 'lzs');
+  (Z.plan || []).forEach(function (p) { h += lohnZ(lohnMonat(p.m), (p.std > 0 ? '+' : '−') + f(Math.abs(p.std)) + ' Std.', esc(p.text) + (p.std < 0 && satz ? ' · ≈ ' + euro(-p.std * satz) + ' brutto' : '')); });
+  return h + (Z.hinweis ? '<p class="hinweis" style="margin-top:8px">' + esc(Z.hinweis) + '</p>' : '') + '</div>'; }
 function lohnMonat(k, kurz) { var p = k.split('-'), n = MONATE[+p[1] - 1]; return kurz ? n.slice(0, 3) : n + ' ' + p[0]; }
 function lohnStd(x) { var u = 0, g = 0, satz = 0; x.b.forEach(function (b) { if (b.h) { u += b.h; satz = b.s || satz; } }); x.b.forEach(function (b) { if (b.t === 'Grundgehalt' && satz) g = b.e / satz; }); return { u: u, g: g, satz: satz }; }
 function lohnErfasst(k) { // Stunden, die im Cockpit für diesen Monat eingetragen sind
@@ -2803,13 +2810,14 @@ function lohnZeichnen() {
   var h = (J.length > 1 ? '<div class="ljahr">' + J.map(function (j) { return '<button type="button" data-j="' + j + '" class="' + (j === lohnJahr ? 'an' : '') + '">' + j + '</button>'; }).join('') + '</div>' : '');
   h += '<div class="lbox"><small>Ausgezahlt ' + lohnJahr + ' · ' + M.length + (M.length === 1 ? ' Abrechnung' : ' Abrechnungen') + '</small><div class="lgross">' + pxEuro(au) + '</div><small class="lschnitt">Ø <b>' + euro(au / M.length) + '</b> pro Monat</small></div>';
   h += '<div class="lsum">' + [['Brutto', euroH(sm(function (x) { return x.br; }))], ['Netto', euroH(sm(function (x) { return x.ne; }))], ['Steuern', euroH(sm(function (x) { return x.st; }))], ['Sozialversicherung', euroH(sm(function (x) { return x.sv; }))], ['Verpflegung', euroH(vp)], ['Überstunden', (Math.round(ue * 100) / 100).toLocaleString('de-DE') + ' Std.']].map(function (a) { return '<div><small>' + a[0] + '</small><b>' + a[1] + '</b></div>'; }).join('') + '</div>';
+  h += azkHtml(L); // (2.83)
   var mx = Math.max.apply(null, M.map(function (x) { return x.au; })) || 1;
   h += '<div class="lbalken">' + M.map(function (x) { return '<button type="button" data-k="' + x.m + '" class="' + (x.au === mx ? 'max' : '') + '"><i style="height:' + Math.max(4, x.au / mx * 92) + 'px"></i>' + lohnMonat(x.m, true).slice(0, 1) + '</button>'; }).join('') + '</div>';
   h += '<div class="lsek"><div class="dpt">Abrechnungen</div>' + M.slice().reverse().map(function (x) { var s = lohnStd(x);
     return '<div class="lz klick" data-k="' + x.m + '"><div>' + lohnMonat(x.m) + '<small>Brutto ' + euro(x.br) + (s.u ? ' · ' + s.u.toLocaleString('de-DE') + ' Überstd.' : '') + '</small></div><div class="r"><b>' + euroH(x.au) + '</b><small>ausgezahlt</small></div></div>'; }).join('') + '</div>';
   if (L.bes && L.bes.length) h += '<div class="lsek"><div class="dpt">Bescheinigungen</div>' + L.bes.map(function (b, i) { return '<div class="lz klick" data-bes="' + i + '"><div>' + esc(b.t) + '</div><div class="r" style="color:var(--grau)">ansehen ›</div></div>'; }).join('') + '</div>';
   if (L.ordner) h += '<a class="lknopf" target="_blank" rel="noopener" href="https://drive.google.com/drive/folders/' + encodeURIComponent(L.ordner) + '">Alle Abrechnungen in Google Drive</a>';
-  h += '<p class="hinweis" style="margin-top:14px">Stand ' + new Date(L.stand + 'T12:00').toLocaleDateString('de-DE') + '. Neue Abrechnung einfach Claude schicken.</p>';
+  h += '<p class="hinweis" style="margin-top:14px">Stand ' + new Date(L.stand + 'T12:00').toLocaleDateString('de-DE') + '. Neue Abrechnungen in Google Drive (Cloud/Lohnabrechnungen) holt Claude jede Nacht automatisch.</p>';
   $('lKoerper').innerHTML = h;
   [].forEach.call(document.querySelectorAll('#lKoerper .ljahr button'), function (b) { b.onclick = function () { lohnJahr = b.dataset.j; lohnZeichnen(); }; });
   [].forEach.call(document.querySelectorAll('#lKoerper [data-k]'), function (b) { b.onclick = function () { lohnOeffnen(b.dataset.k); }; });
@@ -2844,6 +2852,8 @@ function lohnDetail() {
   h += '<div class="lsek"><div class="dpt">Abzüge</div>' + lohnZ('Steuern', lohnVz(-x.st), 'Lohnsteuer, Kirchensteuer, Soli') + lohnZ('Sozialversicherung', lohnVz(-x.sv), 'Kranken-, Renten-, Arbeitslosen-, Pflegeversicherung') + lohnZ('Netto', euroH(x.ne), Math.round(x.ne / x.br * 100) + ' % vom Brutto', 'lzs') + '</div>';
   if (x.n.length) h += '<div class="lsek"><div class="dpt">Dazu und ab (steuerfrei)</div>' + x.n.map(function (n) { return lohnZ(esc(n.t), lohnVz(n.e)); }).join('') + lohnZ('Ausgezahlt', euroH(x.au), '', 'lzs') + '</div>';
   h += '<div class="lsek"><div class="dpt">Stunden</div>' + lohnZ('Bezahlt', (Math.round((s.g + s.u) * 100) / 100).toLocaleString('de-DE') + ' Std.', s.g ? Math.round(s.g) + ' im Gehalt + ' + s.u.toLocaleString('de-DE') + ' Überstunden' : '') + (er != null ? lohnZ('Im Cockpit eingetragen', er.toLocaleString('de-DE', { maximumFractionDigits: 2 }) + ' Std.', 'Unterschied ' + pz(Math.round((s.g + s.u - er) * 100) / 100) + ' Std.') : '') + (s.satz ? lohnZ('Stundenlohn', euro(s.satz)) : '') + '</div>';
+  var azP = L.azk && (L.azk.plan || []).filter(function (p) { return p.m === x.m; })[0]; // (2.83) Arbeitszeitkonto in diesem Monat
+  if (x.azk != null || azP) h += '<div class="lsek"><div class="dpt">Arbeitszeitkonto</div>' + (x.azk != null ? lohnZ('Stand laut Abrechnung', (Math.round(x.azk * 100) / 100).toLocaleString('de-DE') + ' Std.') : '') + (azP ? lohnZ(azP.std > 0 ? 'Aufs Konto' : 'Vom Konto ausgezahlt', (azP.std > 0 ? '+' : '−') + Math.abs(azP.std).toLocaleString('de-DE') + ' Std.', esc(azP.text)) : '') + '</div>';
   h += '<button type="button" class="lknopf" id="ldBild">Abrechnung ansehen</button>';
   h += '<div class="lnav"><button type="button" id="ldVor"' + (v ? '' : ' disabled') + '>‹ ' + (v ? lohnMonat(v.m).split(' ')[0] : '') + '</button><button type="button" id="ldNach"' + (L.m[i + 1] ? '' : ' disabled') + '>' + (L.m[i + 1] ? lohnMonat(L.m[i + 1].m).split(' ')[0] : '') + ' ›</button></div>';
   $('ldKoerper').innerHTML = h;
@@ -3403,6 +3413,13 @@ function nachweisHolen(kopf) {
   return fetch(GHN + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) {
     if (!r.ok) return null;
     return r.json().then(function (j) { var n = JSON.parse(b64dec(j.content) || '{}'); if (n && n.tage) { daten.nachweis = n; sichern(true); if ($('blattN').classList.contains('offen')) nachweisZeichnen(); } });
+  }).catch(function () {});
+}
+// (2.83) Lohn-Daten direkt aus dem Daten-Repo (lohn/lohn.json, pflegt die nächtliche Aufgabe ohne Mac), mit Arbeitszeitkonto
+function lohnHolen(kopf) {
+  return fetch(GH.replace('daten.json', 'lohn/lohn.json') + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) {
+    if (!r.ok) return null;
+    return r.json().then(function (j) { var n = JSON.parse(b64dec(j.content) || '{}'); if (n && n.m && n.m.length) { daten.lohnRepo = n; sichern(true); if ($('blattL').classList.contains('offen')) lohnZeichnen(); } });
   }).catch(function () {});
 }
 var WT = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
