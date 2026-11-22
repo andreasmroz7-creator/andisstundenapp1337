@@ -102,11 +102,11 @@ input::placeholder{color:#646464}
 .jb .s{height:12px;border-radius:7px;background:rgba(255,255,255,.06);overflow:hidden}.jb .s i{display:block;height:100%;border-radius:7px;background:linear-gradient(90deg,#747474,#b4b4b4)}
 .jb.top .s i{background:linear-gradient(90deg,#a4a4a4,#b4b4b4)}
 .nwst{margin-top:16px;background:rgba(255,255,255,.05);border:1px solid var(--rand);border-radius:14px;padding:12px 14px;font-size:14px}
-.nwst h3{font-size:15px;margin:0 0 8px}.nwst div{display:flex;justify-content:space-between;gap:10px;padding:4px 0}.nwst span{color:var(--grau)}.nwst .sum{border-top:1px solid var(--rand);margin-top:6px;padding-top:8px;font-weight:600}
+.nwst h3{font-size:15px;margin:0 0 8px}.nwst .stin{align-items:center}.nwst .stin input{width:104px;flex:0 0 104px;text-align:right;padding:8px 10px;border-radius:10px}.nwst .stin input.sttx{width:auto;flex:1;text-align:left}.nwst div{display:flex;justify-content:space-between;gap:10px;padding:4px 0}.nwst span{color:var(--grau)}.nwst .sum{border-top:1px solid var(--rand);margin-top:6px;padding-top:8px;font-weight:600}
 .suche{display:flex;align-items:center;gap:8px;margin:0 0 12px;padding:10px 14px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid var(--rand)}
 .suche input{flex:1;background:none;border:0;color:inherit;font:inherit;font-size:16px;outline:none;min-width:0;padding:0}
 .suche svg{width:18px;height:18px;stroke:var(--grau);fill:none;stroke-width:2;flex:none}
-.suche .weg{background:none;border:0;color:var(--grau);font-size:18px;padding:0 2px;display:none}
+.suche .weg{display:none;width:28px;height:28px}.suche .weg svg{width:13px;height:13px;stroke-width:2.4}#suche::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none;display:none}
 .tag.live{border-style:dashed;opacity:.92}.livepunkt{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--ok);margin-right:6px;animation:puls 1.4s infinite}
 @keyframes puls{0%,100%{opacity:1}50%{opacity:.3}}
 .fahrtzeile{font-size:12px;color:var(--gruen);margin-top:3px}
@@ -169,6 +169,10 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .kweg{display:none;position:absolute;right:46px;top:10px;z-index:3;width:30px;height:30px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:rgba(40,40,40,.9);color:#fff;align-items:center;justify-content:center;padding:0}
 .kweg svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2.6;stroke-linecap:round}
 #start.ordnen .kweg{display:flex}
+/* (3.12) gleicher Kugel-Look wie das Auge: Ordnen-Knöpfe auf den Kacheln, Jahres-Pfeile */
+.kgr,.kweg,.dtjahr button{border:1px solid rgba(255,255,255,.18);background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.28),rgba(255,255,255,.06) 60%,rgba(0,0,0,.15)),rgba(30,30,30,.85);box-shadow:inset 0 1px 1px rgba(255,255,255,.25),0 4px 14px rgba(0,0,0,.35);transition:transform .15s,box-shadow .15s;cursor:pointer}
+.kgr:active,.kweg:active,.dtjahr button:active{transform:scale(.92);box-shadow:inset 0 1px 1px rgba(255,255,255,.25),0 0 18px rgba(180,180,180,.45)}
+.dtjahr button{display:inline-flex;align-items:center;justify-content:center;padding:0;line-height:1}
 .sgrid .kachel.raus{transition:transform .25s ease-in,opacity .25s ease-in!important;transform:scale(.6)!important;opacity:0!important}
 .kzurueck{display:none;flex-wrap:wrap;gap:8px;justify-content:center;margin:14px 0 0}#start.ordnen .kzurueck{display:flex}
 .kzurueck small{width:100%;text-align:center;font-size:12px;color:var(--grau)}
@@ -320,7 +324,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .trechts{display:flex;align-items:center;gap:10px}
 .sknoepfe{display:flex;gap:10px;align-items:center}
 .sufeld{width:100%;box-sizing:border-box;font:inherit;font-size:17px;padding:12px 14px;border-radius:14px;border:1px solid var(--rand);background:var(--karte);color:#fff;outline:none}
-.dtjahr{display:flex;align-items:center;gap:14px;margin:4px 0 10px}.dtjahr button{border:1px solid var(--rand);background:var(--karte);color:#fff;border-radius:999px;width:34px;height:34px;font:inherit;font-size:18px}.dtfelder{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 10px}.dtfelder>div{min-width:0}.dtfelder .ganz{grid-column:1/-1}.dtfelder input{box-sizing:border-box}.dtm{cursor:pointer}.dtaus b,.dtaus span{opacity:.45;text-decoration:line-through}
+.dtjahr{display:flex;align-items:center;gap:14px;margin:4px 0 10px}.dtjahr button{color:#fff;border-radius:50%;width:34px;height:34px;font:inherit;font-size:18px}.dtfelder{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 10px}.dtfelder>div{min-width:0}.dtfelder .ganz{grid-column:1/-1}.dtfelder input{box-sizing:border-box}.dtm{cursor:pointer}.dtaus b,.dtaus span{opacity:.45;text-decoration:line-through}
 .suchips{display:flex;flex-wrap:wrap;gap:8px}.suchips button{border:1px solid var(--rand);background:var(--karte);color:#fff;border-radius:999px;padding:8px 14px;font:inherit;font-size:14px}
 .sugr{font-size:12px;color:var(--grau);text-transform:uppercase;letter-spacing:.4px;margin:18px 2px 6px}
 .suz{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 14px;border:1px solid var(--rand);border-radius:14px;background:var(--karte);margin-top:6px;cursor:pointer}
@@ -508,7 +512,7 @@ body.istoffline .sstand{color:#ff6b61}
   </div>
   <div id="mgesamt" style="flex-basis:100%"></div>
 </div>
-<div class="suche"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="suche" placeholder="Ort oder Filiale suchen" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="weg" id="sucheWeg" aria-label="Suche leeren">×</button></div>
+<div class="suche"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input type="search" id="suche" placeholder="Ort oder Filiale suchen" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="weg kugel klein" id="sucheWeg" aria-label="Suche leeren"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
 <div id="liste"></div>
 <div id="start"></div><button class="jvfab weg" id="jvFab" aria-label="Jarvis" style="display:none"></button><button id="jvGriff" aria-label="Jarvis rufen"><i></i></button><div id="jvFang"></div><div class="jvunter" id="jvUnter"></div><input type="text" id="jvTipp" placeholder="Frag Jarvis …" autocomplete="off" enterkeyhint="send"><div class="jvkern weg" id="jvOrb"><canvas id="jvCore" aria-hidden="true"></canvas></div>
 <div id="sperre"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><div style="font-size:20px;font-weight:700">Cockpit gesperrt</div><div class="hinweis" id="sperreInfo"></div></div>
@@ -671,7 +675,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.11';
+var VERSION = '3.12';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -800,11 +804,13 @@ function sync() {
     // (2.27) Urlaubskonto mitsyncen: neuerer Stand gewinnt
     var fu = fern.d.urlaub; if (fu && fu.jahre && (fu.stand || 0) > (daten.einst.urlaubStand || 0)) { daten.einst.urlaubJahr = fu.jahre; daten.einst.urlaubStand = fu.stand; m.urlaubNeu = 1; }
     var fdt = fern.d.dticket; if (fdt && (fdt.stand || 0) > ((daten.einst.dticket || {}).stand || 0)) { daten.einst.dticket = fdt; m.urlaubNeu = 1; } // (2.92) Deutschland-Ticket mitsyncen
+    var fst = fern.d.steuer; if (fst && (fst.stand || 0) > ((daten.einst.steuer || {}).stand || 0)) { daten.einst.steuer = fst; m.urlaubNeu = 1; } // (3.12) eigene Werbungskosten + Nebenkosten mitsyncen
     var urlObj = daten.einst.urlaubStand ? { stand: daten.einst.urlaubStand, jahre: daten.einst.urlaubJahr || {} } : (fu || null);
-    sichern(true); if (m.urlaubNeu || JSON.stringify({ e: daten.eintraege, p: daten.profile, g: daten.geloescht }) !== alt) { zeichne(); if (!$('start').classList.contains('aus')) startZeichnen(true); if ($('blattJ').classList.contains('offen')) jahrZeichnen(); if ($('blattU') && $('blattU').classList.contains('offen')) urlaubZeichnen(); }
+    sichern(true); if (m.urlaubNeu || JSON.stringify({ e: daten.eintraege, p: daten.profile, g: daten.geloescht }) !== alt) { zeichne(); if (!$('start').classList.contains('aus')) startZeichnen(true); if ($('blattJ').classList.contains('offen')) jahrZeichnen(); if ($('blattU') && $('blattU').classList.contains('offen')) urlaubZeichnen(); if (m.urlaubNeu && $('blattN') && $('blattN').classList.contains('offen') && !(document.activeElement && document.activeElement.dataset && document.activeElement.dataset.st)) nachweisZeichnen(); }
     var nO = { eintraege: daten.eintraege, profile: daten.profile, geloescht: daten.geloescht }, fO = { eintraege: fern.d.eintraege || [], profile: fern.d.profile || [], geloescht: fern.d.geloescht || {} };
     if (urlObj) nO.urlaub = urlObj; if (fu) fO.urlaub = fu;
     if (daten.einst.dticket && daten.einst.dticket.stand) nO.dticket = daten.einst.dticket; if (fdt) fO.dticket = fdt;
+    if (daten.einst.steuer && daten.einst.steuer.stand) nO.steuer = daten.einst.steuer; if (fst) fO.steuer = fst;
     var neuText = JSON.stringify(nO, null, 1);
     var fernText = JSON.stringify(fO, null, 1);
     if (neuText === fernText) return;
@@ -1411,7 +1417,7 @@ function geisterSpaeter(ms) { clearTimeout(geistTimer); geistTimer = setTimeout(
 })();
 // Suche über alle Monate
 function sucheZeichnen() {
-  var q = $('suche').value.trim().toLowerCase(); $('sucheWeg').style.display = q ? 'block' : 'none';
+  var q = $('suche').value.trim().toLowerCase(); $('sucheWeg').style.display = q ? 'inline-flex' : 'none';
   if (!q) { zeichne(); return; }
   var tr = daten.eintraege.filter(function (x) { return (x.laeden || []).some(function (l) { return (l.ort || '').toLowerCase().indexOf(q) >= 0 || String(l.fil || '').indexOf(q) === 0; }); }).sort(function (a, b) { return a.datum < b.datum ? 1 : -1; });
   var sum = 0, html = '<div class="hinweis" style="margin:0 0 10px">' + tr.length + (tr.length === 1 ? ' Tag' : ' Tage') + ' mit „' + esc($('suche').value.trim()) + '“</div>';
@@ -3745,7 +3751,28 @@ function st8(j) { var n = nwDaten(j), R = { tage: [], n: 0, sum: 0, alle: 0 }; i
     var ok = std == null ? true : std > 8; R.tage.push({ datum: t.datum, team: t.team, std: std, ok: ok, quelle: quelle }); if (ok) { R.n++; R.sum += 14; } });
   return R; }
 var R0 = window.Rechnen;
-function stSumme(j) { var n = nwDaten(j); if (!n || !n.tage) return null; var s = nwSumme(n.tage), t = stTicket(j), x = stExtra(j), e8 = st8(j); return { s: s, t: t, x: x, e8: e8, vp: s.ges - s.erh, wk: s.ges - s.erh + t.sum + x.sum + e8.sum }; }
+// (3.12) Eigene Werbungskosten je Jahr (Arbeitsmittel, Arbeitskleidung, Gewerkschaft, Steuerprogramm, Sonstiges) und Nebenkostenabrechnung nach § 35a EStG:
+// haushaltsnahe Dienste (Hausmeister, Treppenhaus, Winterdienst, Garten …) 20 % der Arbeitskosten, höchstens 4.000 €; Handwerker (Wartung, Schornsteinfeger …) 20 %, höchstens 1.200 € – direkt von der Steuer
+var ST_EIGEN = [['am', 'Arbeitsmittel', 'z. B. Werkzeug, Tasche, Taschenrechner'], ['kl', 'Arbeitskleidung', 'nur typische Berufskleidung, z. B. Sicherheitsschuhe, Firmenshirt'], ['gw', 'Gewerkschaft', 'Mitgliedsbeiträge'], ['sp', 'Steuerprogramm / Steuerberater', 'auch Fachbücher'], ['so', 'Sonstiges', '']];
+function stEigenDaten(j) { var S = daten.einst.steuer = daten.einst.steuer || { jahre: {} }; S.jahre = S.jahre || {}; return S.jahre[j] = S.jahre[j] || {}; }
+function stEigen(j) { var d = ((daten.einst.steuer || {}).jahre || {})[j] || {}, w = function (k) { return Math.max(0, +d[k] || 0); }, r = { d: d, sum: 0, posten: [] };
+  ST_EIGEN.forEach(function (x) { var v = w(x[0]); r[x[0]] = v; r.sum += v; if (v) r.posten.push([x[0] === 'so' && d.soT ? d.soT : x[1], v]); });
+  r.nkD = w('nkD'); r.nkH = w('nkH'); r.abzD = Math.round(Math.min(4000, r.nkD * 0.2) * 100) / 100; r.abzH = Math.round(Math.min(1200, r.nkH * 0.2) * 100) / 100; r.abz = r.abzD + r.abzH;
+  r.sum = Math.round(r.sum * 100) / 100; return r; }
+function stEigenHtml(j) { var d = ((daten.einst.steuer || {}).jahre || {})[j] || {}, G = stEigen(j), v = function (k) { return d[k] ? (d[k] % 1 ? (+d[k]).toFixed(2) : String(d[k])).replace('.', ',') : ''; }, f = function (k, t, u) { return '<div class="stin"><span>' + t + (u ? '<br><small style="opacity:.7">' + u + '</small>' : '') + '</span><input type="text" inputmode="decimal" placeholder="0 €" data-st="' + k + '" value="' + v(k) + '"></div>'; };
+  var h = '<div class="nwst"><h3>Eigene Werbungskosten ' + j + '</h3>' + ST_EIGEN.map(function (x) { return f(x[0], x[1], x[2]); }).join('') +
+    '<div class="stin"><input type="text" class="sttx" placeholder="Wofür? (bei Sonstiges)" data-st="soT" value="' + esc(d.soT || '') + '"></div>' +
+    (G.sum ? '<div class="sum"><span>Zusammen</span><b style="color:var(--gruen)">' + euroH(G.sum) + '</b></div>' : '') +
+    '<p class="hinweis" style="margin:6px 0 0">Nur was du selbst bezahlt hast und die Firma nicht erstattet. Beträge in Euro fürs ganze Jahr, Belege aufheben. Zählt oben bei den Werbungskosten mit.</p></div>';
+  h += '<div class="nwst"><h3>Nebenkostenabrechnung (§ 35a)</h3>' +
+    f('nkD', 'Haushaltsnahe Dienste', 'Hausmeister, Treppenhausreinigung, Winterdienst, Gartenpflege') + f('nkH', 'Handwerker', 'Wartung Heizung/Rauchmelder, Schornsteinfeger, Reparaturen') +
+    (G.abz ? '<div class="sum"><span>Geht direkt von der Steuer ab (20 %)</span><b style="color:var(--gruen)">' + euroH(G.abz) + '</b></div>' : '') +
+    '<p class="hinweis" style="margin:6px 0 0">Nur die Arbeitskosten deines Anteils eintragen (steht in der Abrechnung meist als eigene Aufstellung „§ 35a EStG“), keine Material- oder Müllkosten. Zählt in dem Jahr, in dem du die Abrechnung bekommst. Schick mir ein Foto davon, dann trag ich es ein.</p></div>';
+  return h; }
+function stEigenBinden(j) { [].forEach.call(document.querySelectorAll('[data-st]'), function (el) { el.onchange = function () { var d = stEigenDaten(j), k = el.dataset.st;
+  if (k === 'soT') { if (el.value.trim()) d.soT = el.value.trim(); else delete d.soT; } else { var v = parseFloat(el.value.replace(/\./g, '').replace(',', '.').replace(/[^0-9.]/g, '')); if (isNaN(v) || v <= 0) delete d[k]; else d[k] = Math.round(v * 100) / 100; }
+  daten.einst.steuer.stand = Date.now(); sichern(); nachweisZeichnen(); }; }); }
+function stSumme(j) { var n = nwDaten(j); if (!n || !n.tage) return null; var s = nwSumme(n.tage), t = stTicket(j), x = stExtra(j), e8 = st8(j), g = stEigen(j); return { s: s, t: t, x: x, e8: e8, g: g, vp: s.ges - s.erh, wk: s.ges - s.erh + t.sum + x.sum + e8.sum + g.sum }; }
 // (2.96) Erstattung schätzen: Jahressteuer nach § 32a EStG gegen die abgezogene Lohnsteuer. zvE = Brutto − Werbungskosten (mind. 1.230 € Pauschbetrag) − Vorsorge (≈ 95 % der Sozialabgaben: RV, KV/PV ohne Krankengeld-Anteil, AV fällt meist raus) − 36 € Sonderausgaben-Pauschbetrag
 function stTarif(j, x) { x = Math.floor(x); var g = j <= 2025 ? [12096, 17443, 68480, 932.30, 176.64, 1015.13, 10911.92] : [12348, 17799, 69878, 914.51, 173.10, 1034.87, 11135.63]; // 2027 noch offen → Tarif 2026
   if (x <= g[0]) return 0; if (x <= g[1]) { var y = (x - g[0]) / 1e4; return Math.floor((g[3] * y + 1400) * y); }
@@ -3759,29 +3786,30 @@ function stErstattung(j) { var L = stLohn(j), n = nwDaten(j); if (!L.n) return n
   // (2.97) Andi ist in der Kirche (Sachsen 9 %): „st“ auf der Abrechnung = Lohnsteuer + Kirchensteuer (+ Soli, bei ihm 0). Gezahlte Kirchensteuer zählt als Sonderausgabe (statt 36 € Pauschbetrag).
   if (daten.einst.kist === undefined) { daten.einst.kist = true; sichern(true); }
   var ks = daten.einst.kist ? 0.09 : 0, lstNur = lst / (1 + ks), kistBez = lst - lstNur;
-  var rechne = function (wk) { var w = Math.max(1230, wk), sa = Math.max(36, kistBez), zve = Math.max(0, br - w - vor - sa), est = stTarif(+j, zve), ki = Math.floor(est * ks * 100) / 100;
-    return { wk: w, sa: sa, zve: zve, est: est, kist: ki, erst: lst - est - ki, pausch: wk < 1230 }; };
-  var X = stExtra(j), E8 = st8(j), w8 = E8.sum * fn, a = rechne(wkVp + wkT + X.sum + w8), b = E8.sum ? rechne(wkVp + wkT + X.sum) : null;
-  return { lauf: lauf, f: f, br: br, lst: lst, lstNur: lstNur, kistBez: kistBez, ks: ks, vor: vor, a: a, b: b, e8: E8, wkEcht: wkVp + wkT + X.sum + w8 }; }
+  var G = stEigen(j), rechne = function (wk) { var w = Math.max(1230, wk), sa = Math.max(36, kistBez), zve = Math.max(0, br - w - vor - sa), est0 = stTarif(+j, zve), est = Math.max(0, est0 - G.abz), ki = Math.floor(est * ks * 100) / 100;
+    return { wk: w, sa: sa, zve: zve, est0: est0, est: est, kist: ki, erst: lst - est - ki, pausch: wk < 1230 }; };
+  var X = stExtra(j), E8 = st8(j), w8 = E8.sum * fn, a = rechne(wkVp + wkT + X.sum + w8 + G.sum), b = E8.sum ? rechne(wkVp + wkT + X.sum + G.sum) : null;
+  return { lauf: lauf, f: f, br: br, lst: lst, lstNur: lstNur, kistBez: kistBez, ks: ks, vor: vor, a: a, b: b, e8: E8, g: G, wkEcht: wkVp + wkT + X.sum + w8 + G.sum }; }
 function stErstHtml(j) { var E = stErstattung(j); if (!E) return ''; var z = function (v) { return (v >= 0 ? '' : '− ') + euroH(Math.abs(v)); };
   return '<div class="nwst"><h3>Erstattung ' + j + ' (Schätzung' + (E.lauf ? ', hochgerechnet aufs ganze Jahr' : '') + ')</h3>' +
     '<div><span>Abgezogen: Lohnsteuer' + (E.ks ? ' + Kirchensteuer' : '') + (E.lauf ? ' (hochgerechnet)' : '') + '</span><b>' + euroH(E.lst) + '</b></div>' +
     '<div><span>Steuer fürs ganze Jahr (ca.)' + (E.ks ? ' inkl. 9 % Kirchensteuer' : '') + '</span><b>' + euroH(E.a.est + E.a.kist) + '</b></div>' +
     '<div class="sum"><span>' + (E.a.erst >= 0 ? 'Du bekommst zurück' : 'Nachzahlung') + '</span><b style="color:' + (E.a.erst >= 0 ? 'var(--gruen)' : 'var(--rot)') + '">' + z(E.a.erst) + '</b></div>' +
     (E.b ? '<div><span>Ohne die eintägigen Einsätze wären es</span><b style="white-space:nowrap">' + z(E.b.erst) + '</b></div>' : '') +
-    '<p class="hinweis" style="margin:8px 0 0">Gerechnet: Brutto ' + euroH(E.br) + ' − Werbungskosten ' + euroH(E.a.wk) + (E.a.pausch ? ' (Pauschbetrag, deine ' + euroH(E.wkEcht) + ' liegen darunter)' : '') + ' − Sozialabgaben ≈ ' + euroH(E.vor) + (E.ks ? ' − gezahlte Kirchensteuer ' + euroH(E.a.sa) : '') + ' = zu versteuern ≈ ' + euroH(E.a.zve) + '. ' +
+    '<p class="hinweis" style="margin:8px 0 0">Gerechnet: Brutto ' + euroH(E.br) + ' − Werbungskosten ' + euroH(E.a.wk) + (E.a.pausch ? ' (Pauschbetrag, deine ' + euroH(E.wkEcht) + ' liegen darunter)' : '') + ' − Sozialabgaben ≈ ' + euroH(E.vor) + (E.ks ? ' − gezahlte Kirchensteuer ' + euroH(E.a.sa) : '') + ' = zu versteuern ≈ ' + euroH(E.a.zve) + '. ' + (E.g.abz ? 'Nebenkosten (§ 35a) ziehen ' + euroH(E.g.abz) + ' direkt von der Steuer ab. ' : '') +
     'Wenn monatlich unterschiedlich viel verdient wird, gleicht die Steuererklärung das übers Jahr aus. ' + (E.ks ? 'Mit Kirchensteuer 9 % (Sachsen; Schalter in den Einstellungen).' : 'Ohne Kirchensteuer (Schalter in den Einstellungen).') + ' Grobe Schätzung, keine Steuerberatung.</p></div>'; }
-function stHtml(j, n, s) { var L = stLohn(j), T = stTicket(j), X = stExtra(j), E8 = st8(j), h = stErstHtml(j);
+function stHtml(j, n, s) { var L = stLohn(j), T = stTicket(j), X = stExtra(j), E8 = st8(j), G = stEigen(j), W = s.ges - s.erh + T.sum + X.sum + E8.sum + G.sum, h = stErstHtml(j);
   h += '<div class="nwst"><h3>Werbungskosten ' + j + ' (Anlage N)</h3>' +
     '<div><span>Verpflegungsmehraufwand (Differenz)</span><b>' + euroH(s.ges - s.erh) + '</b></div>' +
     '<div><span>Deutschland-Ticket (' + T.n + ' Monate)</span><b>' + (T.gesetzt ? euroH(T.sum) : '–') + '</b></div>' +
     (E8.alle ? '<div><span>Eintägige über 8 Std.: ' + E8.n + ' von ' + E8.alle + ' Tagen × 14&nbsp;€</span><b>' + euroH(E8.sum) + '</b></div>' : '') +
     (X.sum ? '<div><span>Handy ' + X.hm + ' × 20 % von ' + String(ST_HANDY).replace('.', ',') + ' €</span><b>' + euroH(X.handy) + '</b></div><div><span>Kontoführung (pauschal)</span><b>' + euroH(X.konto) + '</b></div>' : '') +
-    '<div class="sum"><span>Zusammen</span><b style="color:var(--gruen)">' + euroH(s.ges - s.erh + T.sum + X.sum + E8.sum) + '</b></div>' +
-    (s.ges - s.erh + T.sum + X.sum + E8.sum < 1230 ? '<p class="hinweis" style="margin:6px 0 0">Unter 1.230 € – dann zählt der Pauschbetrag (ist schon in der Lohnsteuer drin).</p>' : '<p class="hinweis" style="margin:6px 0 0">Wirkt nur der Teil über 1.230 € (' + euroH(s.ges - s.erh + T.sum + X.sum + E8.sum - 1230) + '), der Pauschbetrag ist schon in der Lohnsteuer drin.</p>') +
+    (G.sum ? '<div><span>Eigene (unten eingetragen)</span><b>' + euroH(G.sum) + '</b></div>' : '') +
+    '<div class="sum"><span>Zusammen</span><b style="color:var(--gruen)">' + euroH(W) + '</b></div>' +
+    (W < 1230 ? '<p class="hinweis" style="margin:6px 0 0">Unter 1.230 € – dann zählt der Pauschbetrag (ist schon in der Lohnsteuer drin).</p>' : '<p class="hinweis" style="margin:6px 0 0">Wirkt nur der Teil über 1.230 € (' + euroH(W - 1230) + '), der Pauschbetrag ist schon in der Lohnsteuer drin.</p>') +
     (E8.alle ? '<details class="hinweis" style="margin:6px 0 0"><summary>Eintägige Tage ansehen</summary>' + E8.tage.map(function (t) { return (t.ok ? '✓ ' : '✗ ') + (+t.datum.slice(8)) + '.' + (+t.datum.slice(5, 7)) + '. ' + esc(t.team) + ' · ' + (t.std != null ? String(Math.round(t.std * 100) / 100).replace('.', ',') + ' Std. weg (' + t.quelle + ')' : t.quelle); }).join('<br>') + '</details>' : '') +
 
-    (T.gesetzt ? '' : '<p class="hinweis" style="margin:8px 0 0">Deutschland-Ticket: in der Jahresübersicht eintragen, seit wann du es hast.</p>') + '</div>';
+    (T.gesetzt ? '' : '<p class="hinweis" style="margin:8px 0 0">Deutschland-Ticket: in der Jahresübersicht eintragen, seit wann du es hast.</p>') + '</div>' + stEigenHtml(j);
   if (L.n) h += '<div class="nwst"><h3>Lohn ' + j + ' laut deinen Abrechnungen (' + L.n + ' Monate)</h3>' +
     '<div><span>Brutto</span><b>' + euroH(L.br) + '</b></div><div><span>Lohn- und Kirchensteuer</span><b>' + euroH(L.st) + '</b></div><div><span>Sozialversicherung</span><b>' + euroH(L.sv) + '</b></div>' +
     '<div><span>Steuerfreie Verpflegung ausgezahlt</span><b>' + euroH(L.vp) + '</b></div>' +
@@ -3814,6 +3842,7 @@ function nachweisZeichnen() {
   });
   html += '<p class="hinweis" style="margin-top:14px">erhalten / gesetzlich · * nur wenn du an dem Tag über 8 Stunden von zu Hause weg warst. Keine Steuerberatung: im Zweifel Lohnsteuerhilfe oder Steuerberater fragen.</p>';
   k.innerHTML = html;
+  stEigenBinden(nwJahr);
   if ($('nwVor')) { $('nwVor').onclick = function () { var i = J.indexOf(nwJahr); if (i > 0) { nwJahr = J[i - 1]; nachweisZeichnen(); } }; $('nwNach').onclick = function () { var i = J.indexOf(nwJahr); if (i < J.length - 1) { nwJahr = J[i + 1]; nachweisZeichnen(); } }; }
 }
 $('nwknopf').onclick = function () {
@@ -3836,7 +3865,8 @@ $('nwpdf').onclick = function () {
   var E8 = st8(n.jahr); if (E8.alle) wr('Eintägige Einsätze ohne Übernachtung, über 8 Std. von zu Hause weg: ' + E8.n + ' von ' + E8.alle + ' Tagen × 14 €', euro(E8.sum));
   wr('Deutschland-Ticket für Dienstreisen (' + T.n + ' Monate, eigene Kosten; Details Anhang)', T.gesetzt ? euro(T.sum) : 'nicht eingetragen');
   var X = stExtra(n.jahr); if (X.sum) { wr('Telefon (Handy auch dienstlich): ' + X.hm + ' Monate × 20 % von ' + euro(ST_HANDY) + ' (max. 20 €/Monat)', euro(X.handy)); wr('Kontoführungsgebühren (pauschal)', euro(X.konto)); }
-  doc.line(40, y - 8, 470, y - 8, 0.6); y += 3; wr('Werbungskosten zusammen', euro(s.ges - s.erh + T.sum + X.sum + E8.sum), true, 10);
+  var G = stEigen(n.jahr); G.posten.forEach(function (p) { wr(p[0] + ' (eigene Belege)', euro(p[1])); });
+  doc.line(40, y - 8, 470, y - 8, 0.6); y += 3; wr('Werbungskosten zusammen', euro(s.ges - s.erh + T.sum + X.sum + E8.sum + G.sum), true, 10);
   doc.text(40, y, 'Unterkunft: von der Firma gebucht und bezahlt (nichts einzutragen). Fahrten Hotel–Filialen im Firmenwagen, ICE von der Firma bezahlt, Taxi erstattet.', 7.5); y += 22;
   doc.text(40, y, '2. Lohn laut Lohnabrechnungen (' + L.n + ' Monate)', 12, true); y += 16;
   if (L.n) {
@@ -3846,9 +3876,10 @@ $('nwpdf').onclick = function () {
     doc.text(40, y, 'Maßgeblich ist die Lohnsteuerbescheinigung des Arbeitgebers (wird elektronisch ans Finanzamt übermittelt).' + (Math.abs(L.vp - s.erh) < 1 ? ' Steuerfreie Verpflegung stimmt mit den Einsatzplänen überein.' : ''), 7.5); y += 12;
   } else { doc.text(40, y, 'Keine Lohnabrechnungen für ' + n.jahr + ' gespeichert.', 9); y += 12; }
   var E = stErstattung(n.jahr);
+  if (E && y + 24 + 13 * (7 + (E.ks ? 1 : 0) + (E.b ? 1 : 0) + (E.g.abz ? 1 : 0)) > 592) { doc.addPage(); seite++; doc.text(40, 36, daten.einst.name || 'Mroz Andreas', 11, true); doc.text(40, 50, 'Pers.-Nr. ' + (daten.einst.pers || '4048'), 9); doc.text(802, 36, 'Seite ' + seite, 9, false, 'r'); y = 70; } // (3.12) Platz für eigene Werbungskosten
   if (E) { y += 8; doc.text(40, y, '3. Erstattung (grobe Schätzung' + (E.lauf ? ', hochgerechnet' : '') + ')', 12, true); y += 16;
     wr('Bruttolohn', euro(E.br)); wr('- Werbungskosten' + (E.a.pausch ? ' (Arbeitnehmer-Pauschbetrag)' : ''), '- ' + euro(E.a.wk)); wr('- Vorsorgeaufwendungen (ca. 95 % der Sozialabgaben) und ' + (E.ks ? 'gezahlte Kirchensteuer' : '36 € Sonderausgaben'), '- ' + euro(E.vor + E.a.sa));
-    wr('= zu versteuerndes Einkommen (ca.)', euro(E.a.zve)); wr('Einkommensteuer nach § 32a EStG ' + n.jahr, euro(E.a.est)); if (E.ks) wr('Kirchensteuer 9 % (Sachsen)', euro(E.a.kist)); wr('Abgezogen laut Abrechnungen (Lohnsteuer' + (E.ks ? ' ' + euro(E.lstNur) + ' + Kirchensteuer ' + euro(E.kistBez) : '') + ')', euro(E.lst));
+    wr('= zu versteuerndes Einkommen (ca.)', euro(E.a.zve)); wr('Einkommensteuer nach § 32a EStG ' + n.jahr, euro(E.a.est0)); if (E.g.abz) wr('- Steuerermäßigung § 35a Nebenkosten (20 % von ' + euro(E.g.nkD + E.g.nkH) + ')', '- ' + euro(E.g.abz)); if (E.ks) wr('Kirchensteuer 9 % (Sachsen)', euro(E.a.kist)); wr('Abgezogen laut Abrechnungen (Lohnsteuer' + (E.ks ? ' ' + euro(E.lstNur) + ' + Kirchensteuer ' + euro(E.kistBez) : '') + ')', euro(E.lst));
     wr(E.a.erst >= 0 ? 'Voraussichtliche Erstattung' : 'Voraussichtliche Nachzahlung', euro(Math.abs(E.a.erst)), true, 10);
     if (E.b) wr('zum Vergleich ohne die eintägigen Einsätze', (E.b.erst >= 0 ? 'Erstattung ' : 'Nachzahlung ') + euro(Math.abs(E.b.erst)));
     doc.text(40, y, (E.ks ? 'Mit Kirchensteuer 9 % (Sachsen).' : 'Ohne Kirchensteuer.') + ' Solidaritätszuschlag fällt bei diesem Einkommen nicht an. Gezahlte Kirchensteuer: Anlage Sonderausgaben. Das Finanzamt rechnet genau; keine Steuerberatung.', 7.5); y += 6; }
