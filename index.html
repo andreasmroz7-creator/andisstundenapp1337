@@ -296,19 +296,20 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 /* (2.81) Zwei Finger = Spanne */
 .spanne{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .12s}.spanne.an{opacity:1}
 .spanne .sf{position:absolute;top:0;bottom:0;background:rgba(255,255,255,.08)}.spanne .s1,.spanne .s2{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.55)}
-.spanne .sl{position:absolute;top:-30px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:13px;font-weight:700;padding:5px 10px;border-radius:10px;background:rgba(30,30,30,.95);border:1px solid var(--rand)}
+.spanne .sl{position:absolute;top:4px;z-index:2;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:13px;font-weight:700;padding:5px 10px;border-radius:10px;background:rgba(30,30,30,.95);border:1px solid var(--rand)}
 .spanne .sl.plus{color:var(--ok)}.spanne .sl.minus{color:var(--rot)}
 .dchart.zwei .dcur,.dchart.zwei .ddot{opacity:0!important}
 /* (2.81) Querformat: Diagramm groß */
 #quer{position:fixed;inset:0;z-index:60;background:#111;display:none;flex-direction:column;padding:max(env(safe-area-inset-top),10px) max(env(safe-area-inset-right),16px) max(env(safe-area-inset-bottom),8px) max(env(safe-area-inset-left),16px)}
 #quer.an{display:flex}
 #quer .qkopf{display:flex;align-items:baseline;gap:14px;flex:none;min-height:44px}#quer .qkopf b.qt{font-size:15px;color:var(--grau);font-weight:600}
-#quer .qkopf .qw{font-size:24px;font-weight:800;white-space:nowrap}#quer .qkopf .qa{font-size:15px;white-space:nowrap}#quer .qkopf .qinfo{margin-left:auto;white-space:nowrap}
+#quer .qkopf .qw{font-size:24px;font-weight:800;white-space:nowrap}#quer .qkopf .qa{font-size:15px;white-space:nowrap}#quer .qkopf .qinfo{margin-left:12px;white-space:nowrap}
 #quer .qflaeche{position:relative;flex:1;margin:6px 64px 22px 0;touch-action:none}
 #quer svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 #quer .qx{position:absolute;bottom:-20px;font-size:11px;color:var(--grau);transform:translateX(-50%);white-space:nowrap}
 #quer .qy{position:absolute;right:-62px;font-size:11px;color:var(--grau);transform:translateY(-50%);white-space:nowrap}
-#quer .qcur{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.4);opacity:0}#quer .qflaeche.zieht .qcur{opacity:1}
+#quer .qcur{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.4);opacity:0}#quer .qflaeche.zieht .qcur{opacity:1}#quer .qflaeche.zwei .qcur{opacity:0!important}
+#quer .qzr{margin:0 0 0 auto;flex:none;width:300px}#quer .qzr button{padding:6px 0;font-size:13px}#quer .qkopf{align-items:center}
 #quer .qinfo{font-size:14px;color:#fff;font-weight:600}
 /* (2.81) Vergleichslinie */
 .dlinie path.cmp{fill:none;stroke:rgba(255,255,255,.6);stroke-width:1.3;stroke-dasharray:4 3}
@@ -656,12 +657,12 @@ body.istoffline .sstand{color:#ff6b61}
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattSu" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Suchen</b></div></div>
   <div class="koerper" id="suKoerper"><input type="search" class="sufeld" id="suFeld" placeholder="Laden, Ort, Position, Notiz, Name …" autocomplete="off" autocapitalize="off" spellcheck="false"><div id="suListe"></div></div>
 </div></div>
-<div id="quer"><div class="qkopf"><b class="qt" id="qTitel"></b><span class="qw" id="qWert"></span><span class="qa" id="qAend"></span><span class="qinfo" id="qInfo"></span></div><div class="qflaeche" id="qFlaeche"></div></div>
+<div id="quer"><div class="qkopf"><b class="qt" id="qTitel"></b><span class="qw" id="qWert"></span><span class="qa" id="qAend"></span><span class="qinfo" id="qInfo"></span><div class="dzr qzr" id="qZr"></div></div><div class="qflaeche" id="qFlaeche"></div></div>
 <div class="toast" id="toast"></div>
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.84';
+var VERSION = '2.85';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -3177,9 +3178,12 @@ function querZeichnen() {
     farbe = G.up ? 'var(--ok)' : 'var(--rot)'; $('qTitel').textContent = G.titel || ''; var kq = G.P && (G.P.rente || G.P.kurs == null ? G.P.w : G.P.kurs); $('qWert').textContent = kq == null ? '' : depotSicht ? (kq < 1 ? kq.toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' €' : euro(kq)) : '••••••';
     var a0 = S.ref != null ? S.ref : S.heute[0], a1 = S.heute[S.heute.length - 1], pq = a0 ? (a1 / a0 - 1) * 100 : 0; $('qAend').innerHTML = '<span class="' + (pq >= 0 ? 'dplus' : 'dminus') + '">' + pzKurz(pq) + '</span> <span style="color:var(--grau)">' + ({ '1d': 'heute', '1w': 'seit 1 Woche', '1m': 'seit 1 Monat', '1y': 'seit 1 Jahr', max: 'seit Beginn' }[posZr] || '') + '</span>'; }
   $('qInfo').textContent = '';
+  var ZRL = G.art === 'depot' ? DZR : [['1d', '1T'], ['1w', '1W'], ['1m', '1M'], ['1y', '1J']].concat(G.P && G.P.rente ? [['max', 'Max']] : []);
+  $('qZr').innerHTML = ZRL.map(function (z) { return '<button type="button" data-r="' + z[0] + '" class="' + (z[0] === zr ? 'an' : '') + '">' + z[1] + '</button>'; }).join('');
+  [].forEach.call(document.querySelectorAll('#qZr button'), function (b) { b.onclick = function () { if (G.art === 'depot') { depotZr = b.dataset.r; depotZeichnen(); } else { posZr = b.dataset.r; posZeichnen(); } querZeichnen(); }; });
   if (pkt.length < 2) return;
   if (!pkt[pkt.length - 1].t) pkt[pkt.length - 1].t = Math.round(Date.now() / 1000);
-  var F = $('qFlaeche'), W = 1000, H = 400, mitZeit = pkt.every(function (q) { return q.t; }), nV = pkt.filter(function (q) { return q.g; }).length;
+  var F = $('qFlaeche'), W = 1000, H = 400, mitZeit = false /* (2.85) immer gleichmäßig wie die kleinen Diagramme: keine langen Strecken, wenn die Börse zu ist */, hatZeit = pkt.every(function (q) { return q.t; }), nV = pkt.filter(function (q) { return q.g; }).length;
   var t0 = mitZeit ? pkt[0].t : 0, t1 = mitZeit ? pkt[pkt.length - 1].t : 1;
   var X = pkt.map(function (q, i) { if (mitZeit) return (q.t - t0) / ((t1 - t0) || 1) * W; var xb = nV ? W / 6 : 0; return q.g ? (nV > 1 ? i / (nV - 1) * xb : 0) : xb + (pkt.length - nV > 1 ? (i - nV) / (pkt.length - nV - 1) : 0) * (W - xb); });
   var vs = pkt.map(function (q) { return q.v; }).concat(ref != null ? [ref] : []), mn = Math.min.apply(null, vs), mx = Math.max.apply(null, vs), sp = (mx - mn) || 1;
@@ -3191,7 +3195,7 @@ function querZeichnen() {
     (ref != null ? '<path d="M' + xb.toFixed(1) + ' ' + y(ref).toFixed(1) + 'H' + W + '" style="stroke:rgba(255,255,255,.25);stroke-dasharray:4 4;fill:none" vector-effect="non-scaling-stroke"/>' : '') +
     (grau ? '<path d="' + grau + '" style="stroke:rgba(255,255,255,.38);stroke-width:1.6;fill:none" vector-effect="non-scaling-stroke"/>' : '') +
     '<path d="' + farb + '" style="stroke:' + farbe + ';stroke-width:2;fill:none;stroke-linejoin:round" vector-effect="non-scaling-stroke"/></svg><i class="qcur" id="qCur"></i>';
-  if (mitZeit) for (var k = 0; k <= 4; k++) { var tt = t0 + (t1 - t0) * k / 4; h += '<span class="qx" style="left:' + (k * 25) + '%">' + zeitKurz(tt, zr) + '</span>'; }
+  if (hatZeit) { var i0 = nV ? nV - 1 : 0; for (var k = 0; k <= 4; k++) { var ii = Math.round(i0 + (pkt.length - 1 - i0) * k / 4); h += '<span class="qx" style="left:' + (X[ii] / W * 100) + '%' + (k === 0 ? ';transform:none' : k === 4 ? ';transform:translateX(-100%)' : '') + '">' + zeitKurz(pkt[ii].t, zr) + '</span>'; } }
   else h += (nV ? '<span class="qx" style="left:0%">Vortag</span>' : '') + '<span class="qx" style="left:100%">jetzt</span>';
   var mark = [mx, mn].concat(ref != null && (ref - mn) / sp > .08 && (mx - ref) / sp > .08 ? [ref] : []);
   if (depotSicht) mark.forEach(function (v) { h += '<span class="qy" style="top:' + (y(v) / H * 100) + '%">' + fmt(v) + '</span>'; });
