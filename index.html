@@ -669,7 +669,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.96';
+var VERSION = '2.97';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -3661,17 +3661,21 @@ function stErstattung(j) { var L = stLohn(j), n = nwDaten(j); if (!L.n) return n
   if (lauf && L.m[0] && +L.m[0].m.slice(5) > 1) f = (13 - +L.m[0].m.slice(5)) / L.n; // erst später im Jahr angefangen
   var fn = lauf ? 12 / (new Date().getMonth() + 1) : 1; // Einsätze/Ticket gehen bis heute, Abrechnungen nur bis zum Vormonat
   var br = L.br * f, lst = L.st * f, vor = L.sv * f * 0.95, wkVp = s ? (s.ges - s.erh) * fn : 0, wkT = lauf && T.n ? T.sum / T.n * 12 : T.sum;
-  var rechne = function (wk) { var w = Math.max(1230, wk), zve = Math.max(0, br - w - vor - 36), est = stTarif(+j, zve); return { wk: w, zve: zve, est: est, erst: lst - est, pausch: wk < 1230 }; };
+  // (2.97) Andi ist in der Kirche (Sachsen 9 %): „st“ auf der Abrechnung = Lohnsteuer + Kirchensteuer (+ Soli, bei ihm 0). Gezahlte Kirchensteuer zählt als Sonderausgabe (statt 36 € Pauschbetrag).
+  if (daten.einst.kist === undefined) { daten.einst.kist = true; sichern(true); }
+  var ks = daten.einst.kist ? 0.09 : 0, lstNur = lst / (1 + ks), kistBez = lst - lstNur;
+  var rechne = function (wk) { var w = Math.max(1230, wk), sa = Math.max(36, kistBez), zve = Math.max(0, br - w - vor - sa), est = stTarif(+j, zve), ki = Math.floor(est * ks * 100) / 100;
+    return { wk: w, sa: sa, zve: zve, est: est, kist: ki, erst: lst - est - ki, pausch: wk < 1230 }; };
   var a = rechne(wkVp + wkT), b = s && s.bed ? rechne(wkVp + wkT + s.bed * fn) : null;
-  return { lauf: lauf, f: f, br: br, lst: lst, vor: vor, a: a, b: b, wkEcht: wkVp + wkT }; }
+  return { lauf: lauf, f: f, br: br, lst: lst, lstNur: lstNur, kistBez: kistBez, ks: ks, vor: vor, a: a, b: b, wkEcht: wkVp + wkT }; }
 function stErstHtml(j) { var E = stErstattung(j); if (!E) return ''; var z = function (v) { return (v >= 0 ? '' : '− ') + euroH(Math.abs(v)); };
   return '<div class="nwst"><h3>Erstattung ' + j + ' (Schätzung' + (E.lauf ? ', hochgerechnet aufs ganze Jahr' : '') + ')</h3>' +
-    '<div><span>Lohnsteuer abgezogen' + (E.lauf ? ' (hochgerechnet)' : '') + '</span><b>' + euroH(E.lst) + '</b></div>' +
-    '<div><span>Steuer fürs ganze Jahr (ca.)</span><b>' + euroH(E.a.est) + '</b></div>' +
+    '<div><span>Abgezogen: Lohnsteuer' + (E.ks ? ' + Kirchensteuer' : '') + (E.lauf ? ' (hochgerechnet)' : '') + '</span><b>' + euroH(E.lst) + '</b></div>' +
+    '<div><span>Steuer fürs ganze Jahr (ca.)' + (E.ks ? ' inkl. 9 % Kirchensteuer' : '') + '</span><b>' + euroH(E.a.est + E.a.kist) + '</b></div>' +
     '<div class="sum"><span>' + (E.a.erst >= 0 ? 'Du bekommst zurück' : 'Nachzahlung') + '</span><b style="color:' + (E.a.erst >= 0 ? 'var(--gruen)' : 'var(--rot)') + '">' + z(E.a.erst) + '</b></div>' +
     (E.b ? '<div><span>Mit eintägigen Einsätzen über 8 Std.</span><b style="white-space:nowrap">' + z(E.b.erst) + '</b></div>' : '') +
-    '<p class="hinweis" style="margin:8px 0 0">Gerechnet: Brutto ' + euroH(E.br) + ' − Werbungskosten ' + euroH(E.a.wk) + (E.a.pausch ? ' (Pauschbetrag, deine ' + euroH(E.wkEcht) + ' liegen darunter)' : '') + ' − Sozialabgaben ≈ ' + euroH(E.vor) + ' = zu versteuern ≈ ' + euroH(E.a.zve) + '. ' +
-    'Wenn monatlich unterschiedlich viel verdient wird, gleicht die Steuererklärung das übers Jahr aus. Grobe Schätzung ohne Kirchensteuer, keine Steuerberatung.</p></div>'; }
+    '<p class="hinweis" style="margin:8px 0 0">Gerechnet: Brutto ' + euroH(E.br) + ' − Werbungskosten ' + euroH(E.a.wk) + (E.a.pausch ? ' (Pauschbetrag, deine ' + euroH(E.wkEcht) + ' liegen darunter)' : '') + ' − Sozialabgaben ≈ ' + euroH(E.vor) + (E.ks ? ' − gezahlte Kirchensteuer ' + euroH(E.a.sa) : '') + ' = zu versteuern ≈ ' + euroH(E.a.zve) + '. ' +
+    'Wenn monatlich unterschiedlich viel verdient wird, gleicht die Steuererklärung das übers Jahr aus. ' + (E.ks ? 'Mit Kirchensteuer 9 % (Sachsen; Schalter in den Einstellungen).' : 'Ohne Kirchensteuer (Schalter in den Einstellungen).') + ' Grobe Schätzung, keine Steuerberatung.</p></div>'; }
 function stHtml(j, n, s) { var L = stLohn(j), T = stTicket(j), h = stErstHtml(j);
   h += '<div class="nwst"><h3>Werbungskosten ' + j + ' (Anlage N)</h3>' +
     '<div><span>Verpflegungsmehraufwand (Differenz)</span><b>' + euroH(s.ges - s.erh) + '</b></div>' +
@@ -3680,7 +3684,7 @@ function stHtml(j, n, s) { var L = stLohn(j), T = stTicket(j), h = stErstHtml(j)
     (s.bed ? '<div><span>Evtl. dazu: eintägige über 8 Std.</span><b style="white-space:nowrap">bis ' + euroH(s.bed) + '</b></div>' : '') +
     (T.gesetzt ? '' : '<p class="hinweis" style="margin:8px 0 0">Deutschland-Ticket: in der Jahresübersicht eintragen, seit wann du es hast.</p>') + '</div>';
   if (L.n) h += '<div class="nwst"><h3>Lohn ' + j + ' laut deinen Abrechnungen (' + L.n + ' Monate)</h3>' +
-    '<div><span>Brutto</span><b>' + euroH(L.br) + '</b></div><div><span>Lohnsteuer</span><b>' + euroH(L.st) + '</b></div><div><span>Sozialversicherung</span><b>' + euroH(L.sv) + '</b></div>' +
+    '<div><span>Brutto</span><b>' + euroH(L.br) + '</b></div><div><span>Lohn- und Kirchensteuer</span><b>' + euroH(L.st) + '</b></div><div><span>Sozialversicherung</span><b>' + euroH(L.sv) + '</b></div>' +
     '<div><span>Steuerfreie Verpflegung ausgezahlt</span><b>' + euroH(L.vp) + '</b></div>' +
     (Math.abs(L.vp - s.erh) < 1 ? '<p class="hinweis" style="margin:8px 0 0">✓ Passt genau zur Verpflegung laut Einsatzplänen.</p>' : '<p class="hinweis" style="margin:8px 0 0">Laut Einsatzplänen ' + euroH(s.erh) + ' – kleine Abweichungen kommen von Monaten, in denen die Verpflegung erst später abgerechnet wurde.</p>') +
     '<p class="hinweis" style="margin:4px 0 0">Die genauen Zahlen stehen auf der Lohnsteuerbescheinigung, die die Firma dem Finanzamt schickt; ELSTER übernimmt sie meist von selbst.</p></div>';
@@ -3736,18 +3740,18 @@ $('nwpdf').onclick = function () {
   doc.text(40, y, 'Unterkunft: von der Firma gebucht und bezahlt (nichts einzutragen). Fahrten Hotel–Filialen im Firmenwagen, ICE von der Firma bezahlt, Taxi erstattet.', 7.5); y += 22;
   doc.text(40, y, '2. Lohn laut Lohnabrechnungen (' + L.n + ' Monate)', 12, true); y += 16;
   if (L.n) {
-    doc.rect(36, y - 10, 440, 15, 0.92); ['Monat', 'Brutto', 'Lohnsteuer', 'Sozialvers.', 'stfr. Verpfl.'].forEach(function (t, i) { doc.text(i ? 190 + (i - 1) * 90 : 40, y, t, 8, true, i ? 'r' : null); }); y += 14;
+    doc.rect(36, y - 10, 440, 15, 0.92); ['Monat', 'Brutto', 'LSt + KiSt', 'Sozialvers.', 'stfr. Verpfl.'].forEach(function (t, i) { doc.text(i ? 190 + (i - 1) * 90 : 40, y, t, 8, true, i ? 'r' : null); }); y += 14;
     L.m.forEach(function (x) { doc.text(40, y, MONATE[+x.m.slice(5) - 1] + ' ' + x.m.slice(0, 4), 8); [x.br, x.st, x.sv, x.vp].forEach(function (v, i) { doc.text(190 + i * 90, y, euro(v), 8, false, 'r'); }); y += 11.5; });
     doc.line(40, y - 7, 470, y - 7, 0.6); doc.text(40, y, 'Summe', 8, true); [L.br, L.st, L.sv, L.vp].forEach(function (v, i) { doc.text(190 + i * 90, y, euro(v), 8, true, 'r'); }); y += 14;
     doc.text(40, y, 'Maßgeblich ist die Lohnsteuerbescheinigung des Arbeitgebers (wird elektronisch ans Finanzamt übermittelt).' + (Math.abs(L.vp - s.erh) < 1 ? ' Steuerfreie Verpflegung stimmt mit den Einsatzplänen überein.' : ''), 7.5); y += 12;
   } else { doc.text(40, y, 'Keine Lohnabrechnungen für ' + n.jahr + ' gespeichert.', 9); y += 12; }
   var E = stErstattung(n.jahr);
   if (E) { y += 8; doc.text(40, y, '3. Erstattung (grobe Schätzung' + (E.lauf ? ', hochgerechnet' : '') + ')', 12, true); y += 16;
-    wr('Bruttolohn', euro(E.br)); wr('- Werbungskosten' + (E.a.pausch ? ' (Arbeitnehmer-Pauschbetrag)' : ''), '- ' + euro(E.a.wk)); wr('- Vorsorgeaufwendungen (ca. 95 % der Sozialabgaben) und 36 € Sonderausgaben', '- ' + euro(E.vor + 36));
-    wr('= zu versteuerndes Einkommen (ca.)', euro(E.a.zve)); wr('Einkommensteuer nach § 32a EStG ' + n.jahr, euro(E.a.est)); wr('Lohnsteuer laut Abrechnungen', euro(E.lst));
+    wr('Bruttolohn', euro(E.br)); wr('- Werbungskosten' + (E.a.pausch ? ' (Arbeitnehmer-Pauschbetrag)' : ''), '- ' + euro(E.a.wk)); wr('- Vorsorgeaufwendungen (ca. 95 % der Sozialabgaben) und ' + (E.ks ? 'gezahlte Kirchensteuer' : '36 € Sonderausgaben'), '- ' + euro(E.vor + E.a.sa));
+    wr('= zu versteuerndes Einkommen (ca.)', euro(E.a.zve)); wr('Einkommensteuer nach § 32a EStG ' + n.jahr, euro(E.a.est)); if (E.ks) wr('Kirchensteuer 9 % (Sachsen)', euro(E.a.kist)); wr('Abgezogen laut Abrechnungen (Lohnsteuer' + (E.ks ? ' ' + euro(E.lstNur) + ' + Kirchensteuer ' + euro(E.kistBez) : '') + ')', euro(E.lst));
     wr(E.a.erst >= 0 ? 'Voraussichtliche Erstattung' : 'Voraussichtliche Nachzahlung', euro(Math.abs(E.a.erst)), true, 10);
     if (E.b) wr('mit eintägigen Einsätzen über 8 Std. (wenn zutreffend)', (E.b.erst >= 0 ? 'Erstattung ' : 'Nachzahlung ') + euro(Math.abs(E.b.erst)));
-    doc.text(40, y, 'Ohne Kirchensteuer und Solidaritätszuschlag (fällt bei diesem Einkommen nicht an). Das Finanzamt rechnet genau; keine Steuerberatung.', 7.5); y += 6; }
+    doc.text(40, y, (E.ks ? 'Mit Kirchensteuer 9 % (Sachsen).' : 'Ohne Kirchensteuer.') + ' Solidaritätszuschlag fällt bei diesem Einkommen nicht an. Gezahlte Kirchensteuer: Anlage Sonderausgaben. Das Finanzamt rechnet genau; keine Steuerberatung.', 7.5); y += 6; }
   y += 10; doc.text(40, y, (E ? '4' : '3') + '. Anhang', 12, true); y += 15;
   ['Einsätze, Übernachtungen und Verpflegung je Tag (Seiten danach)', 'Deutschland-Ticket: Monate, Preis und An-/Abreisen (letzte Seite)'].forEach(function (t) { doc.text(48, y, '- ' + t, 9); y += 12; });
   var X = [40, 98, 122, 180, 420, 560, 650, 712, 802];
