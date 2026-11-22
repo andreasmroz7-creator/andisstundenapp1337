@@ -671,7 +671,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.06';
+var VERSION = '3.07';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2214,6 +2214,7 @@ function jvDepot(q) {
     if ([kz, n, w1.length >= 4 ? w1 : null, sy.length >= 3 ? sy : null].some(function (a) { return a && qq.indexOf(' ' + a + ' ') >= 0; })) treffer = k; });
   if (treffer) {
     if (treffer.pos) { var p = treffer.p, kurs = p.kurs || (p.q ? p.w / p.q : null), m = (d.pos || []).filter(function (y) { return (y.isin || y.sym) === (p.isin || p.sym); })[0] || {};
+      if (/was sagst du|was hältst du|was meinst du|was denkst du|wie findest du|dein kommentar|deine meinung/.test(q) && m.c && window.jvPosKommentar) { var km = window.jvPosKommentar(spr(p.n), (p.w / m.c - 1) * 100); if (km) return km; } // (3.07) „Was sagst du zu …“ = nur der Kommentar, wie am Dashboard
       return spr(p.n) + ' steht bei ' + eur(kurs) + (p.pct != null ? ', ' + (p.k === 'krypto' ? 'seit 6 Uhr ' : 'heute ') + pz(p.pct) : '') + '. Deine ' + (p.k === 'krypto' ? spr(p.n) : (Math.round(p.q * 100) / 100).toLocaleString('de-DE') + ' Stück') + ' sind ' + eur(p.w) + ' wert' + (m.c ? ', seit Kauf ' + pm(p.w - m.c) : '') + '.' + (window.jvPosKommentar ? (function (k) { return k ? ' ' + k : ''; })(window.jvPosKommentar(spr(p.n), m.c ? (p.w / m.c - 1) * 100 : null)) : ''); }
     var v = wlWert(treffer.x); if (v.kurs == null) return spr(treffer.x.n) + ' steht auf deiner Watchlist, der Kurs kommt gleich.';
     return spr(treffer.x.n) + ' steht bei ' + eur(v.kurs) + (v.pct != null ? ', ' + (treffer.x.k === 'krypto' ? 'seit 6 Uhr ' : 'heute ') + pz(v.pct) : '') + '. Der Wert steht auf deiner Watchlist.'; }
