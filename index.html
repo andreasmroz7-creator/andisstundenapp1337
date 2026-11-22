@@ -626,7 +626,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.76';
+var VERSION = '2.77';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2480,6 +2480,7 @@ function depotReihe(d, r) {
 // ---------- (2.75) Tagesdiagramm feiner: der Mac liefert alle 5 Minuten einen Punkt. Dazwischen zeichnen wir den Krypto-Anteil Minute für Minute
 // (Binance 1-Minuten-Kerzen × Stückzahl). Die Mac-Punkte bleiben genau; was die Kryptos nicht erklären (Aktien, ETFs), wird gleichmäßig verteilt.
 var depotFeinK = { t: 0, ab: 0, m: null, busy: false };
+(function () { try { var c = JSON.parse(localStorage.getItem('cockpit_fein') || 'null'); if (c && c.tag === iso2(new Date()) && c.m) { depotFeinK.m = c.m; depotFeinK.ab = c.ab; } } catch (x) {} })(); // (2.77) beim Start sofort die gemerkten Minutenkurse → Kachel gleich fein
 function depotFeinHolen(d, ab) {
   var kr = (d.pos || []).filter(function (p) { return p.k === 'krypto' && p.sym && +p.q > 0; }); if (!kr.length || depotFeinK.busy) return;
   ab = Math.floor(ab / 60) * 60; if (depotFeinK.m && depotFeinK.ab === ab && Date.now() - depotFeinK.t < 60e3) return;
@@ -2498,6 +2499,8 @@ function depotFeinHolen(d, ab) {
     var alle = Object.keys(reihen[0]).map(Number).sort(function (a, b) { return a - b; });
     alle.forEach(function (t) { var s = 0, ok = true; reihen.forEach(function (r) { if (r[t] == null) ok = false; else s += r[t]; }); if (ok) { m[t] = s; n++; } });
     if (n < 2) return; depotFeinK.m = m; depotFeinK.ab = ab; depotFeinK.t = Date.now();
+    try { localStorage.setItem('cockpit_fein', JSON.stringify({ tag: iso2(new Date()), ab: ab, m: m })); } catch (x) {}
+    try { if ($('start') && !$('start').classList.contains('aus')) startZeichnen(true); } catch (x) {}
     try { if ($('blattD').classList.contains('offen') && depotZr === '1d') depotZeichnen(); } catch (x) {}
   });
 }
@@ -2812,7 +2815,10 @@ function posDaten() {
 function posKrypto(m, zr) { // Krypto-Verlauf direkt von Binance (in Euro über den aktuellen EURUSDT-Kurs)
   var k = m.sym + '|' + zr, c = posBin[k]; if (c && Date.now() - c.t < (zr === '1d' ? 60e3 : 15 * 60e3)) return Promise.resolve(c.v);
   var iv = zr === '1d' ? '5m' : zr === '1w' ? '1h' : zr === '1m' ? '4h' : '1d', lim = zr === '1d' ? 360 : zr === '1w' ? 168 : zr === '1m' ? 180 : 365, st = zr === '1d' ? '&startTime=' + (depotSechsTs() - 6 * 36e5) : '';
-  return Promise.all([fetch('https://api.binance.com/api/v3/klines?symbol=' + m.sym + 'USDT&interval=' + iv + '&limit=' + lim + st, { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }),
+  var holK = zr === '1d' ? (function () { var ab = Math.round((depotSechsTs() - 6 * 36e5) / 1000), u = function (s0) { return 'https://api.binance.com/api/v3/klines?symbol=' + m.sym + 'USDT&interval=1m&limit=1000&startTime=' + s0 * 1000; }; // (2.77) 1 Tag: jede Minute ein Punkt
+      return fetch(u(ab), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (a) { if (!a || a.length < 1000) return a; return fetch(u(Math.round(a[a.length - 1][0] / 1000) + 60), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : []; }).then(function (b) { return a.concat(b || []); }); }); })()
+    : fetch('https://api.binance.com/api/v3/klines?symbol=' + m.sym + 'USDT&interval=' + iv + '&limit=' + lim + st, { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; });
+  return Promise.all([holK,
     fetch('https://api.binance.com/api/v3/ticker/price?symbol=EURUSDT', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; })]).then(function (a) {
     if (!a[0] || !a[1]) return null; var e = +a[1].price; var v = a[0].map(function (x) { return [Math.round(x[0] / 1000), +x[4] / e]; });
     posBin[k] = { t: Date.now(), v: v }; return v;
