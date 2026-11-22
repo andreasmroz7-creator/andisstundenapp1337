@@ -84,14 +84,16 @@
     var feiertag = e.feiertag ? ((e.feiertagStd != null && e.feiertagStd !== '') ? +e.feiertagStd : 3.08) : 0;
     // Urlaubstag: ebenfalls pauschal 3,08 Std.
     var urlaub = e.urlaub ? ((e.urlaubStd != null && e.urlaubStd !== '') ? +e.urlaubStd : 3.08) : 0;
-    var gesamt = Math.round((arbeit + zwischen + tl + fahrt + anreise + feiertag + urlaub) * 100) / 100;
+    // (22.11.) Krankheitstag: ebenfalls pauschal 3,08 Std. bezahlt
+    var krank = e.krank ? ((e.krankStd != null && e.krankStd !== '') ? +e.krankStd : 3.08) : 0;
+    var gesamt = Math.round((arbeit + zwischen + tl + fahrt + anreise + feiertag + urlaub + krank) * 100) / 100;
     // (20.11.) alte Tage ohne Uhrzeiten: Gesamtzeit aus der früheren Zeiterfassungs-App fest übernehmen (enthält schon Fahrt, TL usw.)
     if (e.festGesamt != null && e.festGesamt !== '') {
       var fg = Math.round(+e.festGesamt * 100) / 100, t = e.festTeile || { arbeit: fg };
-      return { zwUeber: 0, fahrGesamt: 0, arbeitMin: Math.round((+t.arbeit || 0) * 60), arbeit: +t.arbeit || 0, zwischen: 0, tl: +t.tl || 0, fahrt: +t.fahrt || 0, anreise: +t.anreise || 0, gesamt: Math.round((fg + feiertag + urlaub) * 100) / 100, feiertag: feiertag, urlaub: urlaub, verpflegung: verpflegung, fest: true };
+      return { zwUeber: 0, fahrGesamt: 0, arbeitMin: Math.round((+t.arbeit || 0) * 60), arbeit: +t.arbeit || 0, zwischen: 0, tl: +t.tl || 0, fahrt: +t.fahrt || 0, anreise: +t.anreise || 0, gesamt: Math.round((fg + feiertag + urlaub + krank) * 100) / 100, feiertag: feiertag, urlaub: urlaub, krank: krank, verpflegung: verpflegung, fest: true };
     }
     return { zwUeber: zwUeber, fahrGesamt: fz, arbeitMin: arbeitMin, arbeit: arbeit, zwischen: zwischen, tl: tl, fahrt: fahrt,
-      anreise: anreise, feiertag: feiertag, urlaub: urlaub, gesamt: gesamt, verpflegung: verpflegung };
+      anreise: anreise, feiertag: feiertag, urlaub: urlaub, krank: krank, gesamt: gesamt, verpflegung: verpflegung };
   }
 
   g.Rechnen = { rundeViertel: rundeViertel, zeitZuMin: zeitZuMin, spanneMin: spanneMin,

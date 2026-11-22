@@ -526,6 +526,7 @@ body.istoffline .sstand{color:#ff6b61}
   <label class="l">Läden</label><div class="seg" id="anzahl"><button data-v="1">1 Laden</button><button data-v="2">2 Läden</button></div>
   <div id="laeden"></div>
   <div class="sw" data-k="urlaub"><div>Urlaubstag<small>+3,08 Std. bezahlt</small></div><div class="knopf"></div></div>
+  <div class="sw" data-k="krank"><div>Krankheitstag<small>+3,08 Std. bezahlt</small></div><div class="knopf"></div></div>
   <div class="sw" data-k="feiertag"><div>Feiertag in Sachsen<small>+3,08 Std. bezahlt, zusätzlich zur Arbeit</small></div><div class="knopf"></div></div>
   <label class="l">Team / Einsatz</label><div class="seg" id="team"><button data-v="leipzig">Leipzig</button><button data-v="halle">Halle</button><button data-v="reise">Reise</button></div>
   <div id="reiseBox" style="display:none">
@@ -667,7 +668,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.90';
+var VERSION = '2.91';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -886,7 +887,7 @@ function zeichneEcht() {
     var r = R.berechne(x); sum += r.gesamt; verpf += r.verpflegung;
     var d = new Date(x.datum + 'T12:00:00');
     var ld = (x.laeden || []).map(function (l) { var s = l.ort ? esc(l.ort) + (l.fil ? ' <span style="color:var(--grau)">' + esc(l.fil) + '</span>' : '') + (l.art === 'GM' ? ' (GM)' : '') : l.art;
-      return l.ausfall ? '<s style="color:var(--grau)">' + s + '</s> <span style="color:var(--rot);font-size:12px">abgesagt</span>' : s; }).join(' + ') || (x.anreise ? 'Anreise' : x.abreise ? 'Abreise' : x.urlaub ? 'Urlaub' : x.feiertag ? 'Feiertag' : '–');
+      return l.ausfall ? '<s style="color:var(--grau)">' + s + '</s> <span style="color:var(--rot);font-size:12px">abgesagt</span>' : s; }).join(' + ') || (x.anreise ? 'Anreise' : x.abreise ? 'Abreise' : x.urlaub ? 'Urlaub' : x.krank ? 'Krank' : x.feiertag ? 'Feiertag' : '–');
     var teile = [];
     if (r.arbeit || (x.laeden || []).length) teile.push('Arbeit ' + z(r.arbeit));
     if (r.zwischen) teile.push('Zw. ' + z(r.zwischen));
@@ -895,6 +896,7 @@ function zeichneEcht() {
     if (r.anreise) teile.push('Anreise ' + z(r.anreise));
     if (r.feiertag) teile.push('Feiertag ' + z(r.feiertag));
     if (r.urlaub) teile.push('Urlaub ' + z(r.urlaub));
+    if (r.krank) teile.push('Krank ' + z(r.krank));
     html += '<div class="tag" data-id="' + x.id + '"><div class="d"><b>' + d.getDate() + '</b><span>' + TAGE[d.getDay()] + '</span></div>' +
       '<div class="info"><div class="z1">' + ld + (x.team === 'halle' ? ' · Halle' : '') + '</div>' + teile.join(' · ') + (r.verpflegung ? ' · ' + euroH(r.verpflegung) : '') + (x.datum === iso2(new Date()) ? fahrtLiveHtml(x.datum) : '') + '</div>' +
       '<div class="h">' + z(r.gesamt) + '</div></div>';
@@ -975,6 +977,7 @@ function rechnung() {
   if (r.anreise) h += '<div><span>' + (e.team === 'halle' ? 'Anreise Halle' : 'An-/Abreise') + '</span><b>' + z(r.anreise) + '</b></div>';
   if (r.feiertag) h += '<div><span>Feiertag (Sachsen)</span><b>' + z(r.feiertag) + '</b></div>';
   if (r.urlaub) h += '<div><span>Urlaub</span><b>' + z(r.urlaub) + '</b></div>';
+  if (r.krank) h += '<div><span>Krankheitstag</span><b>' + z(r.krank) + '</b></div>';
   if (r.verpflegung) h += '<div><span>Verpflegung</span><b>' + euroH(r.verpflegung) + '</b></div>';
   h += '<div class="ges"><span>Gesamt</span><span>' + z(r.gesamt) + '</span></div>';
   $('rechnung').innerHTML = h;
@@ -1041,6 +1044,7 @@ $('laeden').addEventListener('input', function (ev) {
   s.onclick = function () { var k = s.dataset.k; e[k] = !e[k];
     if (k === 'uebernachtung' && e[k]) { e.anreise = false; e.abreise = false; }
     if ((k === 'anreise' || k === 'abreise') && e[k]) e.uebernachtung = false;
+    if (k === 'krank' && e[k]) e.urlaub = false; if (k === 'urlaub' && e[k]) e.krank = false; // (2.91) krank oder Urlaub, nicht beides
     formZeichnen(); };
 });
 function fahrLesen() {
@@ -1083,6 +1087,8 @@ function schnellAuswerten() {
 $('speichern').onclick = function () {
   e.datum = $('datum').value || e.datum;
   var neu = e._neu; delete e._neu; e.geaendert = Date.now();
+  // (2.91) Krank- oder Urlaubstag ohne Arbeitszeiten: leeren Laden und TL-Stunde nicht mitzählen
+  if ((e.krank || e.urlaub) && !(e.laeden || []).some(function (l) { return String(l.std || '').trim() || (l.zeiten || []).some(function (t) { return t.von || t.bis; }); })) { e.laeden = []; e.tl = false; }
   var i = daten.eintraege.findIndex(function (x) { return x.id === e.id; });
   if (i >= 0) daten.eintraege[i] = e; else daten.eintraege.push(e);
   sichern();
@@ -1257,12 +1263,13 @@ $('pdfknopf').onclick = function () {
     var ld = (x.laeden || []).map(function (l) {
       var s = (l.ort ? l.ort + ' ' : '') + (l.fil ? l.fil + ' ' : '') + l.art; if (l.ausfall) return s + ' – abgesagt'; if (x.modus === 'zeit') s += ' ' + (l.zeiten || []).filter(function (q) { return q.von && q.bis; }).map(function (q) { return uhr(q.von) + '–' + uhr(q.bis); }).join(', ');
       return s; });
-    if (!ld.length) ld = [x.anreise ? 'Anreise (Reisetag)' : x.abreise ? 'Abreise (Reisetag)' : x.urlaub ? 'Urlaub' : x.feiertag ? 'Feiertag' : '–'];
+    if (!ld.length) ld = [x.anreise ? 'Anreise (Reisetag)' : x.abreise ? 'Abreise (Reisetag)' : x.urlaub ? 'Urlaub' : x.krank ? 'Krankheitstag' : x.feiertag ? 'Feiertag' : '–'];
     var gemacht = (x.laeden || []).filter(function (l) { return !l.ausfall; }).length;
     if (gemacht >= 2 && (x.zwZeit || x.fahrZw)) ld.splice(1, 0, 'Zwischenfahrt ' + (x.zwZeit ? x.zwZeit + ' ' : '') + '(' + dauer(x.fahrZw || 0).replace(' Std.', '') + ')');
     var teamNotiz = x.team === 'halle' ? 'Halle' : x.team === 'reise' ? (x.anreise ? 'Anreisetag' : x.abreise ? 'Abreisetag' : '') : '';
     if (r.feiertag) teamNotiz = (teamNotiz ? teamNotiz + ', ' : '') + 'Feiertag ' + z(r.feiertag);
     if (r.urlaub) teamNotiz = (teamNotiz ? teamNotiz + ', ' : '') + 'Urlaub ' + z(r.urlaub);
+    if (r.krank) teamNotiz = (teamNotiz ? teamNotiz + ', ' : '') + 'Krank ' + z(r.krank);
     if (x.fahrHin || x.fahrZur || x.fahrMin) {
       var hin = x.fahrHin != null ? x.fahrHin : 0, zur = x.fahrZur != null ? x.fahrZur : 0;
       if (!hin && !zur && x.fahrMin) { hin = Math.ceil(x.fahrMin / 2); zur = x.fahrMin - hin; }
@@ -1741,6 +1748,8 @@ function jahrZeichnen() {
   var h = '<div class="nwk"><div><small>Stunden seit ' + MONATE[+JAHR_AB.slice(5) - 1] + '</small><b>' + z(sStd) + '</b></div><div><small>≈ Brutto</small><b>' + euroH(sStd * lohn) + '</b></div>' +
     '<div><small>Verpflegung</small><b>' + euroH(sVp) + '</b></div><div><small>Ø pro Monat</small><b>' + z(keys.length ? sStd / keys.length : 0) + '</b></div></div>';
   var _uk = urlaubKonto(+jj); h += '<div class="hinweis">Urlaubstage ' + jj + ': <b>' + _uk.genommen + '</b> genommen' + (_uk.rest != null ? ', <b>' + String(_uk.rest).replace('.', ',') + '</b> übrig' : '') + (urlT.length ? ' (' + urlT.map(function (d) { return +d.slice(8) + '.' + +d.slice(5, 7) + '.'; }).join(', ') + ')' : '') + '</div>';
+  var krT = daten.eintraege.filter(function (x) { return x.krank && x.datum.slice(0, 4) === jj && !(daten.geloescht || {})[x.id]; }).map(function (x) { return x.datum; }).sort();
+  h += '<div class="hinweis">Krankheitstage ' + jj + ': <b>' + krT.length + '</b>' + (krT.length ? ' (' + krT.map(function (d) { return +d.slice(8) + '.' + +d.slice(5, 7) + '.'; }).join(', ') + ')' : '') + '</div>';
   if (top) h += '<div class="hinweis">Stärkster Monat: <b>' + mn(top) + '</b> mit ' + z(max) + ' Std.</div>';
   keys.slice().reverse().forEach(function (k) {
     var m = mon[k], w = max ? Math.round(m.std / max * 100) : 0;
