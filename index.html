@@ -368,6 +368,9 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .tmk{display:inline-block;font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.1);color:#cfcfcf;margin-right:6px;vertical-align:2px}.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}
 .pgrid>div{background:var(--karte);border:1px solid var(--rand);border-radius:16px;padding:12px 14px;position:relative}.pgrid small{display:block;color:var(--grau);font-size:12px;margin-bottom:3px}.pgrid b{font-size:18px;font-weight:700}
 .lbox{margin-top:4px}
+.htplan{margin:14px 0 12px}.htplankopf{display:flex;align-items:center;justify-content:space-between;margin:0 2px 8px}.htplankopf b{font-size:15px}.htplangross{background:none;border:0;color:var(--grau);font:inherit;font-size:13px;padding:4px 0;cursor:pointer}
+.zbox{position:relative;overflow:hidden;border-radius:16px;background:#fff;border:1px solid var(--rand);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.zbox img{display:block;width:100%;height:auto;-webkit-user-drag:none}.zbox.gezoomt{box-shadow:0 0 0 1px rgba(255,255,255,.18)}
+#lbKoerper .zbox{border-radius:12px}
 .htbox{background:var(--karte);border:1px solid var(--rand);border-radius:18px;padding:4px 14px;margin-bottom:6px}
 .htfahrt{font-size:13px;color:#e0e0e0;padding:10px 0;border-bottom:1px solid var(--rand)}
 .htz{display:flex;align-items:center;gap:12px;padding:11px 0}
@@ -675,7 +678,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.12';
+var VERSION = '3.13';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2841,6 +2844,7 @@ function htTagName(datum) {
   var d = new Date(datum + 'T12:00:00'), h = new Date(); h.setHours(12, 0, 0, 0); var t = Math.round((d - h) / 864e5);
   return t === 0 ? 'Heute' : t === 1 ? 'Morgen' : t === 2 ? 'Übermorgen' : ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'][d.getDay()] + ', ' + d.getDate() + '.' + (d.getMonth() + 1) + '.';
 }
+var HTP = { el: null, kw: null };
 function htZeichnen() {
   var F = htFolge(), hi = iso2(new Date()), eh = daten.eintraege.find(function (x) { return x.datum === hi; }), h = '';
   if (!daten.nachweis) h += '<p class="hinweis">Die Einsatzpläne sind noch nicht geladen. Einmal abgleichen.</p>';
@@ -2861,6 +2865,15 @@ function htZeichnen() {
   h += '<button type="button" class="lknopf" id="htStunden">' + (eh ? 'Stunden von heute ansehen' : 'Stunden für heute eintragen') + '</button>';
   h += '<p class="hinweis" style="margin-top:14px">Bis 9 Uhr stehen oben der 1. und der 2. Laden von heute. Ab 9 Uhr rückt alles eins weiter. Marktnummer antippen kopiert sie.</p>';
   $('htKoerper').innerHTML = h;
+  // (3.13) Einsatzplan der Woche im Heute-Fenster; der Knoten wird behalten (Zoom bleibt beim Aktualisieren jede Minute erhalten)
+  try { var PW = planWoche(), hk = $('htKoerper'), hn = hk.querySelector('.hinweis:last-of-type');
+    if (!HTP.el || HTP.kw !== PW.kw) { HTP.kw = PW.kw; HTP.el = document.createElement('div'); HTP.el.className = 'htplan';
+      HTP.el.innerHTML = '<div class="htplankopf"><b>Einsatzplan KW ' + esc(PW.kw) + '</b><button type="button" class="htplangross">Groß ansehen ›</button></div><div class="zbox htzbox"><p class="hinweis" style="margin:18px 0">Plan wird geladen …</p></div>';
+      HTP.el.querySelector('.htplangross').onclick = function () { planZeigen(); };
+      var box = HTP.el.querySelector('.htzbox');
+      planLaden(PW, function (url) { box.innerHTML = '<img alt="Einsatzplan KW ' + esc(PW.kw) + '" src="' + url + '">'; zoomBild(box, box.querySelector('img')); },
+        function () { box.innerHTML = '<p class="hinweis" style="margin:18px 0">Der Plan für KW ' + esc(PW.kw) + ' ist noch nicht da.</p>'; }); }
+    hk.insertBefore(HTP.el, $('htStunden')); } catch (x) {}
   [].forEach.call(document.querySelectorAll('#htKoerper .htnr[data-nr]'), function (b) { b.onclick = function () { var nr = b.dataset.nr;
     var ok = function () { b.classList.add('kopiert'); b.querySelector('i').textContent = 'kopiert ✓'; setTimeout(function () { b.classList.remove('kopiert'); b.querySelector('i').textContent = 'Markt-Nr.'; }, 1500); };
     try { navigator.clipboard.writeText(nr).then(ok, function () { toast('Marktnummer ' + nr); }); } catch (x) { toast('Marktnummer ' + nr); } }; });
@@ -3347,24 +3360,55 @@ function planWoche() {
   return { kw: kw, jahr: a.slice(0, 4), von: a, bis: e, n: T.length, text: mo.getDate() + '.' + (mo.getMonth() + 1) + '. – ' + sa.getDate() + '.' + (sa.getMonth() + 1) + '.' + (tm ? ' · ' + esc(tm) : '') + '<br>' + (T.length ? T.length + (T.length === 1 ? ' Arbeitstag' : ' Arbeitstage') + (erst ? ' · ' + esc(erst) : '') : 'Plan noch nicht da') };
 }
 var planBilder = {};
-function planZeigen() {
-  var PW = planWoche(), titel = 'Einsatzplan KW ' + PW.kw, pfad = 'plaene/KW' + PW.kw + '.png';
-  $('lbTitel').textContent = titel; var K = $('lbKoerper'); $('blattLb').classList.add('offen');
-  var zeig = function (url) {
-    K.innerHTML = '<img id="lbImg" alt="' + esc(titel) + '" src="' + url + '" style="width:100%">'; var im = $('lbImg'), z = 1, d0 = 0, z0 = 1, mx = 0, my = 0, tl = 0;
-    var setz = function (nz, cx, cy) { nz = Math.max(1, Math.min(5, nz)); var r = K.getBoundingClientRect(), px = (K.scrollLeft + cx - r.left) / z, py = (K.scrollTop + cy - r.top) / z; z = nz; im.style.width = (z * 100) + '%'; K.scrollLeft = px * z - (cx - r.left); K.scrollTop = py * z - (cy - r.top); };
-    K.ontouchstart = function (e) { if (e.touches.length === 2) { var a = e.touches[0], b = e.touches[1]; d0 = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); z0 = z; mx = (a.clientX + b.clientX) / 2; my = (a.clientY + b.clientY) / 2; }
-      else if (e.touches.length === 1) { var t = Date.now(); if (t - tl < 300) { setz(z > 1.2 ? 1 : 2.5, e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); } tl = t; } };
-    K.ontouchmove = function (e) { if (e.touches.length === 2 && d0) { e.preventDefault(); var a = e.touches[0], b = e.touches[1]; setz(z0 * Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / d0, mx, my); } };
-    K.ontouchend = function (e) { if (e.touches.length < 2) d0 = 0; };
-    K.scrollTop = 0; K.scrollLeft = 0;
-  };
-  if (planBilder[pfad]) { zeig(planBilder[pfad]); return; }
-  K.innerHTML = '<p class="hinweis" style="margin-top:40px">Plan wird geladen …</p>';
-  var fehl = function () { K.innerHTML = '<p class="hinweis" style="margin-top:40px">Der Plan für KW ' + PW.kw + ' ist noch nicht da. Sobald die Mail mit dem Einsatzplan kommt, legt die nächtliche Aufgabe ihn hier ab.</p>'; };
+// (3.13) Flüssiges Zoomen für Bilder (Einsatzplan): alles über transform (Grafikkarte), zwei Finger zoomen um den Punkt zwischen den Fingern
+// und verschieben gleichzeitig, ein Finger verschiebt (nur gezoomt), zweimal tippen zoomt weich hinein/heraus, am Rand federt es zurück.
+function zoomBild(box, im) {
+  var s = 1, x = 0, y = 0, raf = 0, ziel = null, tl = 0, P = null;
+  var W = function () { return box.clientWidth; }, H = function () { return im.offsetHeight || box.clientHeight; };
+  var setzen = function () { raf = 0; im.style.transform = 'translate3d(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px,0) scale(' + s.toFixed(4) + ')'; box.style.touchAction = s > 1.01 ? 'none' : 'pan-y'; box.classList.toggle('gezoomt', s > 1.01); };
+  var plan = function () { if (!raf) raf = requestAnimationFrame(setzen); };
+  var grenzen = function () { var w = W(), h = H(); s = Math.max(1, Math.min(5, s)); x = Math.min(0, Math.max(w - w * s, x)); y = Math.min(0, Math.max(h - h * s, y)); };
+  var weich = function (ns, nx, ny) { im.style.transition = 'transform .32s cubic-bezier(.2,.8,.2,1)'; s = ns; x = nx; y = ny; grenzen(); setzen(); clearTimeout(ziel); ziel = setTimeout(function () { im.style.transition = ''; }, 340); };
+  im.style.transformOrigin = '0 0'; im.style.willChange = 'transform'; im.draggable = false; box.style.overflow = 'hidden'; box.style.touchAction = 'pan-y';
+  box.addEventListener('touchstart', function (e) {
+    var r = box.getBoundingClientRect(); im.style.transition = '';
+    if (e.touches.length === 2) { var a = e.touches[0], b = e.touches[1], mx = (a.clientX + b.clientX) / 2 - r.left, my = (a.clientY + b.clientY) / 2 - r.top;
+      P = { art: 2, d0: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1, s0: s, px: (mx - x) / s, py: (my - y) / s }; e.preventDefault(); return; }
+    if (e.touches.length === 1) { var t = e.touches[0], jetzt = Date.now();
+      if (jetzt - tl < 280) { var cx = t.clientX - r.left, cy = t.clientY - r.top; if (s > 1.2) weich(1, 0, 0); else { var ns = 2.6; weich(ns, cx - (cx - x) / s * ns, cy - (cy - y) / s * ns); } tl = 0; e.preventDefault(); P = null; return; }
+      tl = jetzt; P = s > 1.01 ? { art: 1, x0: x, y0: y, sx: t.clientX, sy: t.clientY } : null; }
+  }, { passive: false });
+  box.addEventListener('touchmove', function (e) {
+    if (!P) return; var r = box.getBoundingClientRect();
+    if (P.art === 2 && e.touches.length === 2) { var a = e.touches[0], b = e.touches[1], d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), mx = (a.clientX + b.clientX) / 2 - r.left, my = (a.clientY + b.clientY) / 2 - r.top;
+      var ns = P.s0 * d / P.d0; if (ns < 1) ns = 1 - (1 - ns) * 0.35; if (ns > 5) ns = 5 + (ns - 5) * 0.25; // weich über die Grenzen hinaus, federt danach zurück
+      s = ns; x = mx - P.px * s; y = my - P.py * s; e.preventDefault(); plan(); return; }
+    if (P.art === 1 && e.touches.length === 1) { var t = e.touches[0], w = W(), h = H(), nx = P.x0 + t.clientX - P.sx, ny = P.y0 + t.clientY - P.sy, mnx = w - w * s, mny = h - h * s;
+      x = nx > 0 ? nx * 0.35 : nx < mnx ? mnx + (nx - mnx) * 0.35 : nx; y = ny > 0 ? ny * 0.35 : ny < mny ? mny + (ny - mny) * 0.35 : ny; e.preventDefault(); plan(); }
+  }, { passive: false });
+  box.addEventListener('touchend', function (e) {
+    if (e.touches.length === 1 && P && P.art === 2) { var t = e.touches[0]; P = { art: 1, x0: x, y0: y, sx: t.clientX, sy: t.clientY }; return; }
+    if (e.touches.length) return; P = null; var vs = s, vx = x, vy = y; grenzen(); var ns = s, nx = x, ny = y; s = vs; x = vx; y = vy;
+    if (Math.abs(ns - s) > .001 || Math.abs(nx - x) > .5 || Math.abs(ny - y) > .5) weich(ns, nx, ny);
+  });
+  box.addEventListener('gesturestart', function (e) { e.preventDefault(); });
+  return { zurueck: function () { weich(1, 0, 0); } };
+}
+function planLaden(PW, fertig, fehl) {
+  var pfad = 'plaene/KW' + PW.kw + '.png';
+  if (planBilder[pfad]) return fertig(planBilder[pfad]);
   if (!daten.einst.token) return fehl();
   fetch(GH.replace('daten.json', pfad), { headers: { Authorization: 'Bearer ' + daten.einst.token, Accept: 'application/vnd.github.raw' }, cache: 'no-store' })
-    .then(function (r) { if (!r.ok) throw 0; return r.blob(); }).then(function (b) { planBilder[pfad] = URL.createObjectURL(b); if ($('lbTitel').textContent === titel) zeig(planBilder[pfad]); }).catch(fehl);
+    .then(function (r) { if (!r.ok) throw 0; return r.blob(); }).then(function (b) { planBilder[pfad] = URL.createObjectURL(b); fertig(planBilder[pfad]); }).catch(fehl);
+}
+function planZeigen() {
+  var PW = planWoche(), titel = 'Einsatzplan KW ' + PW.kw;
+  $('lbTitel').textContent = titel; var K = $('lbKoerper'); $('blattLb').classList.add('offen');
+  K.ontouchstart = K.ontouchmove = K.ontouchend = null; K.scrollTop = 0; K.scrollLeft = 0;
+  K.innerHTML = '<p class="hinweis" style="margin-top:40px">Plan wird geladen …</p>';
+  planLaden(PW, function (url) { if ($('lbTitel').textContent !== titel) return;
+    K.innerHTML = '<div class="zbox"><img id="lbImg" alt="' + esc(titel) + '" src="' + url + '"></div>'; zoomBild(K.querySelector('.zbox'), $('lbImg')); },
+    function () { K.innerHTML = '<p class="hinweis" style="margin-top:40px">Der Plan für KW ' + PW.kw + ' ist noch nicht da. Sobald die Mail mit dem Einsatzplan kommt, legt die nächtliche Aufgabe ihn hier ab.</p>'; });
 }
 // --- Suche über alles ---
 function suZeichnen() {
