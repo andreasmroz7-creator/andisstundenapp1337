@@ -369,7 +369,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .pgrid>div{background:var(--karte);border:1px solid var(--rand);border-radius:16px;padding:12px 14px;position:relative}.pgrid small{display:block;color:var(--grau);font-size:12px;margin-bottom:3px}.pgrid b{font-size:18px;font-weight:700}
 .lbox{margin-top:4px}
 .htplan{margin:14px 0 12px}.htplankopf{display:flex;align-items:center;justify-content:space-between;margin:0 2px 8px}.htplankopf b{font-size:15px}.htplangross{background:none;border:0;color:var(--grau);font:inherit;font-size:13px;padding:4px 0;cursor:pointer}
-.zbox{position:relative;overflow:hidden;border-radius:16px;background:#fff;border:1px solid var(--rand);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.zbox img{display:block;width:100%;height:auto;-webkit-user-drag:none}.zbox.gezoomt{box-shadow:0 0 0 1px rgba(255,255,255,.18)}
+.zbox{position:relative;overflow:hidden;border-radius:16px;background:#fff;border:1px solid var(--rand);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.zbox img{display:block;width:100%;max-width:none;height:auto;-webkit-user-drag:none;image-rendering:auto}.zbox.gezoomt{box-shadow:0 0 0 1px rgba(255,255,255,.18)}
 #lbKoerper .zbox{border-radius:12px}
 .htbox{background:var(--karte);border:1px solid var(--rand);border-radius:18px;padding:4px 14px;margin-bottom:6px}
 .htfahrt{font-size:13px;color:#e0e0e0;padding:10px 0;border-bottom:1px solid var(--rand)}
@@ -678,7 +678,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.13';
+var VERSION = '3.14';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -3363,15 +3363,19 @@ var planBilder = {};
 // (3.13) Flüssiges Zoomen für Bilder (Einsatzplan): alles über transform (Grafikkarte), zwei Finger zoomen um den Punkt zwischen den Fingern
 // und verschieben gleichzeitig, ein Finger verschiebt (nur gezoomt), zweimal tippen zoomt weich hinein/heraus, am Rand federt es zurück.
 function zoomBild(box, im) {
-  var s = 1, x = 0, y = 0, raf = 0, ziel = null, tl = 0, P = null;
-  var W = function () { return box.clientWidth; }, H = function () { return im.offsetHeight || box.clientHeight; };
-  var setzen = function () { raf = 0; im.style.transform = 'translate3d(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px,0) scale(' + s.toFixed(4) + ')'; box.style.touchAction = s > 1.01 ? 'none' : 'pan-y'; box.classList.toggle('gezoomt', s > 1.01); };
+  // (3.14) scharf: während der Geste nur transform (flüssig), nach dem Loslassen wird das Bild in der neuen Größe echt gezeichnet
+  // (Breite = s × Kastenbreite, transform nur noch verschieben) – sonst rechnet Safari das kleine Bild nur hoch (unscharf).
+  var s = 1, x = 0, y = 0, sb = 1, raf = 0, ziel = null, fest = null, tl = 0, P = null, MAX = 4;
+  var W = function () { return box.clientWidth; }, H = function () { return (im.offsetHeight / sb) || box.clientHeight; };
+  var setzen = function () { raf = 0; im.style.transform = 'translate3d(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px,0) scale(' + (s / sb).toFixed(5) + ')'; box.style.touchAction = s > 1.01 ? 'none' : 'pan-y'; box.classList.toggle('gezoomt', s > 1.01); };
   var plan = function () { if (!raf) raf = requestAnimationFrame(setzen); };
-  var grenzen = function () { var w = W(), h = H(); s = Math.max(1, Math.min(5, s)); x = Math.min(0, Math.max(w - w * s, x)); y = Math.min(0, Math.max(h - h * s, y)); };
-  var weich = function (ns, nx, ny) { im.style.transition = 'transform .32s cubic-bezier(.2,.8,.2,1)'; s = ns; x = nx; y = ny; grenzen(); setzen(); clearTimeout(ziel); ziel = setTimeout(function () { im.style.transition = ''; }, 340); };
-  im.style.transformOrigin = '0 0'; im.style.willChange = 'transform'; im.draggable = false; box.style.overflow = 'hidden'; box.style.touchAction = 'pan-y';
+  var festmachen = function () { clearTimeout(fest); fest = setTimeout(function () { if (P) return; sb = s; im.style.transition = ''; im.style.width = (W() * sb) + 'px'; im.style.maxWidth = 'none'; setzen(); im.style.willChange = 'auto'; }, 60); };
+  var grenzen = function () { var w = W(), h = H(); s = Math.max(1, Math.min(MAX, s)); x = Math.min(0, Math.max(w - w * s, x)); y = Math.min(0, Math.max(h - h * s, y)); };
+  var weich = function (ns, nx, ny) { im.style.willChange = 'transform'; im.style.transition = 'transform .32s cubic-bezier(.2,.8,.2,1)'; s = ns; x = nx; y = ny; grenzen(); setzen(); clearTimeout(ziel); ziel = setTimeout(function () { im.style.transition = ''; festmachen(); }, 340); };
+  im.style.transformOrigin = '0 0'; im.draggable = false; box.style.overflow = 'hidden'; box.style.touchAction = 'pan-y'; im.style.width = '100%';
   box.addEventListener('touchstart', function (e) {
-    var r = box.getBoundingClientRect(); im.style.transition = '';
+    if (!box.style.height && sb === 1 && im.offsetHeight) box.style.height = im.offsetHeight + 'px'; // Kasten bleibt so hoch wie das Bild ungezoomt
+    var r = box.getBoundingClientRect(); im.style.transition = ''; clearTimeout(fest); im.style.willChange = 'transform';
     if (e.touches.length === 2) { var a = e.touches[0], b = e.touches[1], mx = (a.clientX + b.clientX) / 2 - r.left, my = (a.clientY + b.clientY) / 2 - r.top;
       P = { art: 2, d0: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1, s0: s, px: (mx - x) / s, py: (my - y) / s }; e.preventDefault(); return; }
     if (e.touches.length === 1) { var t = e.touches[0], jetzt = Date.now();
@@ -3381,7 +3385,7 @@ function zoomBild(box, im) {
   box.addEventListener('touchmove', function (e) {
     if (!P) return; var r = box.getBoundingClientRect();
     if (P.art === 2 && e.touches.length === 2) { var a = e.touches[0], b = e.touches[1], d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), mx = (a.clientX + b.clientX) / 2 - r.left, my = (a.clientY + b.clientY) / 2 - r.top;
-      var ns = P.s0 * d / P.d0; if (ns < 1) ns = 1 - (1 - ns) * 0.35; if (ns > 5) ns = 5 + (ns - 5) * 0.25; // weich über die Grenzen hinaus, federt danach zurück
+      var ns = P.s0 * d / P.d0; if (ns < 1) ns = 1 - (1 - ns) * 0.35; if (ns > MAX) ns = MAX + (ns - MAX) * 0.25;
       s = ns; x = mx - P.px * s; y = my - P.py * s; e.preventDefault(); plan(); return; }
     if (P.art === 1 && e.touches.length === 1) { var t = e.touches[0], w = W(), h = H(), nx = P.x0 + t.clientX - P.sx, ny = P.y0 + t.clientY - P.sy, mnx = w - w * s, mny = h - h * s;
       x = nx > 0 ? nx * 0.35 : nx < mnx ? mnx + (nx - mnx) * 0.35 : nx; y = ny > 0 ? ny * 0.35 : ny < mny ? mny + (ny - mny) * 0.35 : ny; e.preventDefault(); plan(); }
@@ -3389,7 +3393,7 @@ function zoomBild(box, im) {
   box.addEventListener('touchend', function (e) {
     if (e.touches.length === 1 && P && P.art === 2) { var t = e.touches[0]; P = { art: 1, x0: x, y0: y, sx: t.clientX, sy: t.clientY }; return; }
     if (e.touches.length) return; P = null; var vs = s, vx = x, vy = y; grenzen(); var ns = s, nx = x, ny = y; s = vs; x = vx; y = vy;
-    if (Math.abs(ns - s) > .001 || Math.abs(nx - x) > .5 || Math.abs(ny - y) > .5) weich(ns, nx, ny);
+    if (Math.abs(ns - s) > .001 || Math.abs(nx - x) > .5 || Math.abs(ny - y) > .5) weich(ns, nx, ny); else festmachen();
   });
   box.addEventListener('gesturestart', function (e) { e.preventDefault(); });
   return { zurueck: function () { weich(1, 0, 0); } };
