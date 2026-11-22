@@ -626,7 +626,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.77';
+var VERSION = '2.78';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2480,7 +2480,7 @@ function depotReihe(d, r) {
 // ---------- (2.75) Tagesdiagramm feiner: der Mac liefert alle 5 Minuten einen Punkt. Dazwischen zeichnen wir den Krypto-Anteil Minute für Minute
 // (Binance 1-Minuten-Kerzen × Stückzahl). Die Mac-Punkte bleiben genau; was die Kryptos nicht erklären (Aktien, ETFs), wird gleichmäßig verteilt.
 var depotFeinK = { t: 0, ab: 0, m: null, busy: false };
-(function () { try { var c = JSON.parse(localStorage.getItem('cockpit_fein') || 'null'); if (c && c.tag === iso2(new Date()) && c.m) { depotFeinK.m = c.m; depotFeinK.ab = c.ab; } } catch (x) {} })(); // (2.77) beim Start sofort die gemerkten Minutenkurse → Kachel gleich fein
+(function () { try { var c = JSON.parse(localStorage.getItem('cockpit_fein') || 'null'); if (c && c.tag === iso2(new Date()) && c.m) { depotFeinK.m = c.m; depotFeinK.p = c.p || null; depotFeinK.ab = c.ab; } } catch (x) {} })(); // (2.77) beim Start sofort die gemerkten Minutenkurse → Kachel gleich fein
 function depotFeinHolen(d, ab) {
   var kr = (d.pos || []).filter(function (p) { return p.k === 'krypto' && p.sym && +p.q > 0; }); if (!kr.length || depotFeinK.busy) return;
   ab = Math.floor(ab / 60) * 60; if (depotFeinK.m && depotFeinK.ab === ab && Date.now() - depotFeinK.t < 60e3) return;
@@ -2495,11 +2495,12 @@ function depotFeinHolen(d, ab) {
     depotFeinK.busy = false; var eu = A.pop(), e = eu && +eu.price; if (!e) return;
     var m = {}, n = 0; // Minute (Sekunden) → Summe Stück × Kurs in Euro
     var reihen = kr.map(function (p, i) { var r = {}; (A[i] || []).forEach(function (k) { r[Math.round(k[0] / 1000)] = +k[4] / e * +p.q; }); return r; });
+    var preise = {}; kr.forEach(function (p, i) { var r = {}; (A[i] || []).forEach(function (k) { r[Math.round(k[0] / 1000)] = Math.round(+k[4] / e * 1e6) / 1e6; }); preise[p.sym] = r; }); // (2.78) für die Mini-Diagramme
     if (reihen.some(function (r) { return !Object.keys(r).length; })) return;
     var alle = Object.keys(reihen[0]).map(Number).sort(function (a, b) { return a - b; });
     alle.forEach(function (t) { var s = 0, ok = true; reihen.forEach(function (r) { if (r[t] == null) ok = false; else s += r[t]; }); if (ok) { m[t] = s; n++; } });
-    if (n < 2) return; depotFeinK.m = m; depotFeinK.ab = ab; depotFeinK.t = Date.now();
-    try { localStorage.setItem('cockpit_fein', JSON.stringify({ tag: iso2(new Date()), ab: ab, m: m })); } catch (x) {}
+    if (n < 2) return; depotFeinK.m = m; depotFeinK.p = preise; depotFeinK.ab = ab; depotFeinK.t = Date.now();
+    try { localStorage.setItem('cockpit_fein', JSON.stringify({ tag: iso2(new Date()), ab: ab, m: m, p: preise })); } catch (x) {}
     try { if ($('start') && !$('start').classList.contains('aus')) startZeichnen(true); } catch (x) {}
     try { if ($('blattD').classList.contains('offen') && depotZr === '1d') depotZeichnen(); } catch (x) {}
   });
@@ -2538,8 +2539,15 @@ function depotKurz(n) {
 function depotMenge(p) { var q = +p.q; return p.k === 'krypto' ? q.toLocaleString('de-DE', { maximumFractionDigits: q >= 100 ? 2 : 4 }) + ' ' + (p.sym || '') : q.toLocaleString('de-DE', { maximumFractionDigits: 4 }) + ' Stück'; }
 // Positionen unter dem Diagramm: Stückzahl vom Mac, Werte live (gettex/Binance), sonst der Mac-Wert
 // (2.45) Mini-Tagesverlauf je Zeile (wie die Mini-Diagramme im Dashboard): links grau der Vortag, gestrichelt der Vortagesschluss, heute grün/rot bis zum Live-Kurs
+function posMiniKrypto(key) { // (2.78) Krypto: Minutenkurse von Binance (wie großes Diagramm und Detail), Vortag bis 6 Uhr grau, Bezug = Kurs um 6 Uhr
+  var r = depotFeinK.p && depotFeinK.p[key]; if (!r) return null;
+  var ts = Object.keys(r).map(Number).sort(function (a, b) { return a - b; }); if (ts.length < 10) return null;
+  var b6 = depotSechsTs() / 1000, pv = [], hv = []; ts.forEach(function (t) { (t < b6 ? pv : hv).push(r[t]); }); if (hv.length < 2) return null;
+  var duenn = function (a, n) { if (a.length <= n) return a; var o = []; for (var i = 0; i < n - 1; i++) o.push(a[Math.floor(i * a.length / (n - 1))]); o.push(a[a.length - 1]); return o; };
+  return { prev: duenn(pv, 60), today: duenn(hv, 160), base: pv.length ? pv[pv.length - 1] : hv[0] };
+}
 function posMini(key, kurs) {
-  var kv = daten.depotKurven && daten.depotKurven.k && daten.depotKurven.k[key], t = kv && kv['1d']; if (!t || !t.today || !t.today.length) return '';
+  var kv = daten.depotKurven && daten.depotKurven.k && daten.depotKurven.k[key], t = posMiniKrypto(key) || (kv && kv['1d']); if (!t || !t.today || !t.today.length) return '';
   var V = (t.prev || []).slice(-60), He = t.today.concat(kurs != null ? [kurs] : []), ref = t.base || (V.length ? V[V.length - 1] : null); if (He.length < 2) return '';
   var W = 96, H = 48, alle = V.concat(He).concat(ref != null ? [ref] : []), mn = Math.min.apply(null, alle), mx = Math.max.apply(null, alle), sp = (mx - mn) || 1, y = function (v) { return (H - 2 - (v - mn) / sp * (H - 4)).toFixed(1); };
   var xb = V.length ? W / 6 : 0, pv = V.map(function (v, i) { return (i ? 'L' : 'M') + (V.length > 1 ? i / (V.length - 1) * xb : 0).toFixed(1) + ' ' + y(v); }).join(''), ph = He.map(function (v, i) { return (i ? 'L' : 'M') + (xb + i / (He.length - 1) * (W - xb)).toFixed(1) + ' ' + y(v); }).join('');
@@ -2577,8 +2585,9 @@ function depotMorph() {
   var c = $('dChart'), Z = depotGrafik.ziel; if (!c || !Z) { depotAltLinie = null; return; }
   var pl = c.querySelector('path.l'), pr = c.querySelector('path.ref'), ptg = c.querySelector('path.tg'), g1 = c.querySelector('stop.g1'), g2 = c.querySelector('stop.g2'), A = depotAltLinie;
   cancelAnimationFrame(depotMorphR);
-  if (!A || !pl || matchMedia('(prefers-reduced-motion:reduce)').matches) { depotAltLinie = Z; return; }
-  var N = Math.min(240, Math.max(A.p.length, Z.p.length)), an = function (P, f) { var x = f * (P.length - 1), i = Math.floor(x), k = x - i, a = P[i], b = P[Math.min(P.length - 1, i + 1)]; return a + (b - a) * k; };
+  var art = depotZr + '|' + depotArt, wechsel = depotMorph.art !== art; depotMorph.art = art; // (2.78) nur beim Wechsel von Zeitraum oder €/± verformen, neue Kurse alle 5 s ohne Animation
+  if (!A || !pl || !wechsel || matchMedia('(prefers-reduced-motion:reduce)').matches) { depotAltLinie = Z; return; }
+  var N = Math.max(A.p.length, Z.p.length), an = function (P, f) { var x = f * (P.length - 1), i = Math.floor(x), k = x - i, a = P[i], b = P[Math.min(P.length - 1, i + 1)]; return a + (b - a) * k; };
   var W = Z.W, gx = function (Q) { return Q.x && Q.x.length === Q.p.length ? Q.x : Q.p.map(function (y, i) { return Q.p.length > 1 ? i / (Q.p.length - 1) * W : 0; }); };
   var ax_ = gx(A), zx_ = gx(Z), a = [], b = [], xa = [], xz = [], i; for (i = 0; i < N; i++) { var f = N > 1 ? i / (N - 1) : 0; a.push(an(A.p, f)); b.push(an(Z.p, f)); xa.push(an(ax_, f)); xz.push(an(zx_, f)); }
   var ra = A.ref != null ? A.ref : Z.ref, rb = Z.ref, t0 = performance.now(), DU = 650, ba = A.xb || 0, bz = Z.xb || 0;
