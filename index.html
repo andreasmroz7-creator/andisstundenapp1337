@@ -56,8 +56,8 @@ body.runter .festpfeil:not(#zurStart){opacity:0;transform:translateY(-14px) scal
 .blatt .koerper{flex:1;margin-bottom:calc(env(safe-area-inset-bottom) + 60px);overflow-y:auto;overflow-x:hidden;touch-action:pan-y;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:4px 16px calc(env(safe-area-inset-bottom) + 40px)}
 .blatt .titel b{font-size:18px}
 label.l{display:block;font-size:12px;color:var(--grau);margin:14px 0 6px;text-transform:uppercase;letter-spacing:.5px}
-input[type=text],input[type=date],input[type=number],input[type=time]{width:100%;min-width:0;max-width:100%;display:block;-webkit-appearance:none;appearance:none;background:rgba(255,255,255,.07);border:1px solid var(--rand);color:var(--txt);border-radius:12px;padding:11px 12px;font-size:16px;font-family:inherit}
-input[type=date]{text-align:left;min-height:46px}
+input[type=text],input[type=date],input[type=number],input[type=time],input[type=month]{width:100%;min-width:0;max-width:100%;display:block;-webkit-appearance:none;appearance:none;background:rgba(255,255,255,.07);border:1px solid var(--rand);color:var(--txt);border-radius:12px;padding:11px 12px;font-size:16px;font-family:inherit}
+input[type=date],input[type=month]{text-align:left;min-height:46px}
 input[type=date]::-webkit-date-and-time-value{text-align:left}
 .zeile input{display:block}
 select{width:100%;min-width:0;display:block;-webkit-appearance:none;appearance:none;background:rgba(180,180,180,.12) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235ac8fa' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center/18px;border:1px solid rgba(180,180,180,.35);color:var(--txt);border-radius:12px;padding:12px 40px 12px 12px;font-size:17px;font-weight:600;font-family:inherit}
@@ -319,6 +319,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .trechts{display:flex;align-items:center;gap:10px}
 .sknoepfe{display:flex;gap:10px;align-items:center}
 .sufeld{width:100%;box-sizing:border-box;font:inherit;font-size:17px;padding:12px 14px;border-radius:14px;border:1px solid var(--rand);background:var(--karte);color:#fff;outline:none}
+.dtjahr{display:flex;align-items:center;gap:14px;margin:4px 0 10px}.dtjahr button{border:1px solid var(--rand);background:var(--karte);color:#fff;border-radius:999px;width:34px;height:34px;font:inherit;font-size:18px}.dtfelder{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 10px}.dtfelder>div{min-width:0}.dtfelder .ganz{grid-column:1/-1}.dtfelder input{box-sizing:border-box}.dtm{cursor:pointer}.dtaus b,.dtaus span{opacity:.45;text-decoration:line-through}
 .suchips{display:flex;flex-wrap:wrap;gap:8px}.suchips button{border:1px solid var(--rand);background:var(--karte);color:#fff;border-radius:999px;padding:8px 14px;font:inherit;font-size:14px}
 .sugr{font-size:12px;color:var(--grau);text-transform:uppercase;letter-spacing:.4px;margin:18px 2px 6px}
 .suz{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 14px;border:1px solid var(--rand);border-radius:14px;background:var(--karte);margin-top:6px;cursor:pointer}
@@ -668,7 +669,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.91';
+var VERSION = '2.92';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -796,10 +797,12 @@ function sync() {
     daten.eintraege = m.eintraege; daten.profile = m.profile.length ? m.profile : profile(); daten.geloescht = m.geloescht;
     // (2.27) Urlaubskonto mitsyncen: neuerer Stand gewinnt
     var fu = fern.d.urlaub; if (fu && fu.jahre && (fu.stand || 0) > (daten.einst.urlaubStand || 0)) { daten.einst.urlaubJahr = fu.jahre; daten.einst.urlaubStand = fu.stand; m.urlaubNeu = 1; }
+    var fdt = fern.d.dticket; if (fdt && (fdt.stand || 0) > ((daten.einst.dticket || {}).stand || 0)) { daten.einst.dticket = fdt; m.urlaubNeu = 1; } // (2.92) Deutschland-Ticket mitsyncen
     var urlObj = daten.einst.urlaubStand ? { stand: daten.einst.urlaubStand, jahre: daten.einst.urlaubJahr || {} } : (fu || null);
     sichern(true); if (m.urlaubNeu || JSON.stringify({ e: daten.eintraege, p: daten.profile, g: daten.geloescht }) !== alt) { zeichne(); if (!$('start').classList.contains('aus')) startZeichnen(true); if ($('blattJ').classList.contains('offen')) jahrZeichnen(); if ($('blattU') && $('blattU').classList.contains('offen')) urlaubZeichnen(); }
     var nO = { eintraege: daten.eintraege, profile: daten.profile, geloescht: daten.geloescht }, fO = { eintraege: fern.d.eintraege || [], profile: fern.d.profile || [], geloescht: fern.d.geloescht || {} };
     if (urlObj) nO.urlaub = urlObj; if (fu) fO.urlaub = fu;
+    if (daten.einst.dticket && daten.einst.dticket.stand) nO.dticket = daten.einst.dticket; if (fdt) fO.dticket = fdt;
     var neuText = JSON.stringify(nO, null, 1);
     var fernText = JSON.stringify(fO, null, 1);
     if (neuText === fernText) return;
@@ -1763,9 +1766,34 @@ function jahrZeichnen() {
   h += '<label class="l">Im Auto</label><div class="nwk"><div><small>Fahrzeit gesamt</small><b>' + hm(fSum) + ' Std.</b></div><div><small>davon bezahlt</small><b>' + z(fBez) + ' Std.</b></div></div>';
   fa.slice().reverse().forEach(function (x) { var w = fmax ? Math.round(x.f.min / fmax * 100) : 0;
     h += '<div class="jb"><div class="k"><b>' + mn(x.k) + '</b><span>' + (x.f.min ? hm(x.f.min) + ' Std. an ' + x.f.tage + ' Tagen · Ø ' + hm(x.f.min / x.f.tage) + ' · ' + z(x.f.bez) + ' bezahlt' : 'Fahrzeit nicht erfasst' + (x.f.bez ? ' · ' + z(x.f.bez) + ' bezahlt' : '')) + '</span></div><div class="s"><i style="width:' + w + '%;background:linear-gradient(90deg,#8a8a8a,#646464)"></i></div></div>'; });
+  h += dtHtml();
   h += '<p class="hinweis">Brutto = Stunden × ' + euroH(lohn) + ' (Einstellungen). Verpflegung steuerfrei. Netto grob geschätzt (Steuerklasse 1, ohne Kirchensteuer, Einstellungen). Fahrzeit = Hin, Rück und Zwischenfahrten aus deinen Einträgen. Gezählt wird ab ' + mn(JAHR_AB) + '.</p>';
-  $('jKoerper').innerHTML = h;
+  $('jKoerper').innerHTML = h; dtBinden();
 }
+// (2.92) Deutschland-Ticket für die Steuer: eigener Monatspreis, Monate mit Ticket, An-/Abreisen je Monat. Synct als „dticket“ in daten.json (neuerer Stand gewinnt)
+var dtJahr = null;
+function dtDaten() { return daten.einst.dticket = daten.einst.dticket || { preis: 63, ab: '', bis: '', aus: {} }; }
+function dtMonate(j) { var t = dtDaten(), heute = iso2(new Date()).slice(0, 7), r = [];
+  for (var m = 1; m <= 12; m++) { var k = j + '-' + String(m).padStart(2, '0'); if (k > heute) break; if (!t.ab || k < t.ab || (t.bis && k > t.bis)) continue;
+    var reisen = daten.eintraege.filter(function (x) { return x.datum.slice(0, 7) === k && (x.anreise || x.abreise) && !(daten.geloescht || {})[x.id]; }).length;
+    r.push({ k: k, aus: !!(t.aus || {})[k], reisen: reisen, preis: +t.preis || 0 }); }
+  return r; }
+function dtHtml() { var t = dtDaten(); if (dtJahr == null) dtJahr = new Date().getMonth() < 3 ? new Date().getFullYear() - 1 : new Date().getFullYear();
+  var M = dtMonate(dtJahr), sum = 0, nM = 0, nR = 0; M.forEach(function (x) { if (!x.aus) { sum += x.preis; nM++; } nR += x.reisen; });
+  var h = '<label class="l">Deutschland-Ticket (für die Steuer)</label><div class="dtjahr"><button type="button" id="dtVor">‹</button><b>' + dtJahr + '</b><button type="button" id="dtNach">›</button></div>' +
+    '<div class="nwk"><div><small>Bezahlt ' + dtJahr + '</small><b>' + euroH(sum) + '</b></div><div><small>Monate · An-/Abreisen</small><b>' + nM + ' · ' + nR + '</b></div></div>' +
+    '<div class="dtfelder"><div class="ganz"><label class="l">Preis pro Monat (€)</label><input type="text" inputmode="decimal" id="dtPreis" value="' + String(t.preis == null ? '' : t.preis).replace('.', ',') + '"></div>' +
+    '<div><label class="l">Ticket seit</label><input type="month" id="dtAb" value="' + (t.ab || '') + '"></div><div><label class="l">Gekündigt ab</label><input type="month" id="dtBis" value="' + (t.bis || '') + '"></div></div>';
+  if (!t.ab) h += '<p class="hinweis">Trag ein, seit wann du das Ticket hast, dann rechne ich die Monate zusammen.</p>';
+  else if (!M.length) h += '<p class="hinweis">In ' + dtJahr + ' keine Monate mit Ticket.</p>';
+  M.slice().reverse().forEach(function (x) { h += '<div class="jb dtm' + (x.aus ? ' dtaus' : '') + '" data-k="' + x.k + '"><div class="k"><b>' + MONATE[+x.k.slice(5) - 1] + ' ' + x.k.slice(0, 4) + '</b><span>' + (x.aus ? 'ohne Ticket' : euroH(x.preis)) + ' · ' + (x.reisen ? x.reisen + (x.reisen === 1 ? ' An-/Abreise' : ' An-/Abreisen') : 'keine An-/Abreise') + '</span></div></div>'; });
+  if (M.length) h += '<p class="hinweis">Tippe auf einen Monat, wenn du da kein Ticket hattest. Ob und wie viel davon du absetzen kannst, klärst du am besten mit dem Steuerberater oder in ELSTER.</p>';
+  return h; }
+function dtBinden() { if (!$('dtPreis')) return; var t = dtDaten(), neu = function () { t.stand = Date.now(); sichern(); jahrZeichnen(); };
+  $('dtPreis').onchange = function () { var v = parseFloat(this.value.replace(',', '.')); t.preis = isNaN(v) ? 0 : v; neu(); };
+  $('dtAb').onchange = function () { t.ab = this.value; neu(); }; $('dtBis').onchange = function () { t.bis = this.value; neu(); };
+  $('dtVor').onclick = function () { dtJahr--; jahrZeichnen(); }; $('dtNach').onclick = function () { if (dtJahr < new Date().getFullYear()) { dtJahr++; jahrZeichnen(); } };
+  [].forEach.call(document.querySelectorAll('.dtm'), function (r) { r.onclick = function () { t.aus = t.aus || {}; if (t.aus[r.dataset.k]) delete t.aus[r.dataset.k]; else t.aus[r.dataset.k] = 1; neu(); }; }); }
 $('jahrauf').onclick = function () { jahrZeichnen(); $('blattJ').classList.add('offen'); };
 
 // ---------- Arbeitsnachweis (Jahr): Einsatzpläne + Reiseinfos aus Gmail, liegt als nachweis.json im Daten-Repo ----------
