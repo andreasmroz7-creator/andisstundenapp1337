@@ -319,6 +319,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .trechts{display:flex;align-items:center;gap:10px}
 .sknoepfe{display:flex;gap:10px;align-items:center}
 .sufeld{width:100%;box-sizing:border-box;font:inherit;font-size:17px;padding:12px 14px;border-radius:14px;border:1px solid var(--rand);background:var(--karte);color:#fff;outline:none}
+.suchips{display:flex;flex-wrap:wrap;gap:8px}.suchips button{border:1px solid var(--rand);background:var(--karte);color:#fff;border-radius:999px;padding:8px 14px;font:inherit;font-size:14px}
 .sugr{font-size:12px;color:var(--grau);text-transform:uppercase;letter-spacing:.4px;margin:18px 2px 6px}
 .suz{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 14px;border:1px solid var(--rand);border-radius:14px;background:var(--karte);margin-top:6px;cursor:pointer}
 .suz b{display:block;font-size:15px}.suz small{display:block;font-size:12px;color:var(--grau);margin-top:2px}.suz i{font-style:normal;color:var(--grau);font-size:12px;flex:none}.verdeckt .dcur,.verdeckt .ddot{display:none}
@@ -666,7 +667,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.89';
+var VERSION = '2.90';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -3270,7 +3271,9 @@ function planZeigen() {
 // --- Suche über alles ---
 function suZeichnen() {
   var q = ($('suFeld').value || '').trim().toLowerCase(), L = $('suListe'); if (!L) return;
-  if (q.length < 2) { L.innerHTML = '<p class="hinweis" style="margin-top:16px">Mindestens zwei Buchstaben, z. B. „Coburg“, „4248“, „NVIDIA“ oder einen Namen.</p>'; return; }
+  if (q.length < 2) { var zs = []; try { zs = JSON.parse(localStorage.getItem('cockpit_suchen') || '[]'); } catch (x) {}
+    L.innerHTML = (zs.length ? '<div class="sugr">Zuletzt gesucht</div><div class="suchips">' + zs.map(function (x, i) { return '<button type="button" data-i="' + i + '">' + esc(x) + '</button>'; }).join('') + '</div>' : '') + '<p class="hinweis" style="margin-top:16px">Mindestens zwei Buchstaben, z. B. „Coburg“, „4248“, „NVIDIA“, „Apple“ oder „Bitcoin“.</p>';
+    [].forEach.call(L.querySelectorAll('.suchips button'), function (b) { b.onclick = function () { $('suFeld').value = zs[+b.dataset.i]; suZeichnen(); }; }); return; }
   var tr = function (s) { return String(s || '').toLowerCase().indexOf(q) >= 0; }, G = [], dt = function (s) { var d = new Date(s + 'T12:00:00'); return ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][d.getDay()] + ', ' + d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear(); };
   var la = []; ((daten.nachweis && daten.nachweis.tage) || []).forEach(function (t) { (t.laeden || []).forEach(function (l) { if (tr(l.ort) || tr(l.fil) || tr(l.str) || tr(l.plz) || tr(t.team)) la.push({ t: t, l: l }); }); });
   la.sort(function (a, b) { return a.t.datum < b.t.datum ? 1 : -1; });
@@ -3284,6 +3287,7 @@ function suZeichnen() {
   if (gb.length) G.push(['Geburtstage', gb.map(function (x) { return '<div class="suz" data-ziel="geburtstage"><div><b>' + esc(x.name) + '</b><small>' + x.tag + '.' + x.monat + '.' + (x.jahr ? x.jahr : '') + '</small></div><i>›</i></div>'; }).join('')]);
   var tm = tmListe().filter(function (e) { return tr(e.ti); });
   if (tm.length) G.push(['Termine', tm.slice(0, 10).map(function (e) { return '<div class="suz" data-ziel="termine"><div><b>' + esc(e.ti) + '</b><small>' + tmTagKurz(e) + '</small></div><i>›</i></div>'; }).join('')]);
+  L.onclick = function (ev) { if (ev.target.closest && ev.target.closest('.suz')) suMerken(q); };
   L.innerHTML = (G.length ? G.map(function (g) { return '<div class="sugr">' + g[0] + '</div>' + g[1]; }).join('') : '') + '<div id="suMarkt"><div class="sugr">Markt</div><p class="hinweis" style="margin-top:4px">Suche läuft …</p></div>';
   suMarktSuchen(q);
   [].forEach.call(L.querySelectorAll('.suz[data-nr]'), function (z) { z.onclick = function () { var nr = z.dataset.nr; if (!nr) return; try { navigator.clipboard.writeText(nr).then(function () { toast('Marktnummer ' + nr + ' kopiert'); }, function () { toast('Marktnummer ' + nr); }); } catch (x) { toast('Marktnummer ' + nr); } }; });
@@ -3300,7 +3304,7 @@ function suMarktSuchen(q) {
     var box = $('suMarkt'); if (!box || ($('suFeld').value || '').trim().toLowerCase() !== q) return;
     var zeig = function (R) { var b = $('suMarkt'); if (!b || ($('suFeld').value || '').trim().toLowerCase() !== q) return;
       b.innerHTML = '<div class="sugr">Markt</div>' + (R.length ? R.map(function (r, i) { return '<div class="suz" data-mi="' + i + '"><div><b>' + esc(r.n) + '</b><small>' + esc(r.s) + '</small></div><i>Diagramm ›</i></div>'; }).join('') : '<p class="hinweis" style="margin-top:4px">' + (R.fehler ? 'Markt-Suche gerade nicht erreichbar.' : 'Im Markt nichts gefunden.') + '</p>');
-      [].forEach.call(b.querySelectorAll('.suz[data-mi]'), function (z) { z.onclick = function () { try { $('suFeld').blur(); } catch (x) {} marktOeffnen(R[+z.dataset.mi]); }; }); };
+      [].forEach.call(b.querySelectorAll('.suz[data-mi]'), function (z) { z.onclick = function () { suMerken(q); try { $('suFeld').blur(); } catch (x) {} marktOeffnen(R[+z.dataset.mi]); }; }); };
     if (suMarktC[q]) return zeig(suMarktC[q]);
     var sym = KRYPTO_NAMEN[q] || (/^[a-z0-9]{2,6}$/.test(q) ? q.toUpperCase() : null);
     var kr = sym ? fetch('https://api.binance.com/api/v3/ticker/price?symbol=' + sym + 'USDT', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { return j && j.price ? [{ typ: 'krypto', sym: sym, n: (Object.keys(KRYPTO_NAMEN).filter(function (k) { return KRYPTO_NAMEN[k] === sym && k.length > 3; })[0] || sym).replace(/^./, function (c) { return c.toUpperCase(); }), s: 'Krypto · ' + sym }] : []; }).catch(function () { return []; }) : Promise.resolve([]);
@@ -3362,9 +3366,11 @@ function marktZeichnen() {
   if (!$('mBox') || K.dataset.w !== (w.sym || w.ev)) { K.dataset.w = w.sym || w.ev;
     K.innerHTML = '<div class="dbox" id="mBox"><div class="pkopf">' + esc(w.n) + '<br>' + esc(w.s) + '</div><div class="dgross" id="mGross"><span class="dw">…</span></div><div class="dheute" id="mAend">&nbsp;</div><div id="mChartBox"><p class="hinweis" style="margin-top:22px">Kurse werden geladen …</p></div></div>' +
       '<div class="dzr" id="mZr">' + zrL.map(function (z) { return '<button type="button" data-r="' + z[0] + '">' + z[1] + '</button>'; }).join('') + '</div>' +
+      '<button type="button" class="lknopf" id="mWl" style="margin-top:14px"></button>' +
       '<p class="hinweis" style="margin-top:14px">Nicht in deinem Depot. Kurse: ' + (w.typ === 'krypto' ? 'Binance (in Euro umgerechnet)' : 'Onvista (gettex, sonst Heimatbörse)') + '. Zwei Finger aufs Diagramm = Veränderung zwischen zwei Zeitpunkten.</p>';
     [].forEach.call(K.querySelectorAll('#mZr button'), function (b) { b.onclick = function () { marktZr = b.dataset.r; marktZeichnen(); }; }); }
   [].forEach.call(K.querySelectorAll('#mZr button'), function (b) { b.classList.toggle('an', b.dataset.r === marktZr); });
+  marktWlKnopf();
   var zr = marktZr;
   marktReihe(w, zr).then(function (S) {
     if (w !== marktW || zr !== marktZr || !$('mChartBox')) return;
@@ -3397,6 +3403,26 @@ function marktZeichnen() {
   });
 }
 setInterval(function () { if (!document.hidden && $('blattM') && $('blattM').classList.contains('offen') && marktZr === '1d') marktZeichnen(); }, 30000);
+// (2.90) „Auf die Watchlist“: Wunsch als jarvis/w_<id>.json ins Daten-Repo, der Mac trägt ihn ein (auch später, wenn er gerade aus ist)
+function marktAufWl(w) { var nn = String(w.n || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return wlListe().some(function (x) { return (w.sym && x.sym === w.sym) || (w.isin && x.isin === w.isin) || (nn.length > 3 && String(x.n || '').toLowerCase().replace(/[^a-z0-9]/g, '').indexOf(nn.slice(0, 8)) === 0); }); }
+function marktWlKnopf() { var b = $('mWl'), w = marktW; if (!b || !w) return; var drauf = marktAufWl(w) || w.wlGesendet;
+  b.textContent = drauf ? (w.wlGesendet && !marktAufWl(w) ? '✓ Kommt auf die Watchlist' : '✓ Steht auf deiner Watchlist') : '☆ Auf die Watchlist'; b.disabled = !!drauf; b.style.opacity = drauf ? '.6' : '';
+  b.onclick = drauf ? null : function () {
+    if (!daten.einst.token) { toast('Kein GitHub-Schlüssel in den Einstellungen'); return; }
+    var id = Date.now() + '-' + Math.random().toString(36).slice(2, 6), kopf = jvKopf(), wunsch = { name: w.n, q: w.typ === 'krypto' ? w.sym + '-EUR' : (w.isin || w.n), isin: w.isin || null, art: w.typ === 'krypto' ? 'krypto' : 'wp', zeit: new Date().toISOString() };
+    b.disabled = true; b.textContent = 'Wird gesendet …';
+    fetch(GHJ + 'w_' + id + '.json', { method: 'PUT', headers: kopf, body: JSON.stringify({ message: 'Watchlist-Wunsch aus dem Cockpit', content: b64enc(JSON.stringify(wunsch)) }) }).then(function (r) {
+      if (!r.ok) throw 0; w.wlGesendet = true;
+      var k = daten.depotKurven = daten.depotKurven || {}; k.wl = k.wl || []; k.wl.push(w.typ === 'krypto' ? { k: 'krypto', n: w.n, sym: w.sym } : { k: 'wp', n: w.n, isin: w.isin }); sichern(true); // sofort in der Watchlist-Kachel
+      toast(w.n + ' kommt auf die Watchlist' + (daten.depotKurven && daten.depotKurven.stand && Date.now() - Date.parse(daten.depotKurven.stand) > 30 * 60e3 ? ' (der Mac trägt es ein, sobald er an ist)' : ''));
+      marktWlKnopf();
+    }).catch(function () { b.disabled = false; toast('Hat nicht geklappt, bitte nochmal'); marktWlKnopf(); });
+  };
+}
+// (2.90) Zuletzt gesucht: die letzten 6 Suchen als Knöpfe, solange das Suchfeld leer ist
+function suMerken(q) { q = String(q || '').trim(); if (q.length < 2) return; var a = []; try { a = JSON.parse(localStorage.getItem('cockpit_suchen') || '[]'); } catch (x) {}
+  a = [q].concat(a.filter(function (x) { return x.toLowerCase() !== q.toLowerCase(); })).slice(0, 6); try { localStorage.setItem('cockpit_suchen', JSON.stringify(a)); } catch (x) {} }
 // ---------- Geburtstage (geburtstage.json im Daten-Repo) ----------
 var GHG = GH.replace('daten.json', 'geburtstage.json');
 function gbSync(kopf) {
