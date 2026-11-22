@@ -669,7 +669,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.95';
+var VERSION = '2.96';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1498,7 +1498,8 @@ function startZeichnen(still) {
   k('stunden', IC.uhr, 'linear-gradient(135deg,#b4b4b4,#737373)', 'Stunden ' + MONATE[d.getMonth()], z(std.s), std.s ? '<div class="mgeld kz"><span>Brutto</span><i>=</i><span>' + euroH(std.s * lohn) + '</span><span class="nt">Netto</span><i class="nt">≈</i><span class="nt">' + euroH(netto(std.s * lohn)) + '</span></div>' : '', '', false, .12); // (2.55) ohne Tage, Beträge sauber untereinander
   k('kosten', IC.geld, 'linear-gradient(135deg,#b0b0b0,#5a5a5a)', 'Laufende Kosten', f ? pxEuro(fk) : '–', f ? (naechste ? 'nächste: ' + esc(naechste.p.name.split(' (')[0]) + ' am ' + naechste.p.tag + '.' : '') : 'noch nicht geladen', '', false, .18);
   var _sj = stJahrStart(), _ss = stSumme(_sj); // (2.95) Steuererklärung: absetzbar im Steuerjahr
-  k('nachweis', IC.koffer, 'linear-gradient(135deg,#a6a6a6,#909090)', 'Steuererklärung ' + _sj, _ss ? pxEuro(_ss.wk) : nt + ' Tage', _ss ? 'absetzbar (Schätzung)' : '', '', false, .24);
+  var _se = stErstattung(_sj);
+  k('nachweis', IC.koffer, 'linear-gradient(135deg,#a6a6a6,#909090)', 'Steuererklärung ' + _sj, _se ? pxEuro(Math.abs(_se.a.erst)) : _ss ? pxEuro(_ss.wk) : nt + ' Tage', _se ? (_se.a.erst >= 0 ? 'zurück (Schätzung)' : 'Nachzahlung (Schätzung)') : _ss ? 'absetzbar (Schätzung)' : '', '', false, .24);
   k('jahr', IC.balken, 'linear-gradient(135deg,#7a7a7a,#666666)', 'Jahresübersicht', 'Jahr ›', 'Stunden, Brutto und Verpflegung pro Monat', '', false, .30);
   var uk = urlaubKonto(+hi.slice(0, 4));
   k('urlaub', IC.sonne, 'linear-gradient(135deg,#a0a0a0,#606060)', (uk.anspruch != null ? 'Resturlaub ' : 'Urlaub ') + hi.slice(0, 4), uk.anspruch != null ? tg(uk.rest) : tg(uk.genommen), uk.anspruch != null ? '' : 'genommen · Anspruch noch nicht eingetragen', '', false); // (2.55) nur der Resturlaub
@@ -3651,7 +3652,27 @@ function stLohn(j) { var L = lohnDaten(), r = { n: 0, br: 0, st: 0, sv: 0, vp: 0
   r.m.sort(function (a, b) { return a.m < b.m ? -1 : 1; }); return r; }
 function stTicket(j) { var M = dtMonate(j), r = { sum: 0, n: 0, reisen: 0, m: M, gesetzt: !!dtDaten().ab }; M.forEach(function (x) { if (!x.aus) { r.sum += x.preis; r.n++; } r.reisen += x.reisen; }); return r; }
 function stSumme(j) { var n = nwDaten(j); if (!n || !n.tage) return null; var s = nwSumme(n.tage), t = stTicket(j); return { s: s, t: t, vp: s.ges - s.erh, wk: s.ges - s.erh + t.sum }; }
-function stHtml(j, n, s) { var L = stLohn(j), T = stTicket(j), h = '';
+// (2.96) Erstattung schätzen: Jahressteuer nach § 32a EStG gegen die abgezogene Lohnsteuer. zvE = Brutto − Werbungskosten (mind. 1.230 € Pauschbetrag) − Vorsorge (≈ 95 % der Sozialabgaben: RV, KV/PV ohne Krankengeld-Anteil, AV fällt meist raus) − 36 € Sonderausgaben-Pauschbetrag
+function stTarif(j, x) { x = Math.floor(x); var g = j <= 2025 ? [12096, 17443, 68480, 932.30, 176.64, 1015.13, 10911.92] : [12348, 17799, 69878, 914.51, 173.10, 1034.87, 11135.63]; // 2027 noch offen → Tarif 2026
+  if (x <= g[0]) return 0; if (x <= g[1]) { var y = (x - g[0]) / 1e4; return Math.floor((g[3] * y + 1400) * y); }
+  if (x <= g[2]) { var z = (x - g[1]) / 1e4; return Math.floor((g[4] * z + 2397) * z + g[5]); } return Math.floor(0.42 * x - g[6]); }
+function stErstattung(j) { var L = stLohn(j), n = nwDaten(j); if (!L.n) return null; var s = n && n.tage ? nwSumme(n.tage) : null, T = stTicket(j);
+  var lauf = +j === new Date().getFullYear() && !L.m.some(function (x) { return x.m.slice(5) === '12'; }), f = lauf ? 12 / L.n : 1; // laufendes Jahr: Durchschnitt der bisherigen Monate hochgerechnet
+  if (lauf && L.m[0] && +L.m[0].m.slice(5) > 1) f = (13 - +L.m[0].m.slice(5)) / L.n; // erst später im Jahr angefangen
+  var fn = lauf ? 12 / (new Date().getMonth() + 1) : 1; // Einsätze/Ticket gehen bis heute, Abrechnungen nur bis zum Vormonat
+  var br = L.br * f, lst = L.st * f, vor = L.sv * f * 0.95, wkVp = s ? (s.ges - s.erh) * fn : 0, wkT = lauf && T.n ? T.sum / T.n * 12 : T.sum;
+  var rechne = function (wk) { var w = Math.max(1230, wk), zve = Math.max(0, br - w - vor - 36), est = stTarif(+j, zve); return { wk: w, zve: zve, est: est, erst: lst - est, pausch: wk < 1230 }; };
+  var a = rechne(wkVp + wkT), b = s && s.bed ? rechne(wkVp + wkT + s.bed * fn) : null;
+  return { lauf: lauf, f: f, br: br, lst: lst, vor: vor, a: a, b: b, wkEcht: wkVp + wkT }; }
+function stErstHtml(j) { var E = stErstattung(j); if (!E) return ''; var z = function (v) { return (v >= 0 ? '' : '− ') + euroH(Math.abs(v)); };
+  return '<div class="nwst"><h3>Erstattung ' + j + ' (Schätzung' + (E.lauf ? ', hochgerechnet aufs ganze Jahr' : '') + ')</h3>' +
+    '<div><span>Lohnsteuer abgezogen' + (E.lauf ? ' (hochgerechnet)' : '') + '</span><b>' + euroH(E.lst) + '</b></div>' +
+    '<div><span>Steuer fürs ganze Jahr (ca.)</span><b>' + euroH(E.a.est) + '</b></div>' +
+    '<div class="sum"><span>' + (E.a.erst >= 0 ? 'Du bekommst zurück' : 'Nachzahlung') + '</span><b style="color:' + (E.a.erst >= 0 ? 'var(--gruen)' : 'var(--rot)') + '">' + z(E.a.erst) + '</b></div>' +
+    (E.b ? '<div><span>Mit eintägigen Einsätzen über 8 Std.</span><b style="white-space:nowrap">' + z(E.b.erst) + '</b></div>' : '') +
+    '<p class="hinweis" style="margin:8px 0 0">Gerechnet: Brutto ' + euroH(E.br) + ' − Werbungskosten ' + euroH(E.a.wk) + (E.a.pausch ? ' (Pauschbetrag, deine ' + euroH(E.wkEcht) + ' liegen darunter)' : '') + ' − Sozialabgaben ≈ ' + euroH(E.vor) + ' = zu versteuern ≈ ' + euroH(E.a.zve) + '. ' +
+    'Wenn monatlich unterschiedlich viel verdient wird, gleicht die Steuererklärung das übers Jahr aus. Grobe Schätzung ohne Kirchensteuer, keine Steuerberatung.</p></div>'; }
+function stHtml(j, n, s) { var L = stLohn(j), T = stTicket(j), h = stErstHtml(j);
   h += '<div class="nwst"><h3>Werbungskosten ' + j + ' (Anlage N)</h3>' +
     '<div><span>Verpflegungsmehraufwand (Differenz)</span><b>' + euroH(s.ges - s.erh) + '</b></div>' +
     '<div><span>Deutschland-Ticket (' + T.n + ' Monate)</span><b>' + (T.gesetzt ? euroH(T.sum) : '–') + '</b></div>' +
@@ -3720,7 +3741,14 @@ $('nwpdf').onclick = function () {
     doc.line(40, y - 7, 470, y - 7, 0.6); doc.text(40, y, 'Summe', 8, true); [L.br, L.st, L.sv, L.vp].forEach(function (v, i) { doc.text(190 + i * 90, y, euro(v), 8, true, 'r'); }); y += 14;
     doc.text(40, y, 'Maßgeblich ist die Lohnsteuerbescheinigung des Arbeitgebers (wird elektronisch ans Finanzamt übermittelt).' + (Math.abs(L.vp - s.erh) < 1 ? ' Steuerfreie Verpflegung stimmt mit den Einsatzplänen überein.' : ''), 7.5); y += 12;
   } else { doc.text(40, y, 'Keine Lohnabrechnungen für ' + n.jahr + ' gespeichert.', 9); y += 12; }
-  y += 10; doc.text(40, y, '3. Anhang', 12, true); y += 15;
+  var E = stErstattung(n.jahr);
+  if (E) { y += 8; doc.text(40, y, '3. Erstattung (grobe Schätzung' + (E.lauf ? ', hochgerechnet' : '') + ')', 12, true); y += 16;
+    wr('Bruttolohn', euro(E.br)); wr('- Werbungskosten' + (E.a.pausch ? ' (Arbeitnehmer-Pauschbetrag)' : ''), '- ' + euro(E.a.wk)); wr('- Vorsorgeaufwendungen (ca. 95 % der Sozialabgaben) und 36 € Sonderausgaben', '- ' + euro(E.vor + 36));
+    wr('= zu versteuerndes Einkommen (ca.)', euro(E.a.zve)); wr('Einkommensteuer nach § 32a EStG ' + n.jahr, euro(E.a.est)); wr('Lohnsteuer laut Abrechnungen', euro(E.lst));
+    wr(E.a.erst >= 0 ? 'Voraussichtliche Erstattung' : 'Voraussichtliche Nachzahlung', euro(Math.abs(E.a.erst)), true, 10);
+    if (E.b) wr('mit eintägigen Einsätzen über 8 Std. (wenn zutreffend)', (E.b.erst >= 0 ? 'Erstattung ' : 'Nachzahlung ') + euro(Math.abs(E.b.erst)));
+    doc.text(40, y, 'Ohne Kirchensteuer und Solidaritätszuschlag (fällt bei diesem Einkommen nicht an). Das Finanzamt rechnet genau; keine Steuerberatung.', 7.5); y += 6; }
+  y += 10; doc.text(40, y, (E ? '4' : '3') + '. Anhang', 12, true); y += 15;
   ['Einsätze, Übernachtungen und Verpflegung je Tag (Seiten danach)', 'Deutschland-Ticket: Monate, Preis und An-/Abreisen (letzte Seite)'].forEach(function (t) { doc.text(48, y, '- ' + t, 9); y += 12; });
   var X = [40, 98, 122, 180, 420, 560, 650, 712, 802];
   function kopf() {
