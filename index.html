@@ -671,7 +671,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.05';
+var VERSION = '3.06';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2221,8 +2221,11 @@ function jvDepot(q) {
   if (/(depot|vermögen|portfolio|gesamtwert)/.test(q)) return 'Dein Depot liegt bei ' + eur(d.gesamt) + ', heute ' + pm(d.heute_eur) + ', das sind ' + pz(d.heute_pct) + '.';
   return null;
 }
+function jvHoerFix(t) { // (3.06) Spracherkennung versteht „Silber“ oft als „selber“ (auch „Silver“, „Silva“)
+  return String(t || '').replace(/\b(mein(?:em|en|e)?|dem|das|zu|mit|steht|läuft|macht|ist|wie|beim|vom|von|und|der|unser(?:em|e)?)\s+(selber|silva|silver|zilber|silbern)\b/gi, function (m, a) { return a + ' Silber'; })
+    .replace(/^(selber|silva|silver)(\s*\??)$/i, 'Silber$2').replace(/\b(selber|silva)(\s+(?:heute|gerade|aktuell|so|wert|im depot))\b/gi, 'Silber$2'); }
 function jvLokal(t) {
-  var q = t.toLowerCase(), d = new Date(), hi = iso2(d);
+  t = jvHoerFix(t); var q = t.toLowerCase(), d = new Date(), hi = iso2(d);
   if (!/^(?:notier(?:e)?|merk dir|schreib auf|notiz)\b/i.test(t.trim())) { var dep = null; try { dep = jvDepot(q); } catch (e) {} if (dep) return dep; }
   var m = /^(?:notier(?:e)?|merk dir|schreib auf|notiz)[:,]?\s+(.+)$/i.exec(t.trim());
   if (m) { var j = Date.now(); daten.notizen = daten.notizen || []; daten.notizen.push({ id: 'n' + j, text: m[1].trim(), erstellt: j, geaendert: j }); sichern(); return 'Notiert, Meister: „' + m[1].trim() + '“.'; }
@@ -2480,7 +2483,6 @@ function jvMacStimme2(t) {
   var pct1 = function (v) { return String(Math.round(v * 10) / 10).replace('.', ',') + ' Prozent'; };
   // (3.05) Kommentar zu einer Position wie am Dashboard (Humor-Stufe beachten), plus Hebel-Spruch
   window.jvPosKommentar = function (name, c) { try { if (hStufe() === 'seriös' || c == null || !isFinite(c)) return ''; var n = name, r = { name: name, chg: c }, p = pct1(Math.abs(c)), pm = (c >= 0 ? 'plus ' : 'minus ') + p;
-    if (Math.random() > hP(.75, 'kommentar')) return hebelSpr(name).trim();
     window.__jvCtx={name:n,p,pm};let w,emo='';
     if(c<=-30){w=HW('kmTief',['Ehrlich, Meister? An deiner Stelle hätte ich '+n+' nicht gekauft. Minus '+p+' seit dem Kauf. Aber jetzt halten wir zusammen durch.',n+' liegt bei minus '+p+'. Das ist kein Investment mehr, das ist eine Charakterprüfung.','Minus '+p+' bei '+n+'. Ich sage mal so: teures Lehrgeld, Meister.',n+' und du, das ist eine komplizierte Beziehung. Minus '+p+'.','Lieber nicht hinschauen, Meister. '+n+' steht bei minus '+p+'.','Minus '+p+'. '+n+' gibt sich echt Mühe, dich zu ärgern.','Minus '+p+' bei '+n+'. Hast du schon mal über Privatinsolvenz nachgedacht, Meister? Spaß.','Minus '+p+'. Wenn das so weitergeht, verkaufen wir bald Lose vor dem Supermarkt, Meister.'],
       ['Minus '+p+'. Meister, das war kein Kauf, das war eine Spende.','Minus '+p+' bei '+n+'. Selbst eine geworfene Münze hätte besser entschieden.',n+' bei minus '+p+'. Wenn das ein Restaurant wäre, hätte es null Sterne.']);emo='hoch'}
@@ -2507,7 +2509,7 @@ function jvMacStimme2(t) {
   window.jvSmallTalk = function (text) { var g = String(text || '').toLowerCase().replace(/[?!.,;:„“"]/g, ' ').replace(/\s+/g, ' ').trim(); if (!g) return null; return smallTalk(g) || extra(g); };
 })();
 function jvSenden(text) {
-  text = (text || '').trim(); if (!text || jv.laeuft) return;
+  text = jvHoerFix((text || '').trim()); if (!text || jv.laeuft) return; // (3.06) „selber“ → „Silber“ auch für die Frage an den Mac
   var lok = null; try { lok = jvLokal(text); } catch (x) {}
   if (!lok) try { lok = window.jvSmallTalk && window.jvSmallTalk(text); } catch (x) {} // (3.01) Smalltalk wie am Mac, ohne Mac
   if (lok) { try { /^(notier|merk dir|schreib auf|notiz)/i.test(text.trim()) ? window.jarvisBurst && jarvisBurst() : 0; } catch (x) {} jvEntsperren(); jvZeile('ich', text); $('jvText').value = ''; jvZustand('denkt', ''); setTimeout(function () { jvZeile('er', lok); jvMacStimme(lok); if (!$('start').classList.contains('aus')) startZeichnen(true); }, 300); return; }
