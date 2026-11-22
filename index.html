@@ -669,7 +669,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.92';
+var VERSION = '2.93';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1772,25 +1772,29 @@ function jahrZeichnen() {
 }
 // (2.92) Deutschland-Ticket für die Steuer: eigener Monatspreis, Monate mit Ticket, An-/Abreisen je Monat. Synct als „dticket“ in daten.json (neuerer Stand gewinnt)
 var dtJahr = null;
-function dtDaten() { return daten.einst.dticket = daten.einst.dticket || { preis: 63, ab: '', bis: '', aus: {} }; }
+function dtDaten() { var t = daten.einst.dticket = daten.einst.dticket || { ab: '', bis: '', aus: {} }; t.preise = t.preise || {}; return t; }
+// (2.93) offizieller Monatspreis: Mai 2023–2024 49 €, 2025 58 €, 2026 63 €; ab 2027 per Kostenindex (noch offen, bis dahin der letzte bekannte). Eigener Preis je Jahr geht vor.
+var DT_PREISE = [['2023-05', 49], ['2025-01', 58], ['2026-01', 63]];
+function dtAmtlich(k) { var p = 0; DT_PREISE.forEach(function (x) { if (k >= x[0]) p = x[1]; }); return p; }
+function dtPreis(k) { var e = dtDaten().preise[k.slice(0, 4)]; return e != null && e !== '' ? +e : dtAmtlich(k); }
 function dtMonate(j) { var t = dtDaten(), heute = iso2(new Date()).slice(0, 7), r = [];
   for (var m = 1; m <= 12; m++) { var k = j + '-' + String(m).padStart(2, '0'); if (k > heute) break; if (!t.ab || k < t.ab || (t.bis && k > t.bis)) continue;
     var reisen = daten.eintraege.filter(function (x) { return x.datum.slice(0, 7) === k && (x.anreise || x.abreise) && !(daten.geloescht || {})[x.id]; }).length;
-    r.push({ k: k, aus: !!(t.aus || {})[k], reisen: reisen, preis: +t.preis || 0 }); }
+    r.push({ k: k, aus: !!(t.aus || {})[k], reisen: reisen, preis: dtPreis(k) }); }
   return r; }
 function dtHtml() { var t = dtDaten(); if (dtJahr == null) dtJahr = new Date().getMonth() < 3 ? new Date().getFullYear() - 1 : new Date().getFullYear();
   var M = dtMonate(dtJahr), sum = 0, nM = 0, nR = 0; M.forEach(function (x) { if (!x.aus) { sum += x.preis; nM++; } nR += x.reisen; });
   var h = '<label class="l">Deutschland-Ticket (für die Steuer)</label><div class="dtjahr"><button type="button" id="dtVor">‹</button><b>' + dtJahr + '</b><button type="button" id="dtNach">›</button></div>' +
     '<div class="nwk"><div><small>Bezahlt ' + dtJahr + '</small><b>' + euroH(sum) + '</b></div><div><small>Monate · An-/Abreisen</small><b>' + nM + ' · ' + nR + '</b></div></div>' +
-    '<div class="dtfelder"><div class="ganz"><label class="l">Preis pro Monat (€)</label><input type="text" inputmode="decimal" id="dtPreis" value="' + String(t.preis == null ? '' : t.preis).replace('.', ',') + '"></div>' +
+    '<div class="dtfelder"><div class="ganz"><label class="l">Preis pro Monat ' + dtJahr + ' (€)</label><input type="text" inputmode="decimal" id="dtPreis" placeholder="' + String(dtAmtlich(dtJahr + '-12')).replace('.', ',') + ' (automatisch)" value="' + (t.preise[dtJahr] != null ? String(t.preise[dtJahr]).replace('.', ',') : '') + '"></div>' +
     '<div><label class="l">Ticket seit</label><input type="month" id="dtAb" value="' + (t.ab || '') + '"></div><div><label class="l">Gekündigt ab</label><input type="month" id="dtBis" value="' + (t.bis || '') + '"></div></div>';
   if (!t.ab) h += '<p class="hinweis">Trag ein, seit wann du das Ticket hast, dann rechne ich die Monate zusammen.</p>';
   else if (!M.length) h += '<p class="hinweis">In ' + dtJahr + ' keine Monate mit Ticket.</p>';
   M.slice().reverse().forEach(function (x) { h += '<div class="jb dtm' + (x.aus ? ' dtaus' : '') + '" data-k="' + x.k + '"><div class="k"><b>' + MONATE[+x.k.slice(5) - 1] + ' ' + x.k.slice(0, 4) + '</b><span>' + (x.aus ? 'ohne Ticket' : euroH(x.preis)) + ' · ' + (x.reisen ? x.reisen + (x.reisen === 1 ? ' An-/Abreise' : ' An-/Abreisen') : 'keine An-/Abreise') + '</span></div></div>'; });
-  if (M.length) h += '<p class="hinweis">Tippe auf einen Monat, wenn du da kein Ticket hattest. Ob und wie viel davon du absetzen kannst, klärst du am besten mit dem Steuerberater oder in ELSTER.</p>';
+  if (M.length) h += '<p class="hinweis">Preis automatisch nach dem offiziellen Preis im jeweiligen Monat (2023–24: 49 €, 2025: 58 €, 2026: 63 €)' + (dtJahr > 2026 && t.preise[dtJahr] == null ? '; den Preis für ' + dtJahr + ' trage ich ein, sobald er feststeht' : '') + '. Hast du weniger bezahlt (z. B. Jobticket), trag deinen Preis oben ein. Tippe auf einen Monat, wenn du da kein Ticket hattest. Ob und wie viel davon du absetzen kannst, klärst du am besten mit dem Steuerberater oder in ELSTER.</p>';
   return h; }
 function dtBinden() { if (!$('dtPreis')) return; var t = dtDaten(), neu = function () { t.stand = Date.now(); sichern(); jahrZeichnen(); };
-  $('dtPreis').onchange = function () { var v = parseFloat(this.value.replace(',', '.')); t.preis = isNaN(v) ? 0 : v; neu(); };
+  $('dtPreis').onchange = function () { var v = parseFloat(this.value.replace(',', '.')); if (isNaN(v)) delete t.preise[dtJahr]; else t.preise[dtJahr] = v; neu(); };
   $('dtAb').onchange = function () { t.ab = this.value; neu(); }; $('dtBis').onchange = function () { t.bis = this.value; neu(); };
   $('dtVor').onclick = function () { dtJahr--; jahrZeichnen(); }; $('dtNach').onclick = function () { if (dtJahr < new Date().getFullYear()) { dtJahr++; jahrZeichnen(); } };
   [].forEach.call(document.querySelectorAll('.dtm'), function (r) { r.onclick = function () { t.aus = t.aus || {}; if (t.aus[r.dataset.k]) delete t.aus[r.dataset.k]; else t.aus[r.dataset.k] = 1; neu(); }; }); }
