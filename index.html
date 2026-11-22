@@ -671,7 +671,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.10';
+var VERSION = '3.11';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1782,7 +1782,7 @@ function jahrZeichnen() {
 var dtJahr = null;
 function dtDaten() { var t = daten.einst.dticket = daten.einst.dticket || { ab: '', bis: '', aus: {} }; t.preise = t.preise || {}; return t; }
 // (2.93) offizieller Monatspreis: Mai 2023–2024 49 €, 2025 58 €, 2026 63 €; ab 2027 per Kostenindex (noch offen, bis dahin der letzte bekannte). Eigener Preis je Jahr geht vor.
-var DT_PREISE = [['2023-05', 49], ['2025-01', 58], ['2026-01', 63]];
+var DT_PREISE = [['2023-05', 49], ['2025-01', 58], ['2026-01', 63], ['2027-01', 66.8]]; // (3.11) 2027: 66,80 € (Koordinierungsrat, 30.09.2026)
 function dtAmtlich(k) { var p = 0; DT_PREISE.forEach(function (x) { if (k >= x[0]) p = x[1]; }); return p; }
 function dtPreis(k) { var e = dtDaten().preise[k.slice(0, 4)]; return e != null && e !== '' ? +e : dtAmtlich(k); }
 function dtMonate(j) { var t = dtDaten(), heute = iso2(new Date()).slice(0, 7), r = [];
@@ -3578,6 +3578,7 @@ function urlaubKonto(j) {
   var u = (daten.einst.urlaubJahr || {})[j] || {}, hi = iso2(new Date()), gen = [], gep = [];
   daten.eintraege.forEach(function (x) { if (!x.urlaub || x.datum.slice(0, 4) !== String(j) || (daten.geloescht || {})[x.id]) return; (x.datum <= hi ? gen : gep).push(x.datum); });
   gen.sort(); gep.sort();
+  if ((u.anspruch == null || u.anspruch === '') && j > 2000) { var v = (daten.einst.urlaubJahr || {})[j - 1]; if (v && v.anspruch != null && v.anspruch !== '') u = Object.assign({}, u, { anspruch: v.anspruch }); } // (3.11) neues Jahr: Anspruch vom Vorjahr übernehmen, bis er geändert wird
   var an = u.anspruch != null && u.anspruch !== '' ? +u.anspruch : null, ue = +u.uebertrag || 0, od = +u.ohneDatum || 0, ges = an != null ? an + ue : null;
   return { anspruch: an, uebertrag: ue, gesamt: ges, genommen: gen.length + od, ohneDatum: od, geplant: gep.length, rest: ges != null ? ges - gen.length - od - gep.length : null, tageGen: gen, tageGep: gep };
 }
@@ -3716,8 +3717,10 @@ function nwSteuerHtml(s, jahr) {
 
 // (2.95) Steuererklärung: je Jahr Einsätze/Verpflegung (nachweis), Lohn (Abrechnungen), Deutschland-Ticket; absetzbar = Verpflegungs-Differenz (ohne eintägige) + Ticket
 var nwJahr = null;
-function nwDaten(j) { var n = daten.nachweis; return n && n.jahr === +j ? n : (daten.nachweise || {})[j] || null; }
-function nwJahre() { var J = Object.keys(daten.nachweise || {}).map(Number); if (daten.nachweis && daten.nachweis.jahr) J.push(daten.nachweis.jahr); return J.filter(function (x, i) { return J.indexOf(x) === i; }).sort(); }
+// (3.11) Jahreswechsel: nachweis.json enthält alle Tage aus den aktuellen Plänen (ab Januar auch Ende Dezember bzw. das neue Jahr) → je Jahr filtern; ältere Jahre aus nachweis_<jahr>.json
+function nwDaten(j) { j = +j; var n = daten.nachweis, T = n && n.tage ? n.tage.filter(function (x) { return +x.datum.slice(0, 4) === j; }) : [], alt = (daten.nachweise || {})[j];
+  if (alt && alt.tage && alt.tage.length >= T.length) return alt; if (T.length) return Object.assign({}, n, { jahr: j, tage: T }); return alt || null; }
+function nwJahre() { var J = Object.keys(daten.nachweise || {}).map(Number); ((daten.nachweis || {}).tage || []).forEach(function (x) { J.push(+x.datum.slice(0, 4)); }); return J.filter(function (x, i) { return x && J.indexOf(x) === i; }).sort(); }
 function stJahrStart() { var J = nwJahre(), h = new Date(), j = h.getMonth() < 7 ? h.getFullYear() - 1 : h.getFullYear(); if (J.length && J.indexOf(j) < 0) j = J[J.length - 1]; return j; } // bis Juli: Vorjahr (Abgabe bis 31.7.)
 function stLohn(j) { var L = lohnDaten(), r = { n: 0, br: 0, st: 0, sv: 0, vp: 0, ne: 0, m: [] }; if (!L || !L.m) return r;
   L.m.forEach(function (x) { if (String(x.m).slice(0, 4) !== String(j)) return; var vp = 0; (x.n || []).forEach(function (y) { if (/verpfl/i.test(y.t)) vp += +y.e || 0; });
@@ -3748,9 +3751,10 @@ function stTarif(j, x) { x = Math.floor(x); var g = j <= 2025 ? [12096, 17443, 6
   if (x <= g[0]) return 0; if (x <= g[1]) { var y = (x - g[0]) / 1e4; return Math.floor((g[3] * y + 1400) * y); }
   if (x <= g[2]) { var z = (x - g[1]) / 1e4; return Math.floor((g[4] * z + 2397) * z + g[5]); } return Math.floor(0.42 * x - g[6]); }
 function stErstattung(j) { var L = stLohn(j), n = nwDaten(j); if (!L.n) return null; var s = n && n.tage ? nwSumme(n.tage) : null, T = stTicket(j);
-  var lauf = +j === new Date().getFullYear() && !L.m.some(function (x) { return x.m.slice(5) === '12'; }), f = lauf ? 12 / L.n : 1; // laufendes Jahr: Durchschnitt der bisherigen Monate hochgerechnet
+  var Yh = new Date().getFullYear(), ohneDez = !L.m.some(function (x) { return x.m.slice(5) === '12'; });
+  var lauf = ohneDez && (+j === Yh || (+j === Yh - 1 && new Date().getMonth() < 3)), f = lauf ? 12 / L.n : 1; // (3.11) auch im Januar/Februar hochrechnen, bis die Dezember-Abrechnung da ist // laufendes Jahr: Durchschnitt der bisherigen Monate hochgerechnet
   if (lauf && L.m[0] && +L.m[0].m.slice(5) > 1) f = (13 - +L.m[0].m.slice(5)) / L.n; // erst später im Jahr angefangen
-  var fn = lauf ? 12 / (new Date().getMonth() + 1) : 1; // Einsätze/Ticket gehen bis heute, Abrechnungen nur bis zum Vormonat
+  var fn = lauf && +j === Yh ? 12 / (new Date().getMonth() + 1) : 1; // Einsätze/Ticket gehen bis heute, Abrechnungen nur bis zum Vormonat
   var br = L.br * f, lst = L.st * f, vor = L.sv * f * 0.95, wkVp = s ? (s.ges - s.erh) * fn : 0, wkT = lauf && T.n ? T.sum / T.n * 12 : T.sum;
   // (2.97) Andi ist in der Kirche (Sachsen 9 %): „st“ auf der Abrechnung = Lohnsteuer + Kirchensteuer (+ Soli, bei ihm 0). Gezahlte Kirchensteuer zählt als Sonderausgabe (statt 36 € Pauschbetrag).
   if (daten.einst.kist === undefined) { daten.einst.kist = true; sichern(true); }
