@@ -671,7 +671,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.09';
+var VERSION = '3.10';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -3668,14 +3668,21 @@ function nachweisHolen(kopf) {
 // (3.09) Kontaktdaten aus der aktuellen Reiseinfo (privates Daten-Repo reiseinfo/aktuell.json, pflegt die nächtliche Aufgabe): Nachricht an alle vorbereiten
 function reiseinfoHolen(kopf) {
   return fetch(GH.replace('daten.json', 'reiseinfo/aktuell.json') + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; })
-    .then(function (j) { if (!j) return; var n = JSON.parse(b64dec(j.content) || '{}'); if (n && n.personen) { daten.reiseinfo = n; sichern(true); } }).catch(function () {});
+    .then(function (j) { if (!j) return; var n = JSON.parse(b64dec(j.content) || '{}'); if (n && n.personen) { daten.reiseinfo = n; sichern(true); } }).catch(function () {})
+    .then(function () { // (3.10) von Claude im Chat vorbereitete Nachricht (reiseinfo/nachricht.json): beim nächsten Öffnen erscheint der Knopf
+      return fetch(GH.replace('daten.json', 'reiseinfo/nachricht.json') + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+        if (!j) return; var n = JSON.parse(b64dec(j.content) || '{}'); if (!n || !n.id || !n.text) return; var t = Date.parse(n.zeit || '') || 0;
+        if (Date.now() - t > 12 * 3600e3 || localStorage.getItem('smsErledigt') === n.id) return;
+        var r0 = smsAnAlle(n.text); if (r0) { var k = document.getElementById('smsKnopf'); if (k) { k.textContent = '✉︎ Claude: Nachricht an ' + r0.n + ' Leute'; k.addEventListener('click', function () { try { localStorage.setItem('smsErledigt', n.id); } catch (x) {} }); } }
+      });
+    }).catch(function () {});
 }
 function smsAnAlle(text) { var R = daten.reiseinfo, L = R && R.personen ? R.personen.filter(function (p) { return !p.ich && p.tel; }) : [];
   if (!L.length) return null; text = String(text || '').trim(); if (text) text = text.charAt(0).toUpperCase() + text.slice(1);
   var url = 'sms:/open?addresses=' + L.map(function (p) { return p.tel; }).join(',') + (text ? '&body=' + encodeURIComponent(text) : '');
   var alt = document.getElementById('smsKnopf'); if (alt) alt.remove();
   var a = document.createElement('a'); a.id = 'smsKnopf'; a.className = 'lknopf'; a.href = url; a.textContent = '✉︎ Nachricht an ' + L.length + ' Leute öffnen';
-  a.style.cssText = 'position:fixed;left:24px;right:24px;width:auto;bottom:calc(env(safe-area-inset-bottom) + 34px);z-index:99999;margin:0;box-shadow:0 10px 30px rgba(0,0,0,.6)';
+  a.style.cssText = 'position:fixed;left:24px;right:24px;width:auto;bottom:calc(env(safe-area-inset-bottom) + 34px);z-index:99999;margin:0;background:#1e1e1e;border:1px solid rgba(255,255,255,.28);box-shadow:0 10px 40px rgba(0,0,0,.85);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)';
   a.onclick = function () { setTimeout(function () { a.remove(); }, 400); }; document.body.appendChild(a); setTimeout(function () { if (a.parentNode) a.remove(); }, 45000);
   return { n: L.length, namen: L.map(function (p) { return p.name.replace(/^(Herr|Frau) /, ''); }), text: text, kw: R.kw }; }
 function reisetageHolen(kopf) {
