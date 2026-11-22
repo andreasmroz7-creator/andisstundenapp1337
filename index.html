@@ -669,7 +669,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.99';
+var VERSION = '3.00';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -813,7 +813,11 @@ function sync() {
       if (r.status === 404 || r.status === 403) throw new Error('Schlüssel darf nur lesen. Contents auf „Read and write“ stellen');
       if (!r.ok) throw new Error('Hochladen ' + r.status);
     });
-  }).then(function () { return fahrtenHolen(kopf); }).then(function () { fahrtenAuto(); return nachweisHolen(kopf); }).then(function () { return lohnHolen(kopf); }).then(function () { return reisetageHolen(kopf); }).then(function () { return fixkostenHolen(kopf); }).then(function () { return notizenSync(kopf); }).then(function () { return gbSync(kopf); }).then(function () { return depotHolen(kopf); }).then(function () { return stimmeHolen(kopf); }).then(function () {
+  }).then(function () { // (3.00) alles Weitere gleichzeitig statt nacheinander (vorher 10 Anfragen hintereinander)
+    var ok = function (p) { return Promise.resolve().then(p).catch(function () {}); };
+    return Promise.all([ok(function () { return fahrtenHolen(kopf).then(function () { fahrtenAuto(); }); }), ok(function () { return nachweisHolen(kopf); }), ok(function () { return lohnHolen(kopf); }), ok(function () { return reisetageHolen(kopf); }),
+      ok(function () { return fixkostenHolen(kopf); }), ok(function () { return notizenSync(kopf); }), ok(function () { return gbSync(kopf); }), ok(function () { return depotHolen(kopf); }), ok(function () { return stimmeHolen(kopf); })]);
+  }).then(function () {
     offlineZeigen(false); daten.letzterAbgleich = Date.now(); sichern(true); standPruefen(); if ($('sstand')) $('sstand').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     syncLaeuft = false; syncAnzeige('☁ abgeglichen ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
   }).catch(function (x) {
@@ -1709,7 +1713,7 @@ function startZiel(z) {
     else if (z === 'notizen') { notizenZeichnen(); $('blattNo').classList.add('offen'); }
     else if (z === 'nachweis') $('nwknopf').onclick();
     else if (z === 'plan') planZeigen();
-    else if (z === 'suche') { $('suFeld').value = ''; suZeichnen(); $('blattSu').classList.add('offen'); try { $('suFeld').focus(); } catch (x) {} }
+    else if (z === 'suche') { kryptoSym(); $('suFeld').value = ''; suZeichnen(); $('blattSu').classList.add('offen'); try { $('suFeld').focus(); } catch (x) {} }
     else { jahrZeichnen(); $('blattJ').classList.add('offen'); }
   }
 }
@@ -3344,6 +3348,11 @@ $('suFeld').addEventListener('input', suZeichnen);
 // ================= (2.87) Suche im Markt: Aktien, ETFs, Fonds, Indizes (Onvista) und Kryptos (Binance), Diagramm ohne Besitz =================
 var KRYPTO_NAMEN = { bitcoin: 'BTC', btc: 'BTC', ethereum: 'ETH', eth: 'ETH', solana: 'SOL', sol: 'SOL', xrp: 'XRP', ripple: 'XRP', dogecoin: 'DOGE', doge: 'DOGE', cardano: 'ADA', ada: 'ADA', litecoin: 'LTC', polkadot: 'DOT', chainlink: 'LINK', avalanche: 'AVAX', shiba: 'SHIB', 'shiba inu': 'SHIB', pepe: 'PEPE', sui: 'SUI', tron: 'TRX', bnb: 'BNB', binance: 'BNB', toncoin: 'TON', polygon: 'POL', optimism: 'OP', arbitrum: 'ARB', near: 'NEAR', aptos: 'APT', stellar: 'XLM', uniswap: 'UNI', cosmos: 'ATOM', render: 'RENDER', injective: 'INJ', bonk: 'BONK', floki: 'FLOKI', hedera: 'HBAR', algorand: 'ALGO', 'internet computer': 'ICP', filecoin: 'FIL', aave: 'AAVE', kaspa: 'KAS', monero: 'XMR' };
 var suMarktT = 0, suMarktC = {};
+// (3.00) Liste aller Binance-Krypto-Symbole (…USDT), 1× am Tag geladen, damit die Suche nicht für jedes Wort bei Binance nachfragt
+var _kSym = null;
+function kryptoSym() { if (_kSym) return _kSym; try { var c = JSON.parse(localStorage.getItem('cockpit_ksym') || 'null'); if (c && Date.now() - c.t < 864e5) { _kSym = c.s; return _kSym; } } catch (x) {}
+  if (!kryptoSym.laedt) { kryptoSym.laedt = 1; fetch('https://api.binance.com/api/v3/ticker/price', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (L) { var S = {}; L.forEach(function (x) { if (/USDT$/.test(x.symbol)) S[x.symbol.slice(0, -4)] = 1; }); _kSym = S; try { localStorage.setItem('cockpit_ksym', JSON.stringify({ t: Date.now(), s: S })); } catch (x) {} }).catch(function () {}).then(function () { kryptoSym.laedt = 0; }); }
+  return null; }
 function suMarktSuchen(q) {
   clearTimeout(suMarktT); suMarktT = setTimeout(function () {
     var box = $('suMarkt'); if (!box || ($('suFeld').value || '').trim().toLowerCase() !== q) return;
@@ -3351,7 +3360,7 @@ function suMarktSuchen(q) {
       b.innerHTML = '<div class="sugr">Markt</div>' + (R.length ? R.map(function (r, i) { return '<div class="suz" data-mi="' + i + '"><div><b>' + esc(r.n) + '</b><small>' + esc(r.s) + '</small></div><i>Diagramm ›</i></div>'; }).join('') : '<p class="hinweis" style="margin-top:4px">' + (R.fehler ? 'Markt-Suche gerade nicht erreichbar.' : 'Im Markt nichts gefunden.') + '</p>');
       [].forEach.call(b.querySelectorAll('.suz[data-mi]'), function (z) { z.onclick = function () { suMerken(q); try { $('suFeld').blur(); } catch (x) {} marktOeffnen(R[+z.dataset.mi]); }; }); };
     if (suMarktC[q]) return zeig(suMarktC[q]);
-    var sym = KRYPTO_NAMEN[q] || (/^[a-z0-9]{2,6}$/.test(q) ? q.toUpperCase() : null);
+    var sym = KRYPTO_NAMEN[q] || (/^[a-z0-9]{2,6}$/.test(q) && (!kryptoSym() || kryptoSym()[q.toUpperCase()]) ? q.toUpperCase() : null); // (3.00) nur echte Binance-Symbole abfragen
     var kr = sym ? fetch('https://api.binance.com/api/v3/ticker/price?symbol=' + sym + 'USDT', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { return j && j.price ? [{ typ: 'krypto', sym: sym, n: (Object.keys(KRYPTO_NAMEN).filter(function (k) { return KRYPTO_NAMEN[k] === sym && k.length > 3; })[0] || sym).replace(/^./, function (c) { return c.toUpperCase(); }), s: 'Krypto · ' + sym }] : []; }).catch(function () { return []; }) : Promise.resolve([]);
     var ov = fetch('https://api.onvista.de/api/v1/instruments/search/facet?searchValue=' + encodeURIComponent(q), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
       var out = []; ((j && j.facets) || []).forEach(function (f) { if (['STOCK', 'ETF', 'FUND', 'INDEX'].indexOf(f.type) < 0) return; (f.results || []).slice(0, f.type === 'STOCK' ? 5 : 3).forEach(function (r) { if (r.entityType === 'CRYPTO') return; out.push({ typ: 'wp', t: r.entityType, ev: r.entityValue, isin: r.isin, n: r.name, s: (r.displayType || f.label) + (r.isin ? ' · ' + r.isin : '') }); }); });
@@ -3606,17 +3615,18 @@ function nachweisHolen(kopf) {
     if (!r.ok) return null;
     return r.json().then(function (j) { var n = JSON.parse(b64dec(j.content) || '{}'); if (n && n.tage) { daten.nachweis = n; sichern(true); if ($('blattN').classList.contains('offen')) nachweisZeichnen(); } });
   }).catch(function () {}).then(function () { // (2.95) frühere Jahre: nachweis_<jahr>.json
-    var J = []; for (var y = 2025; y <= new Date().getFullYear(); y++) if (!daten.nachweis || y !== daten.nachweis.jahr) J.push(y);
+    var J = []; for (var y = 2025; y <= new Date().getFullYear(); y++) if ((!daten.nachweis || y !== daten.nachweis.jahr) && !((daten.nachweise || {})[y] && Date.now() - ((daten.nachweise[y] || {})._t || 0) < 864e5)) J.push(y); // (3.00) frühere Jahre höchstens 1× am Tag
     return Promise.all(J.map(function (y) { return fetch(GH.replace('daten.json', 'nachweis_' + y + '.json') + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
-      if (!j) return; var n = JSON.parse(b64dec(j.content) || '{}'); if (n && n.tage) { (daten.nachweise = daten.nachweise || {})[y] = n; } }).catch(function () {}); }))
+      if (!j) return; var n = JSON.parse(b64dec(j.content) || '{}'); if (n && n.tage) { n._t = Date.now(); (daten.nachweise = daten.nachweise || {})[y] = n; } }).catch(function () {}); }))
       .then(function () { sichern(true); if ($('blattN').classList.contains('offen')) nachweisZeichnen(); });
   });
 }
 // (2.94) Reisetage aus alten Einsatzplänen (reisetage.json, z. B. 2025 vor der App) fürs Deutschland-Ticket
 function reisetageHolen(kopf) {
+  if (daten.reisetage && Date.now() - (daten.reisetage._t || 0) < 864e5) return Promise.resolve(); // (3.00) ändert sich praktisch nie: höchstens 1× am Tag
   return fetch(GH.replace('daten.json', 'reisetage.json') + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) {
     if (!r.ok) return null;
-    return r.json().then(function (j) { var n = JSON.parse(b64dec(j.content) || '{}'); if (n && n.tage) { daten.reisetage = n; sichern(true); if ($('blattJ').classList.contains('offen')) jahrZeichnen(); } });
+    return r.json().then(function (j) { var n = JSON.parse(b64dec(j.content) || '{}'); if (n && n.tage) { n._t = Date.now(); daten.reisetage = n; sichern(true); if ($('blattJ').classList.contains('offen')) jahrZeichnen(); } });
   }).catch(function () {});
 }
 // (2.83) Lohn-Daten direkt aus dem Daten-Repo (lohn/lohn.json, pflegt die nächtliche Aufgabe ohne Mac), mit Arbeitszeitkonto
@@ -3698,7 +3708,7 @@ function stHtml(j, n, s) { var L = stLohn(j), T = stTicket(j), X = stExtra(j), E
   h += '<div class="nwst"><h3>Werbungskosten ' + j + ' (Anlage N)</h3>' +
     '<div><span>Verpflegungsmehraufwand (Differenz)</span><b>' + euroH(s.ges - s.erh) + '</b></div>' +
     '<div><span>Deutschland-Ticket (' + T.n + ' Monate)</span><b>' + (T.gesetzt ? euroH(T.sum) : '–') + '</b></div>' +
-    (E8.alle ? '<div><span>Eintägige über 8 Std.: ' + E8.n + ' von ' + E8.alle + ' Tagen × 14 €</span><b>' + euroH(E8.sum) + '</b></div>' : '') +
+    (E8.alle ? '<div><span>Eintägige über 8 Std.: ' + E8.n + ' von ' + E8.alle + ' Tagen × 14&nbsp;€</span><b>' + euroH(E8.sum) + '</b></div>' : '') +
     (X.sum ? '<div><span>Handy ' + X.hm + ' × 20 % von ' + String(ST_HANDY).replace('.', ',') + ' €</span><b>' + euroH(X.handy) + '</b></div><div><span>Kontoführung (pauschal)</span><b>' + euroH(X.konto) + '</b></div>' : '') +
     '<div class="sum"><span>Zusammen</span><b style="color:var(--gruen)">' + euroH(s.ges - s.erh + T.sum + X.sum + E8.sum) + '</b></div>' +
     (s.ges - s.erh + T.sum + X.sum + E8.sum < 1230 ? '<p class="hinweis" style="margin:6px 0 0">Unter 1.230 € – dann zählt der Pauschbetrag (ist schon in der Lohnsteuer drin).</p>' : '<p class="hinweis" style="margin:6px 0 0">Wirkt nur der Teil über 1.230 € (' + euroH(s.ges - s.erh + T.sum + X.sum + E8.sum - 1230) + '), der Pauschbetrag ist schon in der Lohnsteuer drin.</p>') +
