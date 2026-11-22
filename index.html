@@ -669,7 +669,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.97';
+var VERSION = '2.98';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -3651,7 +3651,12 @@ function stLohn(j) { var L = lohnDaten(), r = { n: 0, br: 0, st: 0, sv: 0, vp: 0
     r.n++; r.br += +x.br || 0; r.st += +x.st || 0; r.sv += +x.sv || 0; r.vp += vp; r.ne += +x.ne || 0; r.m.push({ m: x.m, br: +x.br || 0, st: +x.st || 0, sv: +x.sv || 0, vp: vp }); });
   r.m.sort(function (a, b) { return a.m < b.m ? -1 : 1; }); return r; }
 function stTicket(j) { var M = dtMonate(j), r = { sum: 0, n: 0, reisen: 0, m: M, gesetzt: !!dtDaten().ab }; M.forEach(function (x) { if (!x.aus) { r.sum += x.preis; r.n++; } r.reisen += x.reisen; }); return r; }
-function stSumme(j) { var n = nwDaten(j); if (!n || !n.tage) return null; var s = nwSumme(n.tage), t = stTicket(j); return { s: s, t: t, vp: s.ges - s.erh, wk: s.ges - s.erh + t.sum }; }
+// (2.98) weitere Werbungskosten ohne Belege: Kontoführung pauschal 16 €/Jahr; Handy (49,99 €/Monat, auch dienstlich) 20 % der Rechnung, höchstens 20 €/Monat, für die Monate mit Lohn
+var ST_HANDY = 49.99;
+function stExtra(j) { var L = stLohn(j), lauf = +j === new Date().getFullYear(), mon = lauf ? 12 : Math.max(L.n, 0); if (!L.n) return { konto: 0, handy: 0, hm: 0, sum: 0 };
+  if (lauf && L.m[0] && +L.m[0].m.slice(5) > 1) mon = 13 - +L.m[0].m.slice(5);
+  var h = Math.round(Math.min(20, ST_HANDY * 0.2) * mon * 100) / 100; return { konto: 16, handy: h, hm: mon, sum: 16 + h }; }
+function stSumme(j) { var n = nwDaten(j); if (!n || !n.tage) return null; var s = nwSumme(n.tage), t = stTicket(j), x = stExtra(j); return { s: s, t: t, x: x, vp: s.ges - s.erh, wk: s.ges - s.erh + t.sum + x.sum }; }
 // (2.96) Erstattung schätzen: Jahressteuer nach § 32a EStG gegen die abgezogene Lohnsteuer. zvE = Brutto − Werbungskosten (mind. 1.230 € Pauschbetrag) − Vorsorge (≈ 95 % der Sozialabgaben: RV, KV/PV ohne Krankengeld-Anteil, AV fällt meist raus) − 36 € Sonderausgaben-Pauschbetrag
 function stTarif(j, x) { x = Math.floor(x); var g = j <= 2025 ? [12096, 17443, 68480, 932.30, 176.64, 1015.13, 10911.92] : [12348, 17799, 69878, 914.51, 173.10, 1034.87, 11135.63]; // 2027 noch offen → Tarif 2026
   if (x <= g[0]) return 0; if (x <= g[1]) { var y = (x - g[0]) / 1e4; return Math.floor((g[3] * y + 1400) * y); }
@@ -3666,8 +3671,8 @@ function stErstattung(j) { var L = stLohn(j), n = nwDaten(j); if (!L.n) return n
   var ks = daten.einst.kist ? 0.09 : 0, lstNur = lst / (1 + ks), kistBez = lst - lstNur;
   var rechne = function (wk) { var w = Math.max(1230, wk), sa = Math.max(36, kistBez), zve = Math.max(0, br - w - vor - sa), est = stTarif(+j, zve), ki = Math.floor(est * ks * 100) / 100;
     return { wk: w, sa: sa, zve: zve, est: est, kist: ki, erst: lst - est - ki, pausch: wk < 1230 }; };
-  var a = rechne(wkVp + wkT), b = s && s.bed ? rechne(wkVp + wkT + s.bed * fn) : null;
-  return { lauf: lauf, f: f, br: br, lst: lst, lstNur: lstNur, kistBez: kistBez, ks: ks, vor: vor, a: a, b: b, wkEcht: wkVp + wkT }; }
+  var X = stExtra(j), a = rechne(wkVp + wkT + X.sum), b = s && s.bed ? rechne(wkVp + wkT + X.sum + s.bed * fn) : null;
+  return { lauf: lauf, f: f, br: br, lst: lst, lstNur: lstNur, kistBez: kistBez, ks: ks, vor: vor, a: a, b: b, wkEcht: wkVp + wkT + X.sum }; }
 function stErstHtml(j) { var E = stErstattung(j); if (!E) return ''; var z = function (v) { return (v >= 0 ? '' : '− ') + euroH(Math.abs(v)); };
   return '<div class="nwst"><h3>Erstattung ' + j + ' (Schätzung' + (E.lauf ? ', hochgerechnet aufs ganze Jahr' : '') + ')</h3>' +
     '<div><span>Abgezogen: Lohnsteuer' + (E.ks ? ' + Kirchensteuer' : '') + (E.lauf ? ' (hochgerechnet)' : '') + '</span><b>' + euroH(E.lst) + '</b></div>' +
@@ -3676,11 +3681,13 @@ function stErstHtml(j) { var E = stErstattung(j); if (!E) return ''; var z = fun
     (E.b ? '<div><span>Mit eintägigen Einsätzen über 8 Std.</span><b style="white-space:nowrap">' + z(E.b.erst) + '</b></div>' : '') +
     '<p class="hinweis" style="margin:8px 0 0">Gerechnet: Brutto ' + euroH(E.br) + ' − Werbungskosten ' + euroH(E.a.wk) + (E.a.pausch ? ' (Pauschbetrag, deine ' + euroH(E.wkEcht) + ' liegen darunter)' : '') + ' − Sozialabgaben ≈ ' + euroH(E.vor) + (E.ks ? ' − gezahlte Kirchensteuer ' + euroH(E.a.sa) : '') + ' = zu versteuern ≈ ' + euroH(E.a.zve) + '. ' +
     'Wenn monatlich unterschiedlich viel verdient wird, gleicht die Steuererklärung das übers Jahr aus. ' + (E.ks ? 'Mit Kirchensteuer 9 % (Sachsen; Schalter in den Einstellungen).' : 'Ohne Kirchensteuer (Schalter in den Einstellungen).') + ' Grobe Schätzung, keine Steuerberatung.</p></div>'; }
-function stHtml(j, n, s) { var L = stLohn(j), T = stTicket(j), h = stErstHtml(j);
+function stHtml(j, n, s) { var L = stLohn(j), T = stTicket(j), X = stExtra(j), h = stErstHtml(j);
   h += '<div class="nwst"><h3>Werbungskosten ' + j + ' (Anlage N)</h3>' +
     '<div><span>Verpflegungsmehraufwand (Differenz)</span><b>' + euroH(s.ges - s.erh) + '</b></div>' +
     '<div><span>Deutschland-Ticket (' + T.n + ' Monate)</span><b>' + (T.gesetzt ? euroH(T.sum) : '–') + '</b></div>' +
-    '<div class="sum"><span>Zusammen absetzbar</span><b style="color:var(--gruen)">' + euroH(s.ges - s.erh + T.sum) + '</b></div>' +
+    (X.sum ? '<div><span>Handy ' + X.hm + ' × 20 % von ' + String(ST_HANDY).replace('.', ',') + ' €</span><b>' + euroH(X.handy) + '</b></div><div><span>Kontoführung (pauschal)</span><b>' + euroH(X.konto) + '</b></div>' : '') +
+    '<div class="sum"><span>Zusammen</span><b style="color:var(--gruen)">' + euroH(s.ges - s.erh + T.sum + X.sum) + '</b></div>' +
+    (s.ges - s.erh + T.sum + X.sum < 1230 ? '<p class="hinweis" style="margin:6px 0 0">Unter 1.230 € – dann zählt der Pauschbetrag (ist schon in der Lohnsteuer drin).</p>' : '<p class="hinweis" style="margin:6px 0 0">Wirkt nur der Teil über 1.230 € (' + euroH(s.ges - s.erh + T.sum + X.sum - 1230) + '), der Pauschbetrag ist schon in der Lohnsteuer drin.</p>') +
     (s.bed ? '<div><span>Evtl. dazu: eintägige über 8 Std.</span><b style="white-space:nowrap">bis ' + euroH(s.bed) + '</b></div>' : '') +
     (T.gesetzt ? '' : '<p class="hinweis" style="margin:8px 0 0">Deutschland-Ticket: in der Jahresübersicht eintragen, seit wann du es hast.</p>') + '</div>';
   if (L.n) h += '<div class="nwst"><h3>Lohn ' + j + ' laut deinen Abrechnungen (' + L.n + ' Monate)</h3>' +
@@ -3736,7 +3743,8 @@ $('nwpdf').onclick = function () {
   wr('Verpflegungsmehraufwand absetzbar', euro(s.ges - s.erh), true);
   if (s.bed) wr('ggf. zusätzlich eintägige Einsätze über 8 Std. (' + s.t8 + ' × 14 €, nur wenn zutreffend)', 'bis ' + euro(s.bed));
   wr('Deutschland-Ticket für Dienstreisen (' + T.n + ' Monate, eigene Kosten; Details Anhang)', T.gesetzt ? euro(T.sum) : 'nicht eingetragen');
-  doc.line(40, y - 8, 470, y - 8, 0.6); y += 3; wr('Werbungskosten zusammen (ohne eintägige)', euro(s.ges - s.erh + T.sum), true, 10);
+  var X = stExtra(n.jahr); if (X.sum) { wr('Telefon (Handy auch dienstlich): ' + X.hm + ' Monate × 20 % von ' + euro(ST_HANDY) + ' (max. 20 €/Monat)', euro(X.handy)); wr('Kontoführungsgebühren (pauschal)', euro(X.konto)); }
+  doc.line(40, y - 8, 470, y - 8, 0.6); y += 3; wr('Werbungskosten zusammen (ohne eintägige)', euro(s.ges - s.erh + T.sum + X.sum), true, 10);
   doc.text(40, y, 'Unterkunft: von der Firma gebucht und bezahlt (nichts einzutragen). Fahrten Hotel–Filialen im Firmenwagen, ICE von der Firma bezahlt, Taxi erstattet.', 7.5); y += 22;
   doc.text(40, y, '2. Lohn laut Lohnabrechnungen (' + L.n + ' Monate)', 12, true); y += 16;
   if (L.n) {
@@ -3752,8 +3760,8 @@ $('nwpdf').onclick = function () {
     wr(E.a.erst >= 0 ? 'Voraussichtliche Erstattung' : 'Voraussichtliche Nachzahlung', euro(Math.abs(E.a.erst)), true, 10);
     if (E.b) wr('mit eintägigen Einsätzen über 8 Std. (wenn zutreffend)', (E.b.erst >= 0 ? 'Erstattung ' : 'Nachzahlung ') + euro(Math.abs(E.b.erst)));
     doc.text(40, y, (E.ks ? 'Mit Kirchensteuer 9 % (Sachsen).' : 'Ohne Kirchensteuer.') + ' Solidaritätszuschlag fällt bei diesem Einkommen nicht an. Gezahlte Kirchensteuer: Anlage Sonderausgaben. Das Finanzamt rechnet genau; keine Steuerberatung.', 7.5); y += 6; }
-  y += 10; doc.text(40, y, (E ? '4' : '3') + '. Anhang', 12, true); y += 15;
-  ['Einsätze, Übernachtungen und Verpflegung je Tag (Seiten danach)', 'Deutschland-Ticket: Monate, Preis und An-/Abreisen (letzte Seite)'].forEach(function (t) { doc.text(48, y, '- ' + t, 9); y += 12; });
+  if (y < 535) { y += 10; doc.text(40, y, (E ? '4' : '3') + '. Anhang', 12, true); y += 15;
+  ['Einsätze, Übernachtungen und Verpflegung je Tag (Seiten danach)', 'Deutschland-Ticket: Monate, Preis und An-/Abreisen (letzte Seite)'].forEach(function (t) { doc.text(48, y, '- ' + t, 9); y += 12; }); }
   var X = [40, 98, 122, 180, 420, 560, 650, 712, 802];
   function kopf() {
     doc.addPage(); seite++;
