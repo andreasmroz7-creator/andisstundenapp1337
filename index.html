@@ -626,7 +626,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.73';
+var VERSION = '2.74';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2764,7 +2764,7 @@ function posDaten() {
 }
 function posKrypto(m, zr) { // Krypto-Verlauf direkt von Binance (in Euro über den aktuellen EURUSDT-Kurs)
   var k = m.sym + '|' + zr, c = posBin[k]; if (c && Date.now() - c.t < (zr === '1d' ? 60e3 : 15 * 60e3)) return Promise.resolve(c.v);
-  var iv = zr === '1d' ? '15m' : zr === '1w' ? '1h' : zr === '1m' ? '4h' : '1d', lim = zr === '1d' ? 120 : zr === '1w' ? 168 : zr === '1m' ? 180 : 365, st = zr === '1d' ? '&startTime=' + (depotSechsTs() - 6 * 36e5) : '';
+  var iv = zr === '1d' ? '5m' : zr === '1w' ? '1h' : zr === '1m' ? '4h' : '1d', lim = zr === '1d' ? 360 : zr === '1w' ? 168 : zr === '1m' ? 180 : 365, st = zr === '1d' ? '&startTime=' + (depotSechsTs() - 6 * 36e5) : '';
   return Promise.all([fetch('https://api.binance.com/api/v3/klines?symbol=' + m.sym + 'USDT&interval=' + iv + '&limit=' + lim + st, { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }),
     fetch('https://api.binance.com/api/v3/ticker/price?symbol=EURUSDT', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; })]).then(function (a) {
     if (!a[0] || !a[1]) return null; var e = +a[1].price; var v = a[0].map(function (x) { return [Math.round(x[0] / 1000), +x[4] / e]; });
