@@ -671,7 +671,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.08';
+var VERSION = '3.09';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -818,7 +818,7 @@ function sync() {
   }).then(function () { // (3.00) alles Weitere gleichzeitig statt nacheinander (vorher 10 Anfragen hintereinander)
     var ok = function (p) { return Promise.resolve().then(p).catch(function () {}); };
     return Promise.all([ok(function () { return fahrtenHolen(kopf).then(function () { fahrtenAuto(); }); }), ok(function () { return nachweisHolen(kopf); }), ok(function () { return lohnHolen(kopf); }), ok(function () { return reisetageHolen(kopf); }),
-      ok(function () { return fixkostenHolen(kopf); }), ok(function () { return notizenSync(kopf); }), ok(function () { return gbSync(kopf); }), ok(function () { return depotHolen(kopf); }), ok(function () { return stimmeHolen(kopf); }), ok(function () { return gemeinsamHolen(kopf); })]);
+      ok(function () { return fixkostenHolen(kopf); }), ok(function () { return notizenSync(kopf); }), ok(function () { return gbSync(kopf); }), ok(function () { return depotHolen(kopf); }), ok(function () { return stimmeHolen(kopf); }), ok(function () { return gemeinsamHolen(kopf); }), ok(function () { return reiseinfoHolen(kopf); })]);
   }).then(function () {
     offlineZeigen(false); daten.letzterAbgleich = Date.now(); sichern(true); standPruefen(); if ($('sstand')) $('sstand').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     syncLaeuft = false; syncAnzeige('☁ abgeglichen ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
@@ -2227,6 +2227,9 @@ function jvHoerFix(t) { // (3.06) Spracherkennung versteht „Silber“ oft als 
     .replace(/^(selber|silva|silver)(\s*\??)$/i, 'Silber$2').replace(/\b(selber|silva)(\s+(?:heute|gerade|aktuell|so|wert|im depot))\b/gi, 'Silber$2'); }
 function jvLokal(t) {
   t = jvHoerFix(t); var q = t.toLowerCase(), d = new Date(), hi = iso2(d);
+  var sm = t.match(/^(?:jarvis[, ]+)?(?:schreib|schick|sende|send)\w*(?: mal| bitte)*(?: eine?)?(?: sms| nachricht| whatsapp)?(?: an)? (?:alle|die leute|die anderen|das team|die kollegen|die gruppe|alle (?:aus|in) der reiseinfo|alle leute)\b[:,.]?\s*(?:dass\s+)?(.*)$/i);
+  if (sm) { var r0 = smsAnAlle(sm[1]); if (!r0) return 'Ich habe noch keine Kontaktdaten aus der Reiseinfo, Meister. Einmal abgleichen, dann klappt es.';
+    return (r0.text ? 'Nachricht an ' : 'Leere Nachricht an ') + r0.n + ' Leute vorbereitet: ' + r0.namen.join(', ') + '. Tipp unten auf den Knopf, dann nur noch Senden drücken.'; }
   if (!/^(?:notier(?:e)?|merk dir|schreib auf|notiz)\b/i.test(t.trim())) { var dep = null; try { dep = jvDepot(q); } catch (e) {} if (dep) return dep; }
   var m = /^(?:notier(?:e)?|merk dir|schreib auf|notiz)[:,]?\s+(.+)$/i.exec(t.trim());
   if (m) { var j = Date.now(); daten.notizen = daten.notizen || []; daten.notizen.push({ id: 'n' + j, text: m[1].trim(), erstellt: j, geaendert: j }); sichern(); return 'Notiert, Meister: „' + m[1].trim() + '“.'; }
@@ -3662,6 +3665,19 @@ function nachweisHolen(kopf) {
   });
 }
 // (2.94) Reisetage aus alten Einsatzplänen (reisetage.json, z. B. 2025 vor der App) fürs Deutschland-Ticket
+// (3.09) Kontaktdaten aus der aktuellen Reiseinfo (privates Daten-Repo reiseinfo/aktuell.json, pflegt die nächtliche Aufgabe): Nachricht an alle vorbereiten
+function reiseinfoHolen(kopf) {
+  return fetch(GH.replace('daten.json', 'reiseinfo/aktuell.json') + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (j) { if (!j) return; var n = JSON.parse(b64dec(j.content) || '{}'); if (n && n.personen) { daten.reiseinfo = n; sichern(true); } }).catch(function () {});
+}
+function smsAnAlle(text) { var R = daten.reiseinfo, L = R && R.personen ? R.personen.filter(function (p) { return !p.ich && p.tel; }) : [];
+  if (!L.length) return null; text = String(text || '').trim(); if (text) text = text.charAt(0).toUpperCase() + text.slice(1);
+  var url = 'sms:/open?addresses=' + L.map(function (p) { return p.tel; }).join(',') + (text ? '&body=' + encodeURIComponent(text) : '');
+  var alt = document.getElementById('smsKnopf'); if (alt) alt.remove();
+  var a = document.createElement('a'); a.id = 'smsKnopf'; a.className = 'lknopf'; a.href = url; a.textContent = '✉︎ Nachricht an ' + L.length + ' Leute öffnen';
+  a.style.cssText = 'position:fixed;left:24px;right:24px;width:auto;bottom:calc(env(safe-area-inset-bottom) + 34px);z-index:99999;margin:0;box-shadow:0 10px 30px rgba(0,0,0,.6)';
+  a.onclick = function () { setTimeout(function () { a.remove(); }, 400); }; document.body.appendChild(a); setTimeout(function () { if (a.parentNode) a.remove(); }, 45000);
+  return { n: L.length, namen: L.map(function (p) { return p.name.replace(/^(Herr|Frau) /, ''); }), text: text, kw: R.kw }; }
 function reisetageHolen(kopf) {
   if (daten.reisetage && Date.now() - (daten.reisetage._t || 0) < 864e5) return Promise.resolve(); // (3.00) ändert sich praktisch nie: höchstens 1× am Tag
   return fetch(GH.replace('daten.json', 'reisetage.json') + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) {
