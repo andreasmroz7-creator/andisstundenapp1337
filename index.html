@@ -669,7 +669,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.98';
+var VERSION = '2.99';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -3656,7 +3656,20 @@ var ST_HANDY = 49.99;
 function stExtra(j) { var L = stLohn(j), lauf = +j === new Date().getFullYear(), mon = lauf ? 12 : Math.max(L.n, 0); if (!L.n) return { konto: 0, handy: 0, hm: 0, sum: 0 };
   if (lauf && L.m[0] && +L.m[0].m.slice(5) > 1) mon = 13 - +L.m[0].m.slice(5);
   var h = Math.round(Math.min(20, ST_HANDY * 0.2) * mon * 100) / 100; return { konto: 16, handy: h, hm: mon, sum: 16 + h }; }
-function stSumme(j) { var n = nwDaten(j); if (!n || !n.tage) return null; var s = nwSumme(n.tage), t = stTicket(j), x = stExtra(j); return { s: s, t: t, x: x, vp: s.ges - s.erh, wk: s.ges - s.erh + t.sum + x.sum }; }
+// (2.99) Eintägige Einsätze ohne Übernachtung: 14 € nur bei mehr als 8 Std. weg von zu Hause. Andi: Zuhause ↔ Treffpunkt je mind. 30 Min.
+// Mit Uhrzeiten: Losfahrt (Hinfahrt/erster Laden − Fahrt) bis Rückkehr, je 30 Min. dazu. Nur Gesamtzeit (alte App): bezahlte Stunden + 1 Std. Kein Eintrag (vor der App): laut Andi „eigentlich immer über 8 Std.“ → gezählt, markiert.
+function st8(j) { var n = nwDaten(j), R = { tage: [], n: 0, sum: 0, alle: 0 }; if (!n || !n.tage) return R; var mz = function (t) { return t ? R0.zeitZuMin(String(t).split(/[–-]/)[0]) : null; }, me = function (t) { var p = String(t || '').split(/[–-]/); return p[1] ? R0.zeitZuMin(p[1]) : null; };
+  n.tage.forEach(function (t) { if (!t.vpBedingt) return; R.alle++; var e = daten.eintraege.find(function (x) { return x.datum === t.datum && !(daten.geloescht || {})[x.id]; }), std = null, quelle;
+    if (e && (e.krank || e.urlaub) && !(e.laeden || []).length) return; // krank/Urlaub: kein Einsatz
+    var Z = []; ((e && e.laeden) || []).forEach(function (l) { if (!l.ausfall) (l.zeiten || []).forEach(function (z) { if (z.von && z.bis) Z.push([R0.zeitZuMin(z.von), R0.zeitZuMin(z.bis)]); }); });
+    if (Z.length) { var a = Math.min.apply(null, Z.map(function (z) { return z[0]; })), b = Math.max.apply(null, Z.map(function (z) { return z[1]; }));
+      var los = e.hinZeit ? mz(e.hinZeit) : a - (+e.fahrHin || 0), heim = e.zurZeit ? me(e.zurZeit) : b + (+e.fahrZur || 0); if (heim < los) heim += 1440; std = (heim - los + 60) / 60; quelle = 'Zeiten';
+    } else if (e && e.festGesamt != null && e.festGesamt !== '') { std = +e.festGesamt + 1; quelle = 'bezahlte Std. + 1 Std. Weg'; }
+    else { std = null; quelle = 'laut deiner Angabe'; }
+    var ok = std == null ? true : std > 8; R.tage.push({ datum: t.datum, team: t.team, std: std, ok: ok, quelle: quelle }); if (ok) { R.n++; R.sum += 14; } });
+  return R; }
+var R0 = window.Rechnen;
+function stSumme(j) { var n = nwDaten(j); if (!n || !n.tage) return null; var s = nwSumme(n.tage), t = stTicket(j), x = stExtra(j), e8 = st8(j); return { s: s, t: t, x: x, e8: e8, vp: s.ges - s.erh, wk: s.ges - s.erh + t.sum + x.sum + e8.sum }; }
 // (2.96) Erstattung schätzen: Jahressteuer nach § 32a EStG gegen die abgezogene Lohnsteuer. zvE = Brutto − Werbungskosten (mind. 1.230 € Pauschbetrag) − Vorsorge (≈ 95 % der Sozialabgaben: RV, KV/PV ohne Krankengeld-Anteil, AV fällt meist raus) − 36 € Sonderausgaben-Pauschbetrag
 function stTarif(j, x) { x = Math.floor(x); var g = j <= 2025 ? [12096, 17443, 68480, 932.30, 176.64, 1015.13, 10911.92] : [12348, 17799, 69878, 914.51, 173.10, 1034.87, 11135.63]; // 2027 noch offen → Tarif 2026
   if (x <= g[0]) return 0; if (x <= g[1]) { var y = (x - g[0]) / 1e4; return Math.floor((g[3] * y + 1400) * y); }
@@ -3671,24 +3684,26 @@ function stErstattung(j) { var L = stLohn(j), n = nwDaten(j); if (!L.n) return n
   var ks = daten.einst.kist ? 0.09 : 0, lstNur = lst / (1 + ks), kistBez = lst - lstNur;
   var rechne = function (wk) { var w = Math.max(1230, wk), sa = Math.max(36, kistBez), zve = Math.max(0, br - w - vor - sa), est = stTarif(+j, zve), ki = Math.floor(est * ks * 100) / 100;
     return { wk: w, sa: sa, zve: zve, est: est, kist: ki, erst: lst - est - ki, pausch: wk < 1230 }; };
-  var X = stExtra(j), a = rechne(wkVp + wkT + X.sum), b = s && s.bed ? rechne(wkVp + wkT + X.sum + s.bed * fn) : null;
-  return { lauf: lauf, f: f, br: br, lst: lst, lstNur: lstNur, kistBez: kistBez, ks: ks, vor: vor, a: a, b: b, wkEcht: wkVp + wkT + X.sum }; }
+  var X = stExtra(j), E8 = st8(j), w8 = E8.sum * fn, a = rechne(wkVp + wkT + X.sum + w8), b = E8.sum ? rechne(wkVp + wkT + X.sum) : null;
+  return { lauf: lauf, f: f, br: br, lst: lst, lstNur: lstNur, kistBez: kistBez, ks: ks, vor: vor, a: a, b: b, e8: E8, wkEcht: wkVp + wkT + X.sum + w8 }; }
 function stErstHtml(j) { var E = stErstattung(j); if (!E) return ''; var z = function (v) { return (v >= 0 ? '' : '− ') + euroH(Math.abs(v)); };
   return '<div class="nwst"><h3>Erstattung ' + j + ' (Schätzung' + (E.lauf ? ', hochgerechnet aufs ganze Jahr' : '') + ')</h3>' +
     '<div><span>Abgezogen: Lohnsteuer' + (E.ks ? ' + Kirchensteuer' : '') + (E.lauf ? ' (hochgerechnet)' : '') + '</span><b>' + euroH(E.lst) + '</b></div>' +
     '<div><span>Steuer fürs ganze Jahr (ca.)' + (E.ks ? ' inkl. 9 % Kirchensteuer' : '') + '</span><b>' + euroH(E.a.est + E.a.kist) + '</b></div>' +
     '<div class="sum"><span>' + (E.a.erst >= 0 ? 'Du bekommst zurück' : 'Nachzahlung') + '</span><b style="color:' + (E.a.erst >= 0 ? 'var(--gruen)' : 'var(--rot)') + '">' + z(E.a.erst) + '</b></div>' +
-    (E.b ? '<div><span>Mit eintägigen Einsätzen über 8 Std.</span><b style="white-space:nowrap">' + z(E.b.erst) + '</b></div>' : '') +
+    (E.b ? '<div><span>Ohne die eintägigen Einsätze wären es</span><b style="white-space:nowrap">' + z(E.b.erst) + '</b></div>' : '') +
     '<p class="hinweis" style="margin:8px 0 0">Gerechnet: Brutto ' + euroH(E.br) + ' − Werbungskosten ' + euroH(E.a.wk) + (E.a.pausch ? ' (Pauschbetrag, deine ' + euroH(E.wkEcht) + ' liegen darunter)' : '') + ' − Sozialabgaben ≈ ' + euroH(E.vor) + (E.ks ? ' − gezahlte Kirchensteuer ' + euroH(E.a.sa) : '') + ' = zu versteuern ≈ ' + euroH(E.a.zve) + '. ' +
     'Wenn monatlich unterschiedlich viel verdient wird, gleicht die Steuererklärung das übers Jahr aus. ' + (E.ks ? 'Mit Kirchensteuer 9 % (Sachsen; Schalter in den Einstellungen).' : 'Ohne Kirchensteuer (Schalter in den Einstellungen).') + ' Grobe Schätzung, keine Steuerberatung.</p></div>'; }
-function stHtml(j, n, s) { var L = stLohn(j), T = stTicket(j), X = stExtra(j), h = stErstHtml(j);
+function stHtml(j, n, s) { var L = stLohn(j), T = stTicket(j), X = stExtra(j), E8 = st8(j), h = stErstHtml(j);
   h += '<div class="nwst"><h3>Werbungskosten ' + j + ' (Anlage N)</h3>' +
     '<div><span>Verpflegungsmehraufwand (Differenz)</span><b>' + euroH(s.ges - s.erh) + '</b></div>' +
     '<div><span>Deutschland-Ticket (' + T.n + ' Monate)</span><b>' + (T.gesetzt ? euroH(T.sum) : '–') + '</b></div>' +
+    (E8.alle ? '<div><span>Eintägige über 8 Std.: ' + E8.n + ' von ' + E8.alle + ' Tagen × 14 €</span><b>' + euroH(E8.sum) + '</b></div>' : '') +
     (X.sum ? '<div><span>Handy ' + X.hm + ' × 20 % von ' + String(ST_HANDY).replace('.', ',') + ' €</span><b>' + euroH(X.handy) + '</b></div><div><span>Kontoführung (pauschal)</span><b>' + euroH(X.konto) + '</b></div>' : '') +
-    '<div class="sum"><span>Zusammen</span><b style="color:var(--gruen)">' + euroH(s.ges - s.erh + T.sum + X.sum) + '</b></div>' +
-    (s.ges - s.erh + T.sum + X.sum < 1230 ? '<p class="hinweis" style="margin:6px 0 0">Unter 1.230 € – dann zählt der Pauschbetrag (ist schon in der Lohnsteuer drin).</p>' : '<p class="hinweis" style="margin:6px 0 0">Wirkt nur der Teil über 1.230 € (' + euroH(s.ges - s.erh + T.sum + X.sum - 1230) + '), der Pauschbetrag ist schon in der Lohnsteuer drin.</p>') +
-    (s.bed ? '<div><span>Evtl. dazu: eintägige über 8 Std.</span><b style="white-space:nowrap">bis ' + euroH(s.bed) + '</b></div>' : '') +
+    '<div class="sum"><span>Zusammen</span><b style="color:var(--gruen)">' + euroH(s.ges - s.erh + T.sum + X.sum + E8.sum) + '</b></div>' +
+    (s.ges - s.erh + T.sum + X.sum + E8.sum < 1230 ? '<p class="hinweis" style="margin:6px 0 0">Unter 1.230 € – dann zählt der Pauschbetrag (ist schon in der Lohnsteuer drin).</p>' : '<p class="hinweis" style="margin:6px 0 0">Wirkt nur der Teil über 1.230 € (' + euroH(s.ges - s.erh + T.sum + X.sum + E8.sum - 1230) + '), der Pauschbetrag ist schon in der Lohnsteuer drin.</p>') +
+    (E8.alle ? '<details class="hinweis" style="margin:6px 0 0"><summary>Eintägige Tage ansehen</summary>' + E8.tage.map(function (t) { return (t.ok ? '✓ ' : '✗ ') + (+t.datum.slice(8)) + '.' + (+t.datum.slice(5, 7)) + '. ' + esc(t.team) + ' · ' + (t.std != null ? String(Math.round(t.std * 100) / 100).replace('.', ',') + ' Std. weg (' + t.quelle + ')' : t.quelle); }).join('<br>') + '</details>' : '') +
+
     (T.gesetzt ? '' : '<p class="hinweis" style="margin:8px 0 0">Deutschland-Ticket: in der Jahresübersicht eintragen, seit wann du es hast.</p>') + '</div>';
   if (L.n) h += '<div class="nwst"><h3>Lohn ' + j + ' laut deinen Abrechnungen (' + L.n + ' Monate)</h3>' +
     '<div><span>Brutto</span><b>' + euroH(L.br) + '</b></div><div><span>Lohn- und Kirchensteuer</span><b>' + euroH(L.st) + '</b></div><div><span>Sozialversicherung</span><b>' + euroH(L.sv) + '</b></div>' +
@@ -3741,10 +3756,10 @@ $('nwpdf').onclick = function () {
   wr('Verpflegungsmehraufwand: ' + s.t24 + ' Tage × 28 €, ' + s.tAn + ' An-/Abreisetage × 14 €', euro(s.ges));
   wr('abzüglich steuerfrei vom Arbeitgeber erstattet', '- ' + euro(s.erh));
   wr('Verpflegungsmehraufwand absetzbar', euro(s.ges - s.erh), true);
-  if (s.bed) wr('ggf. zusätzlich eintägige Einsätze über 8 Std. (' + s.t8 + ' × 14 €, nur wenn zutreffend)', 'bis ' + euro(s.bed));
+  var E8 = st8(n.jahr); if (E8.alle) wr('Eintägige Einsätze ohne Übernachtung, über 8 Std. von zu Hause weg: ' + E8.n + ' von ' + E8.alle + ' Tagen × 14 €', euro(E8.sum));
   wr('Deutschland-Ticket für Dienstreisen (' + T.n + ' Monate, eigene Kosten; Details Anhang)', T.gesetzt ? euro(T.sum) : 'nicht eingetragen');
   var X = stExtra(n.jahr); if (X.sum) { wr('Telefon (Handy auch dienstlich): ' + X.hm + ' Monate × 20 % von ' + euro(ST_HANDY) + ' (max. 20 €/Monat)', euro(X.handy)); wr('Kontoführungsgebühren (pauschal)', euro(X.konto)); }
-  doc.line(40, y - 8, 470, y - 8, 0.6); y += 3; wr('Werbungskosten zusammen (ohne eintägige)', euro(s.ges - s.erh + T.sum + X.sum), true, 10);
+  doc.line(40, y - 8, 470, y - 8, 0.6); y += 3; wr('Werbungskosten zusammen', euro(s.ges - s.erh + T.sum + X.sum + E8.sum), true, 10);
   doc.text(40, y, 'Unterkunft: von der Firma gebucht und bezahlt (nichts einzutragen). Fahrten Hotel–Filialen im Firmenwagen, ICE von der Firma bezahlt, Taxi erstattet.', 7.5); y += 22;
   doc.text(40, y, '2. Lohn laut Lohnabrechnungen (' + L.n + ' Monate)', 12, true); y += 16;
   if (L.n) {
@@ -3758,7 +3773,7 @@ $('nwpdf').onclick = function () {
     wr('Bruttolohn', euro(E.br)); wr('- Werbungskosten' + (E.a.pausch ? ' (Arbeitnehmer-Pauschbetrag)' : ''), '- ' + euro(E.a.wk)); wr('- Vorsorgeaufwendungen (ca. 95 % der Sozialabgaben) und ' + (E.ks ? 'gezahlte Kirchensteuer' : '36 € Sonderausgaben'), '- ' + euro(E.vor + E.a.sa));
     wr('= zu versteuerndes Einkommen (ca.)', euro(E.a.zve)); wr('Einkommensteuer nach § 32a EStG ' + n.jahr, euro(E.a.est)); if (E.ks) wr('Kirchensteuer 9 % (Sachsen)', euro(E.a.kist)); wr('Abgezogen laut Abrechnungen (Lohnsteuer' + (E.ks ? ' ' + euro(E.lstNur) + ' + Kirchensteuer ' + euro(E.kistBez) : '') + ')', euro(E.lst));
     wr(E.a.erst >= 0 ? 'Voraussichtliche Erstattung' : 'Voraussichtliche Nachzahlung', euro(Math.abs(E.a.erst)), true, 10);
-    if (E.b) wr('mit eintägigen Einsätzen über 8 Std. (wenn zutreffend)', (E.b.erst >= 0 ? 'Erstattung ' : 'Nachzahlung ') + euro(Math.abs(E.b.erst)));
+    if (E.b) wr('zum Vergleich ohne die eintägigen Einsätze', (E.b.erst >= 0 ? 'Erstattung ' : 'Nachzahlung ') + euro(Math.abs(E.b.erst)));
     doc.text(40, y, (E.ks ? 'Mit Kirchensteuer 9 % (Sachsen).' : 'Ohne Kirchensteuer.') + ' Solidaritätszuschlag fällt bei diesem Einkommen nicht an. Gezahlte Kirchensteuer: Anlage Sonderausgaben. Das Finanzamt rechnet genau; keine Steuerberatung.', 7.5); y += 6; }
   if (y < 535) { y += 10; doc.text(40, y, (E ? '4' : '3') + '. Anhang', 12, true); y += 15;
   ['Einsätze, Übernachtungen und Verpflegung je Tag (Seiten danach)', 'Deutschland-Ticket: Monate, Preis und An-/Abreisen (letzte Seite)'].forEach(function (t) { doc.text(48, y, '- ' + t, 9); y += 12; }); }
