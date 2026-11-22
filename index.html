@@ -118,6 +118,8 @@ input::placeholder{color:#646464}
 /* ---------- Startseite (Dashboard) ---------- */
 #start{position:fixed;inset:0;z-index:8;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:var(--bg);padding:calc(env(safe-area-inset-top) + 18px) 16px calc(env(safe-area-inset-bottom) + 30px);transition:opacity .38s ease,transform .45s cubic-bezier(.2,.8,.2,1),filter .38s ease}
 #start:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(700px 480px at 0% -5%,rgba(180,180,180,.22),transparent 60%),radial-gradient(600px 460px at 105% 15%,rgba(120,120,120,.18),transparent 60%),radial-gradient(500px 400px at 50% 110%,rgba(160,160,160,.10),transparent 60%)}
+#start:after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(130% 62% at 50% -8%,rgba(var(--sf,52,199,89),.26),rgba(var(--sf,52,199,89),.07) 55%,transparent 78%);opacity:var(--so,0);transition:opacity 1.4s ease}
+/* (2.82) Stimmungs-Schimmer: leicht grün/rot je nach Depot heute */
 #start.weg{opacity:0;transform:scale(1.08);filter:blur(10px);pointer-events:none}
 #start.aus{display:none}
 #start.oben{z-index:11}
@@ -659,7 +661,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.81';
+var VERSION = '2.82';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1517,6 +1519,7 @@ function startZeichnen(still) {
   jvMiniStart();
   var jh = $('jvHinweis'); if (jh) jh.onclick = function (ev) { var r = jh.querySelector('i').getBoundingClientRect(); jv.ursprung = { x: r.left + r.width / 2, y: r.top + r.height / 2 }; jvOeffnen(); };
   if (window.ordnen && ordnen.an) $('start').classList.add('ordnen');
+  try { schimmerSetzen(); } catch (x) {}
 }
 // ---------- Kacheln anordnen (gedrückt halten, ziehen; Reihenfolge bleibt gespeichert) ----------
 var ordnen = window.ordnen = { an: false, klickSperre: false, zieht: false };
@@ -2442,7 +2445,11 @@ function depotRollenKachel() { // Kachel auf der Startseite: Gesamt (ganze Euro)
   var d = depotEff(); if (!d) return; var w = document.querySelectorAll('.kachel[data-ziel="depot"] .dw');
   if (w[0]) rollZahl(w[0], 'kG', d.gesamt); if (w[1]) rollZahl(w[1], 'kH', Math.round(d.heute_eur)); // (2.37) heute in der Kachel ohne Cent
 }
-function depotNeuZeigen() { if ($('blattP').classList.contains('offen') && !$('blattP').classList.contains('zugeht')) posZeichnen(); if (!$('start').classList.contains('aus')) startZeichnen(true); var c = $('dChart'); if ($('blattD').classList.contains('offen') && !(c && c.classList.contains('zieht'))) depotZeichnen(); }
+// (2.82) Stimmungs-Schimmer oben auf der Startseite: grün bei Plus, rot bei Minus, stärker je größer die Bewegung (voll ab 2 %)
+function schimmerSetzen() { var s = $('start'); if (!s) return; var dp = null; try { dp = depotEff(); } catch (x) {}
+  var pc = dp && dp.heute_pct != null && depotSicht ? +dp.heute_pct : 0, a = Math.abs(pc) < 0.05 ? 0 : 0.3 + 0.7 * Math.min(1, Math.abs(pc) / 2);
+  if (a) s.style.setProperty('--sf', pc >= 0 ? '52,199,89' : '255,69,58'); s.style.setProperty('--so', a.toFixed(2)); }
+function depotNeuZeigen() { try { schimmerSetzen(); } catch (x) {} if ($('blattP').classList.contains('offen') && !$('blattP').classList.contains('zugeht')) posZeichnen(); if (!$('start').classList.contains('aus')) startZeichnen(true); var c = $('dChart'); if ($('blattD').classList.contains('offen') && !(c && c.classList.contains('zieht'))) depotZeichnen(); }
 // Depot-Stand zum Anzeigen: vom Mac, oder mit aktuellen Kursen weitergerechnet
 function depotEff() {
   var d = daten.depot; if (!d || !depotLive) return d;
