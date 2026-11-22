@@ -626,7 +626,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.75';
+var VERSION = '2.76';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2438,6 +2438,12 @@ function depotTagX(ax, vor, ts, W) {
   return { xh: ts.map(function (t) { return (TE + Math.max(0, t - ax.open)) / tot * W; }), xv: vor.map(function (q) { return Math.max(0, q[0] - ax.t0) / ax.len * TE / tot * W; }), xb: TE / tot * W };
 }
 function depotLinie(d, zu, gross) {
+  if (!d.seitMac && d.linie && d.linie.length > 1 && d.lt && d.lt.length === d.linie.length) { // (2.76) Kachel ebenfalls minutengenau wie das Depot-Fenster
+    depotFeinHolen(d, d.vor && d.vor.length ? d.vor[0][0] : d.lt[0]);
+    var F = depotFein(d.linie, d.lt), vF = d.vor;
+    if (d.vor && d.vor.length > 1) { var Fv = depotFein(d.vor.map(function (q) { return q[1]; }), d.vor.map(function (q) { return q[0]; })); vF = Fv.t.map(function (t, i) { return [t, Fv.v[i]]; }); }
+    d = Object.assign({}, d, { linie: F.v, lt: F.t, vor: vF });
+  }
   var l = d.linie || []; if (l.length < 2) return '';
   var W = 300, H = gross ? 180 : 46, mn = Math.min.apply(null, l.concat([d.ref])), mx = Math.max.apply(null, l.concat([d.ref])), sp = (mx - mn) || 1;
   var TX = !d.seitMac && d.lt && d.lt.length === l.length ? depotTagX(d.ax, d.vor, d.lt, W) : null;
