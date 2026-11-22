@@ -669,7 +669,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.93';
+var VERSION = '2.94';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -813,7 +813,7 @@ function sync() {
       if (r.status === 404 || r.status === 403) throw new Error('Schlüssel darf nur lesen. Contents auf „Read and write“ stellen');
       if (!r.ok) throw new Error('Hochladen ' + r.status);
     });
-  }).then(function () { return fahrtenHolen(kopf); }).then(function () { fahrtenAuto(); return nachweisHolen(kopf); }).then(function () { return lohnHolen(kopf); }).then(function () { return fixkostenHolen(kopf); }).then(function () { return notizenSync(kopf); }).then(function () { return gbSync(kopf); }).then(function () { return depotHolen(kopf); }).then(function () { return stimmeHolen(kopf); }).then(function () {
+  }).then(function () { return fahrtenHolen(kopf); }).then(function () { fahrtenAuto(); return nachweisHolen(kopf); }).then(function () { return lohnHolen(kopf); }).then(function () { return reisetageHolen(kopf); }).then(function () { return fixkostenHolen(kopf); }).then(function () { return notizenSync(kopf); }).then(function () { return gbSync(kopf); }).then(function () { return depotHolen(kopf); }).then(function () { return stimmeHolen(kopf); }).then(function () {
     offlineZeigen(false); daten.letzterAbgleich = Date.now(); sichern(true); standPruefen(); if ($('sstand')) $('sstand').textContent = 'Stand ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
     syncLaeuft = false; syncAnzeige('☁ abgeglichen ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
   }).catch(function (x) {
@@ -1779,7 +1779,9 @@ function dtAmtlich(k) { var p = 0; DT_PREISE.forEach(function (x) { if (k >= x[0
 function dtPreis(k) { var e = dtDaten().preise[k.slice(0, 4)]; return e != null && e !== '' ? +e : dtAmtlich(k); }
 function dtMonate(j) { var t = dtDaten(), heute = iso2(new Date()).slice(0, 7), r = [];
   for (var m = 1; m <= 12; m++) { var k = j + '-' + String(m).padStart(2, '0'); if (k > heute) break; if (!t.ab || k < t.ab || (t.bis && k > t.bis)) continue;
-    var reisen = daten.eintraege.filter(function (x) { return x.datum.slice(0, 7) === k && (x.anreise || x.abreise) && !(daten.geloescht || {})[x.id]; }).length;
+    var tg = {}; daten.eintraege.forEach(function (x) { if (x.datum.slice(0, 7) === k && (x.anreise || x.abreise) && !(daten.geloescht || {})[x.id]) tg[x.datum] = 1; });
+    ((daten.reisetage || {}).tage || []).forEach(function (x) { if (x.datum.slice(0, 7) === k) tg[x.datum] = 1; }); // (2.94) aus alten Einsatzplänen, gleiche Tage nur einmal
+    var reisen = Object.keys(tg).length;
     r.push({ k: k, aus: !!(t.aus || {})[k], reisen: reisen, preis: dtPreis(k) }); }
   return r; }
 function dtHtml() { var t = dtDaten(); if (dtJahr == null) dtJahr = new Date().getMonth() < 3 ? new Date().getFullYear() - 1 : new Date().getFullYear();
@@ -3601,6 +3603,13 @@ function nachweisHolen(kopf) {
   return fetch(GHN + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) {
     if (!r.ok) return null;
     return r.json().then(function (j) { var n = JSON.parse(b64dec(j.content) || '{}'); if (n && n.tage) { daten.nachweis = n; sichern(true); if ($('blattN').classList.contains('offen')) nachweisZeichnen(); } });
+  }).catch(function () {});
+}
+// (2.94) Reisetage aus alten Einsatzplänen (reisetage.json, z. B. 2025 vor der App) fürs Deutschland-Ticket
+function reisetageHolen(kopf) {
+  return fetch(GH.replace('daten.json', 'reisetage.json') + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) {
+    if (!r.ok) return null;
+    return r.json().then(function (j) { var n = JSON.parse(b64dec(j.content) || '{}'); if (n && n.tage) { daten.reisetage = n; sichern(true); if ($('blattJ').classList.contains('offen')) jahrZeichnen(); } });
   }).catch(function () {});
 }
 // (2.83) Lohn-Daten direkt aus dem Daten-Repo (lohn/lohn.json, pflegt die nächtliche Aufgabe ohne Mac), mit Arbeitszeitkonto
