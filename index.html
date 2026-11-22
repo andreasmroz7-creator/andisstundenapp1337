@@ -626,7 +626,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '2.78';
+var VERSION = '2.79';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2297,6 +2297,9 @@ var GHD = GH.replace('daten.json', 'depot.json'), depotSicht = true /* (2.19) Au
 // (2.13) Ohne Mac weiterrechnen: Stückzahl × aktueller Kurs. Aktien/ETFs über kurse.json (holt GitHub alle 30 Min. bei Yahoo; nur die Veränderung
 // gegenüber dem Yahoo-Kurs zum Mac-Stand zählt, so passt es zu Scalable), Krypto live von Binance; Rente, Tagesgeld, eigene Werte bleiben beim Mac-Stand.
 var depotKopf = null, depotLive = null;
+// (2.79) Beim Start sofort den zuletzt angezeigten Live-Stand (Wert + Positionen) statt des älteren Mac-Stands, dann normal weiter aktualisieren
+(function () { try { var c = JSON.parse(localStorage.getItem('cockpit_live') || 'null'), d = daten.depot;
+  if (c && d && c.stand === d.stand && iso2(new Date(c.l.t)) === iso2(new Date()) && Date.now() - c.l.t < 6 * 36e5) { depotLive = c.l; window.__depotPosLiveStart = c.p; } } catch (x) {} })();
 // (2.30) Immer live rechnen, alle paar Sekunden, mit und ohne Mac:
 //  - Aktien/ETFs/Silber: gettex-Kurs (Mitte aus Geld/Brief) von Onvista = derselbe Kurs, mit dem Scalable rechnet; zur Börsenzeit alle 10 s, sonst alle 2 Min.
 //  - Krypto: Binance alle 5 s.  - Fällt Onvista aus: wie bisher kurse.json (GitHub, Yahoo-Veränderung).  - Rente, Tagesgeld, eigene Werte: Mac-Stand.
@@ -2310,7 +2313,7 @@ function depotSechsHolen(kr) {
   if (!fehlt.length) return null; fehlt.forEach(function (sy) { depotSechs.v[sy] = jz; });
   return Promise.all(fehlt.map(function (sy) { return fetch('https://api.binance.com/api/v3/klines?symbol=' + sy + '&interval=1h&startTime=' + ts + '&limit=1', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (a) { if (a && a[0] && depotSechs.ts === ts) depotSechs.k[sy] = +a[0][1]; }).catch(function () {}); }));
 }
-var depotPosLive = null, ONV = 'https://api.onvista.de/api/v1/instruments/', depotOnv = {}, depotOnvT = 0, depotBin = null, depotBinO = {}, depotBinT = 0, depotKJ = null, depotKJT = 0, depotLiveBusy = false;
+var depotPosLive = window.__depotPosLiveStart || null, ONV = 'https://api.onvista.de/api/v1/instruments/', depotOnv = {}, depotOnvT = 0, depotBin = null, depotBinO = {}, depotBinT = 0, depotKJ = null, depotKJT = 0, depotLiveBusy = false;
 var onvTyp = (function () { try { return JSON.parse(localStorage.getItem('cockpit_onvtyp') || '{}'); } catch (x) { return {}; } })();
 function boerseOffen() { var n = new Date(), d = n.getDay(), h = n.getHours(); return d >= 1 && d <= 5 && h >= 8 && h < 22; } // gettex Mo–Fr 8–22 Uhr
 function onvTypHolen(isin) {
@@ -2371,7 +2374,7 @@ function depotLiveRechnen(stark) {
     depotPosLive = PL;
     var alt = depotLive;
     depotLive = (neuW || neuK) ? { gesamt: Math.round(sum * 100) / 100, t: Date.now(), neuW: neuW, neuK: neuK, tW: tW, alleW: alleW, macAlt: macAlt } : null;
-    if (depotLive) depotTickMerken(depotLive.gesamt);
+    if (depotLive) { depotTickMerken(depotLive.gesamt); try { localStorage.setItem('cockpit_live', JSON.stringify({ stand: d.stand, l: depotLive, p: depotPosLive })); } catch (x) {} }
     if (!alt !== !depotLive || (alt && depotLive && Math.abs(alt.gesamt - depotLive.gesamt) >= 0.005) || stark) depotNeuZeigen();
   }).then(function () { depotLiveBusy = false; }, function () { depotLiveBusy = false; });
 }
@@ -2409,7 +2412,7 @@ function depotEff() {
   var e = JSON.parse(JSON.stringify(d)), heute = iso2(new Date(d.stand)) === iso2(new Date());
   e.gesamt = depotLive.gesamt; e.live = depotLive;
   var dl = e.gesamt - d.gesamt; Object.keys(e.z || {}).forEach(function (k) { var Z = e.z[k]; if (!Z.p || !Z.p.length) return; var l = Z.p[Z.p.length - 1]; Z.p.push([Math.round(Date.now() / 1000), e.gesamt, Z.pl ? l[2] + dl : l[2]]); Z.eur = Math.round((Z.eur + dl) * 100) / 100; var bs = e.gesamt - Z.eur; if (Z.pl && bs > 0) Z.pct = Math.round(Z.eur / bs * 1e4) / 100; });
-  if (heute) { e.heute_eur = Math.round((e.gesamt - d.ref) * 100) / 100; e.heute_pct = d.ref ? Math.round((e.gesamt / d.ref - 1) * 1e4) / 100 : 0; if (e.linie && e.linie.length) { var lz = e.lt && e.lt.length ? e.lt[e.lt.length - 1] : 0; if (e.lt && e.lt.length === e.linie.length) depotTicks().forEach(function (x) { if (x[0] > lz + 20) { e.linie.push(x[1]); e.lt.push(x[0]); } }); e.linie.push(e.gesamt); if (e.lt) e.lt.push(Math.round(Date.now() / 1000)); } }
+  if (heute) { e.heute_eur = Math.round((e.gesamt - d.ref) * 100) / 100; e.heute_pct = d.ref ? Math.round((e.gesamt / d.ref - 1) * 1e4) / 100 : 0; if (e.linie && e.linie.length) { var lz = e.lt && e.lt.length ? e.lt[e.lt.length - 1] : 0; if (e.lt && e.lt.length === e.linie.length) depotTicks().forEach(function (x) { if (x[0] > lz + 20) { e.linie.push(x[1]); e.lt.push(x[0]); } }); e.linie.push(e.gesamt); if (e.lt) e.lt.push(Math.max(e.lt[e.lt.length - 1] + 1, Math.round((depotLive.t || Date.now()) / 1000))); } }
   else { e.heute_eur = Math.round((e.gesamt - d.gesamt) * 100) / 100; e.heute_pct = d.gesamt ? Math.round((e.gesamt / d.gesamt - 1) * 1e4) / 100 : 0; e.seitMac = true; }
   return e;
 }
