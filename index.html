@@ -686,7 +686,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.26';
+var VERSION = '3.27';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -3137,8 +3137,9 @@ function posFinger(P, S) {
     var st = c.querySelector('stop.g2'), st2 = st && st.nextElementSibling; if (st) { st.style.stopColor = chg >= 0 ? 'var(--ok)' : 'var(--rot)'; if (st2) st2.style.stopColor = st.style.stopColor; }
   };
   var ende = function () { if (!aktiv) return; aktiv = false; letzt = -1; c.classList.remove('zieht'); $('pDot').style.background = '#fff'; delete ROLLK['pW' + posKey]; posZeichnen(); }; // frisch aufbauen (eine gerade rollende Zahl würde sonst doppelt zurückkommen)
-  c.addEventListener('pointerdown', function (e) { if (!depotSicht) return; aktiv = true; oG = $('pGross').innerHTML; oA = $('pAend').innerHTML; c.classList.add('zieht'); try { c.setPointerCapture(e.pointerId); } catch (x) {} zeig(e.clientX); });
-  c.addEventListener('pointermove', function (e) { if (aktiv) zeig(e.clientX); });
+  c.addEventListener('pointerdown', function (e) { if (!depotSicht) return; if (e.pointerType === 'mouse' && aktiv) return; aktiv = true; oG = $('pGross').innerHTML; oA = $('pAend').innerHTML; c.classList.add('zieht'); try { c.setPointerCapture(e.pointerId); } catch (x) {} zeig(e.clientX); });
+  c.addEventListener('pointermove', function (e) { if (e.pointerType === 'mouse' && !aktiv && depotSicht) { aktiv = true; oG = $('pGross').innerHTML; oA = $('pAend').innerHTML; c.classList.add('zieht'); } if (aktiv) zeig(e.clientX); }); /* (3.27) Mac: Linie schon beim Darüberfahren mit der Maus */
+  c.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') ende(); });
   c.addEventListener('pointerup', ende); c.addEventListener('pointercancel', ende); c.addEventListener('lostpointercapture', ende);
 }
 function posMorph() { // gleicher weicher Übergang wie im Depot-Diagramm
@@ -3294,8 +3295,9 @@ function depotFinger(d, R) {
   var ende = function () { if (!aktiv) return; aktiv = false; letzt = -1; c.classList.remove('zieht');
     $('dGross').innerHTML = '<span class="dpkt">••••••</span><span class="dw">' + pxEuro(d.gesamt) + '</span>'; $('dAend').innerHTML = depotAend(R.eur, R.pct, R.txt); $('dDot').style.background = '#fff';
     var st = c.querySelector('stop.g2'), st2 = st && st.nextElementSibling; if (st) { st.style.stopColor = R.eur >= 0 ? 'var(--ok)' : 'var(--rot)'; if (st2) st2.style.stopColor = st.style.stopColor; } };
-  c.addEventListener('pointerdown', function (e) { if (!depotSicht) return; aktiv = true; c.classList.add('zieht'); try { c.setPointerCapture(e.pointerId); } catch (x) {} zeig(e.clientX); });
-  c.addEventListener('pointermove', function (e) { if (aktiv) zeig(e.clientX); });
+  c.addEventListener('pointerdown', function (e) { if (!depotSicht) return; if (e.pointerType === 'mouse' && aktiv) return; aktiv = true; c.classList.add('zieht'); try { c.setPointerCapture(e.pointerId); } catch (x) {} zeig(e.clientX); });
+  c.addEventListener('pointermove', function (e) { if (e.pointerType === 'mouse' && !aktiv && depotSicht) { aktiv = true; c.classList.add('zieht'); } if (aktiv) zeig(e.clientX); }); /* (3.27) Mac: Linie schon beim Darüberfahren mit der Maus */
+  c.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') ende(); });
   c.addEventListener('pointerup', ende); c.addEventListener('pointercancel', ende); c.addEventListener('lostpointercapture', ende);
 }
 $('start').addEventListener('click', function (e) { if (e.target.closest && e.target.closest('#startEinst')) { e.stopPropagation(); $('einstknopf').click(); } if (e.target.closest && e.target.closest('#startSuche')) { e.stopPropagation(); startZiel('suche'); } }, true); // (2.19) Zahnrad oben auf der Startseite
@@ -3410,7 +3412,8 @@ function querZeichnen() {
   F.innerHTML = h;
   var Z = { x: X, W: W }, VV = pkt.map(function (q) { return G.art === 'depot' && G.R.g && !q.g ? q.v : (q.w != null ? q.w : q.v); });
   F.onpointerdown = function (e) { if (F.classList.contains('zwei')) return; F.classList.add('zieht'); try { F.setPointerCapture(e.pointerId); } catch (x) {} qZeig(e.clientX); };
-  F.onpointermove = function (e) { if (F.classList.contains('zieht') && !F.classList.contains('zwei')) qZeig(e.clientX); };
+  F.onpointermove = function (e) { if (e.pointerType === 'mouse' && !F.classList.contains('zwei')) F.classList.add('zieht'); if (F.classList.contains('zieht') && !F.classList.contains('zwei')) qZeig(e.clientX); }; /* (3.27) Mac: auch beim Darüberfahren */
+  F.onpointerleave = function (e) { if (e.pointerType === 'mouse') { F.classList.remove('zieht'); $('qInfo').textContent = ''; } };
   F.onpointerup = F.onpointercancel = function () { F.classList.remove('zieht'); $('qInfo').textContent = ''; };
   function qZeig(cx) { var b = F.getBoundingClientRect(), fx = (cx - b.left) / b.width * W, i = 0; for (var k = 1; k < X.length; k++) if (Math.abs(X[k] - fx) < Math.abs(X[i] - fx)) i = k;
     $('qCur').style.left = (X[i] / W * 100) + '%'; $('qInfo').textContent = (depotSicht ? fmt(pkt[i].v) + ' · ' : '') + (pkt[i].t ? zeitKurz(pkt[i].t, zr === '1d' ? '1w' : zr) : ''); }
@@ -3639,8 +3642,9 @@ function marktZeichnen() {
       var d2 = A[i] - ref; $('mGross').innerHTML = '<span class="dw">' + marktBetrag(A[i], S.cur) + '</span>';
       $('mAend').innerHTML = '<span class="dw ' + (d2 >= 0 ? 'dplus' : 'dminus') + '">' + (d2 >= 0 ? '+' : '−') + marktBetrag(Math.abs(d2), S.cur) + ' (' + pzKurz(ref ? d2 / ref * 100 : 0) + ') <span class="dwann">' + (T[i] ? zeitKurz(T[i], zr === '1d' ? '1w' : zr) : '') + '</span></span>'; };
     var ende = function () { if (!aktiv) return; aktiv = false; c.classList.remove('zieht'); $('mGross').innerHTML = '<span class="dw">' + marktBetrag(last, S.cur) + '</span>'; $('mAend').innerHTML = aend; };
-    c.addEventListener('pointerdown', function (e) { aktiv = true; c.classList.add('zieht'); try { c.setPointerCapture(e.pointerId); } catch (x) {} zeig(e.clientX); });
-    c.addEventListener('pointermove', function (e) { if (aktiv) zeig(e.clientX); });
+    c.addEventListener('pointerdown', function (e) { if (e.pointerType === 'mouse' && aktiv) return; aktiv = true; c.classList.add('zieht'); try { c.setPointerCapture(e.pointerId); } catch (x) {} zeig(e.clientX); });
+    c.addEventListener('pointermove', function (e) { if (e.pointerType === 'mouse' && !aktiv) { aktiv = true; c.classList.add('zieht'); } if (aktiv) zeig(e.clientX); }); /* (3.27) Mac: Linie schon beim Darüberfahren */
+    c.addEventListener('pointerleave', function (e) { if (e.pointerType === 'mouse') ende(); });
     c.addEventListener('pointerup', ende); c.addEventListener('pointercancel', ende); c.addEventListener('lostpointercapture', ende);
     spanneAn(c, { x: X, W: W }, A, A, T, zr === '5y' ? '1y' : zr, true);
   });
