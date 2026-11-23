@@ -679,7 +679,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.19';
+var VERSION = '3.20';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -3771,10 +3771,27 @@ $('noPlus').onclick = function () {
   $('noText').value = ''; noWachsen($('noText')); sichern(); notizenZeichnen();
 };
 var GHN = GH.replace('daten.json', 'nachweis.json');
+// (3.20) Anreisetage (Sonntag vor einer Reisewoche, laut Einsatzplan) automatisch mit 1,5 Std. eintragen, sobald der Tag da ist.
+// Feste ID b<JJJJMMTT>: auf Handy und Mac dieselbe, und einmal gelöschte Tage kommen nicht wieder. Erst ab 16.11.2026 (davor steckt die Anreise
+// bei den Tagen aus der alten Zeiterfassungs-App schon im Montag).
+function anreiseAuto() {
+  var n = daten.nachweis; if (!n || !n.tage) return 0; var hi = iso2(new Date()), neu = 0, gel = daten.geloescht || {};
+  n.tage.forEach(function (p) {
+    if (!p.nurReise || !p.an || p.datum < '2026-11-16' || p.datum > hi) return;
+    var id = 'b' + p.datum.replace(/-/g, ''); if (gel[id]) return;
+    if (daten.eintraege.some(function (x) { return x.datum === p.datum && !gel[x.id]; })) return;
+    var x = { id: id, datum: p.datum, modus: 'zeit', team: 'reise', anreise: true, abreise: false, uebernachtung: false, tl: false, fahrer: false, fahrMin: 0, auswaerts: false, laeden: [], notiz: '' };
+    planFuellen(x); x.laeden = []; x.notiz = 'Anreise laut Einsatzplan/Reiseinfo (automatisch)'; x.geaendert = Date.now();
+    daten.eintraege.push(x); neu++;
+  });
+  if (neu) { sichern(); try { zeichne(); if (!$('start').classList.contains('aus')) startZeichnen(true); } catch (e) {} }
+  return neu;
+}
+setTimeout(function () { try { anreiseAuto(); } catch (e) {} }, 6000);
 function nachweisHolen(kopf) {
   return fetch(GHN + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) {
     if (!r.ok) return null;
-    return r.json().then(function (j) { var n = JSON.parse(b64dec(j.content) || '{}'); if (n && n.tage) { daten.nachweis = n; sichern(true); if ($('blattN').classList.contains('offen')) nachweisZeichnen(); } });
+    return r.json().then(function (j) { var n = JSON.parse(b64dec(j.content) || '{}'); if (n && n.tage) { daten.nachweis = n; sichern(true); try { anreiseAuto(); } catch (e) {} if ($('blattN').classList.contains('offen')) nachweisZeichnen(); } });
   }).catch(function () {}).then(function () { // (2.95) frühere Jahre: nachweis_<jahr>.json
     var J = []; for (var y = 2025; y <= new Date().getFullYear(); y++) if ((!daten.nachweis || y !== daten.nachweis.jahr) && !((daten.nachweise || {})[y] && Date.now() - ((daten.nachweise[y] || {})._t || 0) < 864e5)) J.push(y); // (3.00) frühere Jahre höchstens 1× am Tag
     return Promise.all(J.map(function (y) { return fetch(GH.replace('daten.json', 'nachweis_' + y + '.json') + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
