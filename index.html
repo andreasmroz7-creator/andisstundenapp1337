@@ -679,7 +679,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.17';
+var VERSION = '3.18';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -760,6 +760,22 @@ function mz(m) { return Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2); }
 // erkannte Fahrten in den Eintrag übernehmen (nur leere Felder)
 function fahrtenUebernehmen(x) {
   var fa = fahrtenTag(x.datum); if (!fa.length) return false;
+  /* (3.18) Fahrten nach Arbeitszeiten zuordnen, sobald die Zeiten eingetragen sind:
+     Hinfahrt = alles vor Arbeitsbeginn (Tank-/Pausenstopps eingeschlossen), Zwischenfahrt = zwischen Ende Laden 1 und Beginn Laden 2,
+     Rückfahrt = alles nach Arbeitsende, aber erst wenn sie abgeschlossen ist. So zählt ein Tankstopp auf der Hinfahrt nicht als Zwischenfahrt,
+     und eine Zwischenfahrt wird nie als Rückfahrt genommen, wenn die Zeiten schon tagsüber eingetragen werden. */
+  var LZ = (x.laeden || []).filter(function (l) { return !l.ausfall; }).map(function (l) { var v = null, b = null; (l.zeiten || []).forEach(function (z) { var a = R.zeitZuMin(z.von), c = R.zeitZuMin(z.bis); if (a != null && (v == null || a < v)) v = a; if (c != null && (b == null || c > b)) b = c; }); return { v: v, b: b }; }).filter(function (o) { return o.v != null && o.b != null; });
+  if (LZ.length) {
+    var beg = LZ[0].v, end = LZ[LZ.length - 1].b, g2 = false, ev = (daten.fahrtEvents || []).filter(function (y) { return y.datum === x.datum; }).sort(function (a, b) { return a.min - b.min; }), offen = ev.length && ev[ev.length - 1].art === 'an';
+    var spanne = function (L) { return L.length ? { von: L[0].von, bis: L[L.length - 1].bis } : null; };
+    var hin = spanne(fa.filter(function (f) { return f.bis <= beg + 15; })), zur = spanne(fa.filter(function (f) { return f.von >= end - 10; })), zw = null;
+    if (LZ.length >= 2) zw = spanne(fa.filter(function (f) { return f.von >= LZ[0].b - 10 && f.bis <= LZ[1].v + 15; }));
+    if (hin && !x.hinZeit) { x.hinZeit = mz(hin.von) + '–' + mz(hin.bis); x.fahrHin = hin.bis - hin.von; g2 = true; }
+    if (zw && !x.zwZeit) { x.zwZeit = mz(zw.von) + '–' + mz(zw.bis); x.fahrZw = zw.bis - zw.von; g2 = true; }
+    if (zur && !x.zurZeit && !offen) { x.zurZeit = mz(zur.von) + '–' + mz(zur.bis); x.fahrZur = zur.bis - zur.von; g2 = true; }
+    if (g2) x.fahrMin = (x.fahrHin || 0) + (x.fahrZur || 0);
+    return g2;
+  }
   var geaendert = false, gem = (x.laeden || []).filter(function (l) { return !l.ausfall; }).length;
   function setz(k, kz, f) { if (!x[kz]) { x[kz] = mz(f.von) + '–' + mz(f.bis); x[k] = f.bis - f.von; geaendert = true; } }
   setz('fahrHin', 'hinZeit', fa[0]);
@@ -783,7 +799,8 @@ function fahrtenAuto() {
     var tagEv = ev.filter(function (y) { return y.datum === x.datum; }).sort(function (a, b) { return a.min - b.min; });
     var offen = tagEv.length && tagEv[tagEv.length - 1].art === 'an';
     var vorher = JSON.stringify([x.hinZeit, x.zurZeit, x.zwZeit]);
-    if (fa.length >= 2 && (offen || !letzteArbeit || fa[fa.length - 1].von < letzteArbeit - 10)) { if (!x.hinZeit) { var f0 = fa[0]; x.hinZeit = mz(f0.von) + '–' + mz(f0.bis); x.fahrHin = f0.bis - f0.von; x.fahrMin = (x.fahrHin || 0) + (x.fahrZur || 0); } }
+    if (letzteArbeit) fahrtenUebernehmen(x);
+    else if (fa.length >= 2 && (offen || fa[fa.length - 1].von < letzteArbeit - 10)) { if (!x.hinZeit) { var f0 = fa[0]; x.hinZeit = mz(f0.von) + '–' + mz(f0.bis); x.fahrHin = f0.bis - f0.von; x.fahrMin = (x.fahrHin || 0) + (x.fahrZur || 0); } }
     else fahrtenUebernehmen(x);
     if (JSON.stringify([x.hinZeit, x.zurZeit, x.zwZeit]) !== vorher) { x.geaendert = Date.now(); geaendert++; }
   });
@@ -4066,6 +4083,7 @@ if ('serviceWorker' in navigator) {
 
 
 
+
 <script id="cpfragen">
 /* (23.11. nachts) Jarvis im Cockpit: beantwortet Fragen zu allem, was im Cockpit steht – ohne Mac und ohne KI.
    Stunden (Tag, Woche, Monat, Jahr), Verdienst/Lohn/Abrechnung, Überstunden, Arbeitszeitkonto, Urlaub, Krank, Feiertage,
@@ -4306,7 +4324,7 @@ if ('serviceWorker' in navigator) {
     if (isoD(d) > isoD(heute0())) return 'Stunden für die Zukunft trage ich nicht ein, Meister. Sag sie mir am Tag selbst oder danach.';
     var iso = isoD(d), alt = eintrag(iso), x;
     if (alt) { x = JSON.parse(JSON.stringify(alt)); x.urlaub = false; x.krank = false; }
-    else { var alt_e = window.e; try { window.e = neuerEintrag(iso); var pr = profile().filter(function (p) { return p.id === D().letztesProfil; })[0] || profile()[0]; profilAnwenden(pr); if (istFeiertagSN(iso)) window.e.feiertag = true; planFuellen(window.e); fahrtenUebernehmen(window.e); x = window.e; } finally { window.e = alt_e; } }
+    else { var alt_e = window.e; try { window.e = neuerEintrag(iso); var pr = profile().filter(function (p) { return p.id === D().letztesProfil; })[0] || profile()[0]; profilAnwenden(pr); if (istFeiertagSN(iso)) window.e.feiertag = true; planFuellen(window.e); x = window.e; } finally { window.e = alt_e; } }
     if (/aushilfe|anderes team|anderen team/.test(q)) { x.auswaerts = true; x.notiz = (x.notiz ? x.notiz + ' · ' : '') + 'Aushilfe anderes Team'; }
     var L = x.laeden = (x.laeden || []).filter(function (l) { return l; });
     var leer = function () { return { art: L[0] ? L[0].art : 'NMD', zeiten: [{ von: '', bis: '' }], std: '' }; };
@@ -4322,6 +4340,7 @@ if ('serviceWorker' in navigator) {
       L.forEach(function (l) { l.zeiten = [{ von: '', bis: '' }]; });
       L[0].std = st[0]; if (L.length >= 2) { if (st.length >= 2) L[1].std = st.slice(1).reduce(function (a, b) { return a + b; }, 0); else L[1].ausfall = true; }
     }
+    try { fahrtenUebernehmen(x); } catch (e) {}
     speichern(x);
     var b = ber(x), g = b.gesamt || 0, teile = [];
     if (b.arbeit) teile.push(zs(b.arbeit) + ' Arbeit'); if (b.tl) teile.push(zs(b.tl) + ' Teamleiter'); if (b.zwischen) teile.push(zs(b.zwischen) + ' Zwischenfahrt'); if (b.fahrt) teile.push(zs(b.fahrt) + ' Fahrt'); if (b.anreise) teile.push(zs(b.anreise) + ' Anreise'); if (b.feiertag) teile.push(zs(b.feiertag) + ' Feiertag');
