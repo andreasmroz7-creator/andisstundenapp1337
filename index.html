@@ -686,7 +686,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.27';
+var VERSION = '3.28';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2168,6 +2168,7 @@ try { jv.stumm = localStorage.getItem('cockpit_jvstumm') === '1'; } catch (x) {}
 function jvKopf() { return { Authorization: 'Bearer ' + daten.einst.token, Accept: 'application/vnd.github+json' }; }
 function jvZustand(z, t) { jv.z = z; try { if (window.setJarvisHear) setJarvisHear(z === 'hoert'); if (window.setJarvisMode) setJarvisMode({ schlaf: 'idle', hoert: 'listen', denkt: 'think', spricht: 'speak' }[z] || 'idle'); } catch (x) {} if (t != null) $('jvStatus').textContent = t; }
 function jvZeile(wer, t, fehler) {
+  if (wer === 'er') { jv.frageOffen = /\?\s*$|sag ja oder nein/i.test(String(t || '')); jv.frageT = Date.now(); } else if (wer === 'ich') jv.frageOffen = false; /* (3.28) Jarvis hat etwas gefragt: gleich wieder zuhören */
   if (jvMini.gross) jvUnter(t, wer === 'ich' ? '' : 'Jarvis');
   var v = daten.jarvisVerlauf = (daten.jarvisVerlauf || []); v.push({ wer: wer, t: t, f: !!fehler, z: Date.now() }); if (v.length > 40) v.splice(0, v.length - 40); sichern(true); jvVerlaufZeichnen();
 }
@@ -2198,18 +2199,19 @@ function jvSchliessen() {
   jvMini.flug = true; jvKugel(false, true); jvZustand('schlaf');
   jv.flugT1 = setTimeout(function () { jvMini.flug = false; }, 760);
 }
-function jvHoeren() {
+function jvHoeren(vonSelbst) {
   jvStopp(); var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   var tippen = function () { var t = $('jvTipp'); t.value = ''; t.classList.add('an'); jvUnter(' ', ''); jvZustand('hoert'); try { t.focus(); } catch (x) {} };
   if (!SR) { tippen(); return; }
   var e = new SR(), letzt = ''; e.lang = 'de-DE'; e.interimResults = true; e.continuous = false; jv.erk = e;
   jvZustand('hoert'); jvUnter('Ich höre …');
   e.onresult = function (ev) { letzt = [].map.call(ev.results, function (r) { return r[0].transcript; }).join(''); jvUnter(letzt); };
-  e.onerror = function (ev) { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { letzt = ''; jv.erk = null; tippen(); } };
-  e.onend = function () { if (jv.erk !== e) return; jv.erk = null; if (letzt.trim()) jvSenden(letzt); else if (!jv.laeuft && jvMini.gross) { jvZustand('schlaf'); jvUnter('Nichts gehört. Tippen zum Schließen.'); } };
-  try { e.start(); } catch (x) { jv.erk = null; tippen(); }
+  var antippen = function () { jv.erk = null; jvZustand('schlaf'); jvUnter('Tippen zum Antworten'); }; /* von selbst gestartet und das iPhone erlaubt das Mikrofon nicht: Hinweis statt Tastatur */
+  e.onerror = function (ev) { if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { letzt = ''; if (vonSelbst) { antippen(); return; } jv.erk = null; tippen(); } };
+  e.onend = function () { if (jv.erk !== e) return; jv.erk = null; if (letzt.trim()) jvSenden(letzt); else if (!jv.laeuft && jvMini.gross) { jvZustand('schlaf'); jvUnter(jv.frageOffen && Date.now() - (jv.frageT || 0) < 60000 ? 'Tippen zum Antworten' : 'Nichts gehört. Tippen zum Schließen.'); } };
+  try { e.start(); } catch (x) { if (vonSelbst) antippen(); else { jv.erk = null; tippen(); } }
 }
-$('jvFang').onclick = function () { jvSchliessen(); };
+$('jvFang').onclick = function () { if (jvMini.gross && jv.frageOffen && Date.now() - (jv.frageT || 0) < 60000 && !jv.erk && !jv.laeuft) { jvEntsperren(); jvHoeren(); return; } jvSchliessen(); }; /* (3.28) offene Frage: Tippen = antworten */
 $('jvTipp').onkeydown = function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); var t = this.value; this.value = ''; this.classList.remove('an'); this.blur(); jvSenden(t); } };
 
 function jvChipsZeichnen() {
@@ -2310,7 +2312,9 @@ function jvStopp() { jv.spielt = false; try { if (jv.el) { jv.el.onpause = jv.el
 function jvSprechen(text, audioB64) {
   jvWiedergabe();
   if (jv.stumm) { jvZustand('schlaf', ''); return; }
-  var fertig = function () { if (jv.el) { jv.el.onended = jv.el.onpause = jv.el.onerror = null; } jv.spielt = false; try { window.setJarvisVoice && setJarvisVoice(0); } catch (x) {} jvZustand('schlaf', ''); clearTimeout(jv.unterT); jv.unterT = setTimeout(function () { if (!jv.laeuft) jvUnter(''); }, 4000); };
+  var fertig = function () { if (jv.el) { jv.el.onended = jv.el.onpause = jv.el.onerror = null; } jv.spielt = false; try { window.setJarvisVoice && setJarvisVoice(0); } catch (x) {} jvZustand('schlaf', ''); clearTimeout(jv.unterT);
+    if (jv.frageOffen && jvMini.gross && Date.now() - (jv.frageT || 0) < 60000) { jvHoeren(true); return; } /* (3.28, Andi: „wollte Nein sagen, aber er hat nicht mehr zugehört“) Frage gestellt → gleich wieder zuhören */
+    jv.unterT = setTimeout(function () { if (!jv.laeuft) jvUnter(''); }, 4000); };
   if (audioB64 && jv.el) {
     try {
       var buf; if (typeof audioB64 === 'string') { var bin = atob(audioB64); buf = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i); } else buf = new Uint8Array(audioB64);
@@ -4366,7 +4370,7 @@ if ('serviceWorker' in navigator) {
       .replace(/\bbis um\b/g, 'bis').replace(/\bum (\d)/g, '$1').replace(/\bvon (\d)/g, '$1').replace(/(\d)\s*-\s*(\d)/g, '$1 bis $2');
   }
   var ZEITSPANNE = /(?<![\d.:,])(\d{1,2}(?:[.:,]\d{2})?)\s*(?:bis|–)\s*(\d{1,2}(?:[.:,]\d{2})?)(?![\d]|[.:,]\d)/g;
-  var STD_OFFEN = null; /* (3.26, Andi 23.11.: „Er hat das direkt eingetragen ohne zu fragen“) wartende Rückfrage vor dem Überschreiben */
+  var STD_OFFEN = null, STD_ZU = 0; /* STD_ZU: wann die letzte Rückfrage beantwortet wurde */ /* (3.26, Andi 23.11.: „Er hat das direkt eingetragen ohne zu fragen“) wartende Rückfrage vor dem Überschreiben */
   function zeitenEintragen(t, q, bestaetigt) {
     if (/termin|urlaub|krank|\?|zeig|rendite|diagramm|kurs|prozent|euro|€|aktie|depot|bitcoin|nvidia|chart|grad|kilometer|km\b|minuten?\b/.test(q) || /(?:^|\s)(?:wie|was|wann|welche|welcher|wieviel|wo|warum|wieso)(?=\s|$)/.test(q)) return null;
     var u = uhrText(t), sp = [], m; ZEITSPANNE.lastIndex = 0;
@@ -4527,10 +4531,10 @@ if ('serviceWorker' in navigator) {
     var q0 = norm(t); if (!q0) return null;
     if (STD_OFFEN) { /* Antwort auf die Rückfrage vor dem Überschreiben (2 Minuten lang) */
       var so = STD_OFFEN; if (Date.now() - so.zeit > 120000) STD_OFFEN = null;
-      else if (/^(?:ja|jo|jap|jep|jawohl|genau|klar|ok|okay|passt|mach(?: das| es)?|ersetz\w*|überschreib\w*|ueberschreib\w*)(?:\s|$)/.test(q0)) { STD_OFFEN = null; try { var rj = zeitenEintragen(so.t, so.q, true); if (rj) return rj; } catch (e) {} return 'Das hat nicht geklappt, Meister. Ich habe nichts geändert.'; }
-      else if (/^(?:nein|nee|ne|nö|noe|lass(?: es| das)?|stopp|stop|abbrechen|doch nicht|nicht ersetzen)(?:\s|$)/.test(q0)) { STD_OFFEN = null; return 'Alles klar, Meister, ich lasse es so wie es ist.'; }
+      else if (/^(?:ja|jo|jap|jep|jawohl|genau|klar|ok|okay|passt|mach(?: das| es)?|ersetz\w*|überschreib\w*|ueberschreib\w*)(?:\s|$)/.test(q0)) { STD_OFFEN = null; STD_ZU = Date.now(); try { var rj = zeitenEintragen(so.t, so.q, true); if (rj) return rj; } catch (e) {} return 'Das hat nicht geklappt, Meister. Ich habe nichts geändert.'; }
+      else if (/^(?:nein|nee|ne|nö|noe|lass(?: es| das)?|stopp|stop|abbrechen|doch nicht|nicht ersetzen)(?:\s|$)/.test(q0)) { STD_OFFEN = null; STD_ZU = Date.now(); return 'Alles klar, Meister, ich lasse es so wie es ist.'; }
       else STD_OFFEN = null;
-    }
+    } else if (Date.now() - STD_ZU < 120000 && /^(?:nein|nee|ne|nö|noe|nicht ersetzen|doch nicht|lass(?: es| das)?(?: so)?|nichts ändern|nichts aendern|mach das (?:wieder )?rückgängig|mach das (?:wieder )?rueckgaengig)(?:\s|$)/.test(q0)) { return 'Schon erledigt, Meister. Bei deinen Stunden habe ich nichts geändert.'; } /* (3.28) „nein“ doppelt gehört oder wiederholt */
     var f = null; try { f = folge(t); } catch (e) { f = null; } if (f) { try { var zr = zeit(q0, LETZTE.zuk); if (zr) LETZTE.Z = zr; LETZTE.t = Date.now(); } catch (e) {} return f; }
     var r = null, d0 = D(); if (!d0) return null;
     var art_ = 'frage';
