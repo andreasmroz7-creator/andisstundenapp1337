@@ -679,7 +679,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.15';
+var VERSION = '3.16';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2240,6 +2240,7 @@ function jvLokal(t) {
   var sm = t.match(/^(?:jarvis[, ]+)?(?:schreib|schick|sende|send)\w*(?: mal| bitte)*(?: eine?)?(?: sms| nachricht| whatsapp)?(?: an)? (?:alle|die leute|die anderen|das team|die kollegen|die gruppe|alle (?:aus|in) der reiseinfo|alle leute)\b[:,.]?\s*(?:dass\s+)?(.*)$/i);
   if (sm) { var r0 = smsAnAlle(sm[1]); if (!r0) return 'Ich habe noch keine Kontaktdaten aus der Reiseinfo, Meister. Einmal abgleichen, dann klappt es.';
     return (r0.text ? 'Nachricht an ' : 'Leere Nachricht an ') + r0.n + ' Leute vorbereitet: ' + r0.namen.join(', ') + '. Tipp unten auf den Knopf, dann nur noch Senden drücken.'; }
+  { var cf = null; try { cf = window.jvCockpitFrage && window.jvCockpitFrage(t); } catch (e) {} if (cf) return cf; } // (3.16) alles aus dem Cockpit beantworten (Stunden, Lohn, Urlaub, Plan, Termine …)
   if (!/^(?:notier(?:e)?|merk dir|schreib auf|notiz)\b/i.test(t.trim())) { var dep = null; try { dep = jvDepot(q); } catch (e) {} if (dep) return dep; }
   var m = /^(?:notier(?:e)?|merk dir|schreib auf|notiz)[:,]?\s+(.+)$/i.exec(t.trim());
   if (m) { var j = Date.now(); daten.notizen = daten.notizen || []; daten.notizen.push({ id: 'n' + j, text: m[1].trim(), erstellt: j, geaendert: j }); sichern(); return 'Notiert, Meister: „' + m[1].trim() + '“.'; }
@@ -4060,5 +4061,356 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('controllerchange', function () { if (hatteSW && document.hidden && !window.__neu) { window.__neu = 1; location.reload(); } });
 }
 </script>
+
+<script id="cpfragen">
+/* (23.11. nachts) Jarvis im Cockpit: beantwortet Fragen zu allem, was im Cockpit steht – ohne Mac und ohne KI.
+   Stunden (Tag, Woche, Monat, Jahr), Verdienst/Lohn/Abrechnung, Überstunden, Arbeitszeitkonto, Urlaub, Krank, Feiertage,
+   Einsatzplan (wo, Treffpunkt, Läden, Hotel, Team, Kollegen, Personalnummern), Termine (abfragen und eintragen),
+   Geburtstage, laufende Kosten und Sparpläne, was übrig bleibt, Steuererklärung, Fahrzeiten, Notizen.
+   window.jvCockpitFrage(text) → Antwort (Text) oder null (dann geht es wie bisher weiter: Depot, Mac, KI). */
+(function () {
+  var MON = ['januar', 'februar', 'märz', 'april', 'mai', 'juni', 'juli', 'august', 'september', 'oktober', 'november', 'dezember'];
+  var MONG = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+  var WTG = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+  var WTK = { sonntag: 0, montag: 1, dienstag: 2, mittwoch: 3, donnerstag: 4, freitag: 5, samstag: 6, sonnabend: 6 };
+  var ORD = { ersten: 1, erste: 1, ersterm: 1, zweiten: 2, zweite: 2, dritten: 3, dritte: 3, vierten: 4, vierte: 4, fünften: 5, fuenften: 5, fünfte: 5, sechsten: 6, sechste: 6, siebten: 7, siebte: 7, siebenten: 7, achten: 8, achte: 8, neunten: 9, neunte: 9, zehnten: 10, zehnte: 10, elften: 11, elfte: 11, zwölften: 12, zwoelften: 12, zwölfte: 12, dreizehnten: 13, vierzehnten: 14, fünfzehnten: 15, fuenfzehnten: 15, sechzehnten: 16, siebzehnten: 17, achtzehnten: 18, neunzehnten: 19, zwanzigsten: 20, einundzwanzigsten: 21, zweiundzwanzigsten: 22, dreiundzwanzigsten: 23, vierundzwanzigsten: 24, fünfundzwanzigsten: 25, fuenfundzwanzigsten: 25, sechsundzwanzigsten: 26, siebenundzwanzigsten: 27, achtundzwanzigsten: 28, neunundzwanzigsten: 29, dreißigsten: 30, dreissigsten: 30, einunddreißigsten: 31, einunddreissigsten: 31 };
+  function D() { return typeof daten !== 'undefined' ? daten : null; }
+  function p2(n) { return ('0' + n).slice(-2); }
+  function isoD(d) { return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); }
+  function heute0() { var d = new Date(); d.setHours(12, 0, 0, 0); return d; }
+  function plus(d, n) { var x = new Date(d); x.setDate(x.getDate() + n); return x; }
+  function zs(n) { n = Math.round((+n || 0) * 100) / 100; var s = n.toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 2 }); return s; }
+  function std(n) { return zs(n) + (Math.abs(n) === 1 ? ' Stunde' : ' Stunden'); }
+  function eu(n) { n = +n || 0; var a = Math.abs(n), s = a.toLocaleString('de-DE', { minimumFractionDigits: a % 1 ? 2 : 0, maximumFractionDigits: 2 }); return (n < 0 ? 'minus ' : '') + s + ' Euro'; }
+  function tage(n) { n = Math.round(n * 2) / 2; return String(n).replace('.', ',') + (n === 1 ? ' Tag' : ' Tage'); }
+  function datTxt(d, mitWt) { return (mitWt === false ? '' : WTG[d.getDay()] + ', ') + d.getDate() + '. ' + MONG[d.getMonth()] + (d.getFullYear() !== new Date().getFullYear() ? ' ' + d.getFullYear() : ''); }
+  function wannTxt(d) { var t = Math.round((new Date(isoD(d) + 'T12:00') - heute0()) / 864e5); return t === 0 ? 'Heute' : t === 1 ? 'Morgen' : t === -1 ? 'Gestern' : t === 2 ? 'Übermorgen' : t === -2 ? 'Vorgestern' : 'Am ' + datTxt(d); }
+  function monTxt(j, m) { return MONG[m] + (j !== new Date().getFullYear() ? ' ' + j : ''); }
+  function klein1(s) { return s.charAt(0).toLowerCase() + s.slice(1); }
+  function arbT(n) { return n === 0 ? 'keinem Tag' : n === 1 ? 'einem Arbeitstag' : zs(n) + ' Arbeitstagen'; }
+  function liste(a) { return a.length <= 1 ? a.join('') : a.slice(0, -1).join(', ') + ' und ' + a[a.length - 1]; }
+  function gel(x) { var d = D(); return d && (d.geloescht || {})[x.id]; }
+  function eintr() { var d = D(); return d ? (d.eintraege || []).filter(function (x) { return !gel(x); }) : []; }
+  function eintrag(iso) { return eintr().filter(function (x) { return x.datum === iso; })[0] || null; }
+  function ber(x) { try { return R.berechne(x); } catch (e) { return { gesamt: 0 }; } }
+  function satz() { var d = D(); return +((d && d.einst && d.einst.lohn) || 16); }
+  function nt(b) { try { return netto(b); } catch (e) { return null; } }
+
+  /* ---------- Zeit aus dem Satz lesen ---------- */
+  function norm(t) {
+    return String(t || '').toLowerCase().replace(/[?!,;]+/g, ' ').replace(/:(?!\d)|(?<!\d):/g, ' ').replace(/(\d)\s*\.\s*(?=\d)/g, '$1.').replace(/\s+/g, ' ').trim()
+      .replace(/^(?:(?:hey|hallo|hi|ok|okay|yo|jo|ey|sag mal|sag|mal|bitte|jarvis|na)\s)+/, '').trim();
+  }
+  function monatIdx(w) { w = w.replace(/ss/g, 'ß'); for (var i = 0; i < 12; i++) { if (w === MON[i] || w === MON[i].slice(0, 3) || (i === 2 && (w === 'maerz' || w === 'marz' || w === 'mär'))) return i; } if (w === 'sept') return 8; return -1; }
+  /* liefert {art:'tag', d} | {art:'monat', j, m} | {art:'woche', von, bis} | {art:'jahr', j} | null */
+  function zeit(q, zukunft) {
+    var h = heute0(), m;
+    if (/\b(?:heute|heut)\b/.test(q)) return { art: 'tag', d: h };
+    if (/\bvorgestern\b/.test(q)) return { art: 'tag', d: plus(h, -2) };
+    if (/\bgestern\b/.test(q)) return { art: 'tag', d: plus(h, -1) };
+    if (/(?:^|\s)(?:übermorgen|uebermorgen)(?=\s|$)/.test(q)) return { art: 'tag', d: plus(h, 2) };
+    if (/\bmorgen\b/.test(q) && !/\bmorgens\b|\bheute morgen\b|\bguten morgen\b/.test(q)) return { art: 'tag', d: plus(h, 1) };
+    /* 17.11.2026 / 17.11. / 17.11 */
+    m = /\b(\d{1,2})\.(\d{1,2})\.?(\d{2,4})?\b/.exec(q);
+    if (m && +m[1] >= 1 && +m[1] <= 31 && +m[2] >= 1 && +m[2] <= 12) { var j = m[3] ? (+m[3] < 100 ? 2000 + +m[3] : +m[3]) : h.getFullYear(); return { art: 'tag', d: new Date(j, +m[2] - 1, +m[1], 12) }; }
+    /* 17. november (2026) / 17 november / siebzehnten november */
+    m = /\b(?:am |den |vom |für |fuer |zum )?(\d{1,2})\.?(?:ten|te|ter)? ([a-zäöü]+)(?: (\d{4}))?\b/.exec(q);
+    if (m && monatIdx(m[2]) >= 0 && +m[1] >= 1 && +m[1] <= 31) return { art: 'tag', d: new Date(m[3] ? +m[3] : h.getFullYear(), monatIdx(m[2]), +m[1], 12) };
+    m = /\b([a-zäöü]+ten|[a-zäöü]+te|ersten|erste|dritten|dritte|siebten|siebte|achten|achte) ([a-zäöü]+)\b/.exec(q);
+    if (m && ORD[m[1]] && monatIdx(m[2]) >= 0) return { art: 'tag', d: new Date(h.getFullYear(), monatIdx(m[2]), ORD[m[1]], 12) };
+    /* am 17. / am 17 / am siebzehnten / den 17. */
+    m = /\b(?:am|den|vom|zum|für|fuer|der|des)\s(\d{1,2})\.?(?:ten|te|ter)?(?=\s|$)/.exec(q);
+    if (m && +m[1] >= 1 && +m[1] <= 31 && (/\.$/.test(m[0]) || !/\b(?:uhr|stunden?|tage?n?|euro|prozent|kw|woche)\b/.test(q.slice(m.index + m[0].length, m.index + m[0].length + 8)))) return { art: 'tag', d: tagImMonat(+m[1], zukunft) };
+    m = /\b(?:am|den|vom|zum|für|fuer)\s([a-zäöü]+ten|[a-zäöü]+te)\b/.exec(q);
+    if (m && ORD[m[1]]) return { art: 'tag', d: tagImMonat(ORD[m[1]], zukunft) };
+    /* Wochentag: „am Montag“, „letzten Montag“, „nächsten Freitag“, „diesen Mittwoch“ */
+    m = /\b(letzten|letzte|letzter|vorigen|vergangenen|nächsten|naechsten|nächste|naechste|kommenden|diesen|diese|dieser|am|an dem|den)?\s?(sonntag|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonnabend)\b/.exec(q);
+    if (m) { var wt = WTK[m[2]], v = m[1] || '', diff = (wt - h.getDay() + 7) % 7;
+      if (/letzt|vorig|vergangen/.test(v)) { diff = diff - 7; if (diff === 0) diff = -7; }
+      else if (/nächst|naechst|kommend/.test(v)) { if (diff === 0) diff = 7; }
+      else if (!zukunft && !/diese/.test(v)) { if (diff > 0) diff -= 7; else if (diff === 0 && !eintrag(isoD(h))) diff = -7; } /* Fragen nach Stunden: der letzte solche Tag */
+      return { art: 'tag', d: plus(h, diff) }; }
+    /* Woche */
+    m = /\bkw ?(\d{1,2})\b|\bkalenderwoche (\d{1,2})\b/.exec(q);
+    if (m) { var kw = +(m[1] || m[2]); return woche(kwMontag(h.getFullYear(), kw)); }
+    if (/\b(?:diese|dieser|diesen|aktuelle|aktuellen|laufende|laufenden) woche\b/.test(q)) return woche(montag(h));
+    if (/\b(?:letzte|letzten|letzter|vorige|vorigen|vergangene|vergangenen) woche\b/.test(q)) return woche(plus(montag(h), -7));
+    if (/\b(?:vorletzte|vorletzten) woche\b/.test(q)) return woche(plus(montag(h), -14));
+    if (/\b(?:nächste|naechste|nächsten|naechsten|kommende|kommenden) woche\b/.test(q)) return woche(plus(montag(h), 7));
+    /* Monat */
+    if (/\b(?:diesen|dieser|diesem|aktuellen|laufenden) monat\b|\bden monat\b|\bim monat\b(?! (?:januar|februar|märz|april|mai|juni|juli|august|september|oktober|november|dezember))/.test(q)) return { art: 'monat', j: h.getFullYear(), m: h.getMonth() };
+    if (/\b(?:letzten|letzter|letzte|vorigen|vergangenen|vormonat)\b(?: monat)?/.test(q) && /monat/.test(q)) { var lm = new Date(h.getFullYear(), h.getMonth() - 1, 1); return { art: 'monat', j: lm.getFullYear(), m: lm.getMonth() }; }
+    if (/\bvorletzten monat\b/.test(q)) { var vm = new Date(h.getFullYear(), h.getMonth() - 2, 1); return { art: 'monat', j: vm.getFullYear(), m: vm.getMonth() }; }
+    if (/\b(?:nächsten|naechsten|kommenden) monat\b/.test(q)) { var nm = new Date(h.getFullYear(), h.getMonth() + 1, 1); return { art: 'monat', j: nm.getFullYear(), m: nm.getMonth() }; }
+    m = /\b(januar|jänner|februar|märz|maerz|marz|april|mai|juni|juli|august|september|sept|oktober|november|dezember)\b(?: (\d{4}))?/.exec(q);
+    if (m) { var mi = monatIdx(m[1] === 'jänner' ? 'januar' : m[1]), jj = m[2] ? +m[2] : h.getFullYear();
+      if (!m[2] && !zukunft && mi > h.getMonth()) jj--; /* „im Dezember“ im November = letzter Dezember */
+      return { art: 'monat', j: jj, m: mi }; }
+    /* Jahr */
+    m = /\b(20\d\d)\b/.exec(q); if (m) return { art: 'jahr', j: +m[1] };
+    if (/\b(?:letztes|letzten|vorigen|vergangenen|vorjahr) jahr\b|\bvorjahr\b/.test(q)) return { art: 'jahr', j: h.getFullYear() - 1 };
+    if (/\b(?:dieses|diesem|dieser|aktuellen|laufenden|ganzen|ganze|ganzes) jahr\b|\bim jahr\b|\bjahr bisher\b|\bbisher im jahr\b|\binsgesamt\b|\bseit januar\b/.test(q)) return { art: 'jahr', j: h.getFullYear() };
+    return null;
+  }
+  function tagImMonat(n, zukunft) { var h = heute0(), d = new Date(h.getFullYear(), h.getMonth(), n, 12); if (!zukunft && d > h && n > h.getDate() + 1) d = new Date(h.getFullYear(), h.getMonth() - 1, n, 12); if (zukunft && d < plus(h, -1)) d = new Date(h.getFullYear(), h.getMonth() + 1, n, 12); return d; }
+  function montag(d) { var x = new Date(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+  function kwMontag(j, kw) { var t = new Date(j, 0, 4, 12); return plus(montag(t), (kw - 1) * 7); }
+  function woche(mo) { return { art: 'woche', von: mo, bis: plus(mo, 6) }; }
+
+  /* ---------- Stunden ---------- */
+  function ladenTxt(l) { var z = (l.zeiten || []).filter(function (z) { return z.von && z.bis; }).map(function (z) { return 'von ' + z.von + ' bis ' + z.bis; }); return (l.ort || 'Laden') + (l.fil ? ' ' + l.fil : '') + (z.length ? ' ' + liste(z) : ''); }
+  function tagStunden(d) {
+    var iso = isoD(d), x = eintrag(iso), w = wannTxt(d), p = planTagX(iso);
+    if (!x) { if (d > heute0()) return w + ' ist noch nichts eingetragen' + (p && (p.laeden || []).length ? ', laut Plan geht es nach ' + liste(p.laeden.map(function (l) { return l.ort + ' ' + l.fil; })) : '') + '.';
+      return 'Für ' + (w === 'Heute' || w === 'Gestern' || w === 'Vorgestern' ? w.toLowerCase() : 'den ' + datTxt(d)) + ' hast du keine Stunden eingetragen' + (p && (p.laeden || []).length ? '. Laut Einsatzplan warst du in ' + liste(p.laeden.map(function (l) { return l.ort + ' ' + l.fil; })) : '') + '.'; }
+    var b = ber(x), s = b.gesamt || 0;
+    if (x.urlaub) return w + ' hattest du Urlaub, das zählt ' + std(s) + '.';
+    if (x.krank) return w + ' warst du krank gemeldet, das zählt ' + std(s) + '.';
+    var L = (x.laeden || []).filter(function (l) { return l.fil || l.ort; });
+    if (!L.length && (x.feiertag || b.feiertag)) return w + ' war ein Feiertag' + (x.notiz ? ' (' + x.notiz.replace(/\s*–.*$/, '').replace(/^Feiertag \(Sachsen\):\s*/, '') + ')' : '') + ', dafür bekommst du ' + std(s) + '.';
+    var teile = [];
+    if (b.arbeit) teile.push(zs(b.arbeit) + ' Arbeit');
+    if (b.tl) teile.push(zs(b.tl) + ' Teamleiter-Stunde' + (b.tl === 1 ? '' : 'n'));
+    if (b.fahrt) teile.push(zs(b.fahrt) + ' Fahrt');
+    if (b.zwischen) teile.push(zs(b.zwischen) + ' Zwischenfahrt');
+    if (b.anreise) teile.push(zs(b.anreise) + ' Anreise');
+    if (b.feiertag && L.length) teile.push(zs(b.feiertag) + ' Feiertagszuschlag');
+    var r = (w === 'Heute' ? 'Heute hast du bisher ' : w === 'Gestern' ? 'Gestern hattest du ' : w === 'Vorgestern' ? 'Vorgestern hattest du ' : w + ' hattest du ') + std(s) + '.';
+    if (L.length) r += ' ' + (L.length === 1 ? 'Laden: ' : 'Läden: ') + liste(L.map(ladenTxt)) + '.';
+    if (teile.length > 1) r += ' Das sind ' + liste(teile) + '.';
+    if (x.fahrHin || x.fahrZur) r += ' Fahrzeit ' + (x.fahrHin ? x.fahrHin + ' Minuten hin' : '') + (x.fahrHin && x.fahrZur ? ' und ' : '') + (x.fahrZur ? x.fahrZur + ' Minuten zurück' : '') + '.';
+    if (x.notiz) r += ' Notiz: ' + x.notiz + '.';
+    return r;
+  }
+  function spanne(von, bis) { var a = isoD(von), b = isoD(bis), s = 0, n = 0, u = 0, k = 0, f = 0;
+    eintr().forEach(function (x) { if (x.datum < a || x.datum > b) return; var g = ber(x).gesamt || 0; s += g; if (x.urlaub) u++; else if (x.krank) k++; else if ((x.laeden || []).some(function (l) { return l.fil || l.ort; })) n++; else if (x.feiertag) f++; });
+    return { s: s, n: n, u: u, k: k, f: f }; }
+  function spanneTxt(Z) { var von, bis, txt;
+    if (Z.art === 'woche') { von = Z.von; bis = Z.bis; txt = 'In der Woche vom ' + datTxt(von, false) + ' bis ' + datTxt(bis, false); }
+    else if (Z.art === 'monat') { von = new Date(Z.j, Z.m, 1, 12); bis = new Date(Z.j, Z.m + 1, 0, 12); txt = 'Im ' + monTxt(Z.j, Z.m); }
+    else { von = new Date(Z.j, 0, 1, 12); bis = new Date(Z.j, 11, 31, 12); txt = Z.j === new Date().getFullYear() ? 'Dieses Jahr' : 'Im Jahr ' + Z.j; }
+    var r = spanne(von, bis); return { r: r, txt: txt, von: von, bis: bis }; }
+  function stundenSpanne(Z, geld) { var o = spanneTxt(Z), r = o.r;
+    if (!r.s) return o.txt + ' hast du keine Stunden eingetragen.';
+    var t = o.txt + ' hast du ' + std(r.s) + (r.n ? ' an ' + arbT(r.n) : '') + '.';
+    var x = []; if (r.u) x.push(tage(r.u) + ' Urlaub'); if (r.k) x.push(tage(r.k) + ' krank'); if (r.f) x.push(r.f === 1 ? 'einen Feiertag' : r.f + ' Feiertage'); if (x.length) t += ' Dabei ' + liste(x) + '.';
+    if (geld !== false) { var b = r.s * satz(), n = Z.art === 'monat' || Z.art === 'woche' ? nt(Z.art === 'woche' ? b * 52 / 12 : b) : null;
+      t += ' Das sind etwa ' + eu(b) + ' brutto' + (n != null && Z.art === 'monat' ? ', ungefähr ' + eu(n) + ' netto' : '') + '.'; }
+    return t; }
+
+  /* ---------- Lohn ---------- */
+  function lohnM(j, m) { var L = null; try { L = lohnDaten(); } catch (e) {} if (!L || !L.m) return null; var k = j + '-' + p2(m + 1); return L.m.filter(function (x) { return x.m === k; })[0] || null; }
+  function lohnTxt(x) { var j = +x.m.slice(0, 4), m = +x.m.slice(5) - 1, ue = (x.b || []).filter(function (b) { return /überstund|ueberstund/i.test(b.t); })[0], vp = (x.n || []).filter(function (n) { return /verpfl/i.test(n.t); })[0];
+    return 'Laut Lohnabrechnung ' + monTxt(j, m) + ' wurden dir ' + eu(x.au) + ' ausgezahlt. Brutto ' + eu(x.br) + ', netto ' + eu(x.ne) + (vp ? ', dazu ' + eu(vp.e) + ' Verpflegung' : '') + '. Steuern ' + eu(x.st) + ', Sozialversicherung ' + eu(x.sv) + (ue && ue.h ? '. Bezahlt wurden ' + zs(ue.h) + ' Überstunden' : '') + '.'; }
+  function verdienst(Z, q) {
+    var h = heute0();
+    if (!Z) { var L = null; try { L = lohnDaten(); } catch (e) {} if (/abrechnung|ausgezahlt|überwiesen|ueberwiesen|bekommen|lohn|gehalt/.test(q) && L && L.m && L.m.length) return lohnTxt(L.m[L.m.length - 1]); Z = { art: 'monat', j: h.getFullYear(), m: h.getMonth() }; }
+    if (Z.art === 'tag') { var x = eintrag(isoD(Z.d)); if (!x) return 'Für ' + datTxt(Z.d) + ' ist nichts eingetragen.'; var s = ber(x).gesamt || 0; return wannTxt(Z.d) + ' waren es ' + std(s) + ', das sind etwa ' + eu(s * satz()) + ' brutto.'; }
+    if (Z.art === 'monat') { var lm = lohnM(Z.j, Z.m); if (lm) return lohnTxt(lm); return stundenSpanne(Z) + ' Die Lohnabrechnung für ' + monTxt(Z.j, Z.m) + ' ist noch nicht da, das ist eine Schätzung.'; }
+    if (Z.art === 'jahr') { var LL = null; try { LL = lohnDaten(); } catch (e) {} var M = LL && LL.m ? LL.m.filter(function (x) { return +x.m.slice(0, 4) === Z.j; }) : [];
+      if (!M.length) return stundenSpanne(Z);
+      var au = 0, br = 0, ne = 0; M.forEach(function (x) { au += +x.au || 0; br += +x.br || 0; ne += +x.ne || 0; });
+      return (Z.j === h.getFullYear() ? 'Dieses Jahr' : 'Im Jahr ' + Z.j) + ' wurden dir laut ' + M.length + ' Lohnabrechnungen ' + eu(au) + ' ausgezahlt, brutto ' + eu(br) + ', netto ' + eu(ne) + '. Im Schnitt ' + eu(au / M.length) + ' pro Monat.'; }
+    return stundenSpanne(Z);
+  }
+
+  /* ---------- Plan ---------- */
+  function planTagX(iso) { try { return planTag(iso); } catch (e) { var d = D(), n = d && d.nachweis; return n && n.tage ? n.tage.filter(function (x) { return x.datum === iso; })[0] : null; } }
+  function planTxt(d, q) {
+    var iso = isoD(d), p = planTagX(iso), w = wannTxt(d);
+    if (!p) return w + ' steht nichts im Einsatzplan.';
+    if (p.nurReise) return w + ' ist ein Reisetag' + (p.team ? ', Team ' + p.team : '') + (p.an ? ', Anreise' : '') + '.';
+    if (/hotel|übernacht|uebernacht|schlaf/.test(q)) { var ho = p.hotel || hotelAb(iso); return ho ? w + ' übernachtest du im ' + ho + '.' : w + ' ist kein Hotel eingetragen' + (p.ab ? ', das ist der Abreisetag' : '') + '.'; }
+    if (/(?:mit wem|wer (?:arbeitet|ist|kommt|fährt)|kollegen|team ?mitglieder|leute|personalnummer|nummer von|wer ist dabei|wer ist alles)/.test(q)) return leuteTxt(p, w, q);
+    if (/treffpunkt|treffen|wann (?:muss ich|geht es|gehts|geht's) los|losfahren|abfahrt|wann los/.test(q)) return p.tp ? w + ' ist Treffpunkt ' + p.tp + '.' : w + ' steht kein Treffpunkt im Plan.';
+    var L = p.laeden || [];
+    var r = w + ' geht es nach ' + liste(L.map(function (l) { return l.ort + ' ' + l.fil; })) + (p.tp ? '. Treffpunkt ' + p.tp : '') + (p.team ? '. Team ' + p.team : '') + '.';
+    if (/adresse|straße|strasse|wo genau|anschrift/.test(q)) r = w + ': ' + liste(L.map(function (l) { return 'Filiale ' + l.fil + ', ' + (l.str || '') + ', ' + (l.plz ? l.plz + ' ' : '') + l.ort; })) + '.';
+    return r;
+  }
+  function hotelAb(iso) { var d = D(), n = d && d.nachweis; if (!n || !n.tage) return ''; var x = n.tage.filter(function (t) { return t.datum <= iso && t.hotel; }).pop(); return x ? x.hotel : ''; }
+  function leuteTxt(p, w, q) {
+    var L = p.leute || [];
+    if (/personalnummer|nummer von/.test(q)) { var su = q.replace(/.*(?:personalnummer|nummer) (?:von |vom |der |des |für |fuer )?(?:herr |frau |herrn )?/, '').replace(/\s+(?:morgen|heute)$/, '').trim(), dd = D(), all = {}; ((dd && dd.nachweis && dd.nachweis.tage) || []).forEach(function (t) { (t.leute || []).forEach(function (x) { if (x.nr) all[x.name] = x.nr; }); });
+      var k = Object.keys(all).filter(function (n) { var nl = n.toLowerCase(); return su && (nl.indexOf(su.split(' ')[0]) === 0 || nl.split(/[ ,]+/).indexOf(su.split(' ')[0]) >= 0); })[0]; if (k) return k.split(',').reverse().join(' ').trim() + ' hat die Personalnummer ' + all[k].split('').join(' ') + '.'; if (su && !L.length) return 'Zu ' + su.charAt(0).toUpperCase() + su.slice(1) + ' finde ich keine Personalnummer im Einsatzplan.'; }
+    if (!L.length) { var d = D(), ri = d && d.reiseinfo, P = ri && ri.personen ? ri.personen.filter(function (x) { return !x.ich; }) : []; if (P.length) return 'Laut Reiseinfo sind im Team: ' + liste(P.map(function (x) { return x.name + (x.team ? ' (' + x.team + ')' : ''); })) + '.'; return w + ' stehen im Plan keine Kollegen.'; }
+    var such = q.replace(/.*(?:personalnummer|nummer) (?:von |vom |der |des )?/, '').trim();
+    if (/personalnummer|nummer von/.test(q) && such) { var hit = L.filter(function (x) { return x.name.toLowerCase().indexOf(such.split(' ')[0]) >= 0 || such.indexOf(x.name.toLowerCase().split(',')[0]) >= 0; })[0];
+      if (hit) return hit.name.split(',').reverse().join(' ').trim() + ' hat die Personalnummer ' + hit.nr.split('').join(' ') + '.'; }
+    var A = L.filter(function (x) { return x.nr !== '4048' && !/mroz/i.test(x.name); });
+    if (/personalnummer|nummern/.test(q)) return w + ' im Team: ' + liste(A.map(function (x) { return x.name.split(',')[0] + ' ' + (x.nr ? x.nr.split('').join(' ') : 'ohne Nummer'); })) + '. Deine ist 4 0 4 8.';
+    return w + ' arbeitest du mit ' + liste(A.map(function (x) { var n = x.name.split(','); return (n[1] ? n[1].trim().split(' ')[0] + ' ' : '') + n[0]; })) + '.';
+  }
+  function naechsterEinsatz() { var d = D(), n = d && d.nachweis, hi = isoD(heute0()); var x = n && n.tage ? n.tage.filter(function (t) { return t.datum > hi && (t.laeden || []).length; })[0] : null; return x; }
+  function wochePlan(Z) { var r = [], a = isoD(Z.von), b = isoD(Z.bis), d = D(), n = d && d.nachweis;
+    (n && n.tage ? n.tage : []).forEach(function (t) { if (t.datum < a || t.datum > b) return; var dd = new Date(t.datum + 'T12:00'); if (t.nurReise) r.push(WTG[dd.getDay()] + ' Anreise'); else if ((t.laeden || []).length) r.push(WTG[dd.getDay()] + ' ' + liste(t.laeden.map(function (l) { return l.ort; }))); });
+    if (!r.length) return 'In der Woche vom ' + datTxt(Z.von, false) + ' steht nichts im Einsatzplan.';
+    return 'Plan für die Woche vom ' + datTxt(Z.von, false) + ': ' + r.join('; ') + '.'; }
+
+  /* ---------- Termine ---------- */
+  function termine() { try { return tmListe(); } catch (e) { return []; } }
+  function terminTxt(e) { var d = new Date(e.t); return wannTxt(d) + (e.g ? '' : ' um ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr') + ': ' + e.ti; }
+  function terminNeu(t) {
+    var q = norm(t), m = /^(?:trag (?:mir )?(?:bitte )?(?:einen |nen |ein )?termin (?:ein|an)|neuer termin|neuen termin|termin eintragen|termin anlegen|leg (?:mir )?(?:einen |nen )?termin an|erstell (?:mir )?(?:einen |nen )?termin|erstelle (?:einen )?termin|merk dir (?:einen )?termin|termin)\s*(?:für |fuer )?(.*)$/.exec(q);
+    if (!m || !m[1]) return null; var rest = m[1];
+    var Z = zeit(rest, true); if (!Z || Z.art !== 'tag') return 'Für welchen Tag soll ich den Termin eintragen, Meister? Sag zum Beispiel: Termin morgen um 9 Uhr Besprechung.';
+    var u = /\b(?:um )?(\d{1,2})(?:[:.](\d{2}))? ?uhr(?: (\d{1,2}))?\b|\bum (\d{1,2})[:.](\d{2})\b|\bum (\d{1,2})\b/.exec(rest), hh = null, mm = 0;
+    if (u) { hh = +(u[1] || u[4] || u[6]); mm = +(u[2] || u[3] || u[5] || 0); if (hh > 23) hh = null; }
+    var titel = rest.replace(/übermorgen|uebermorgen/g, ' ').replace(/\b(?:heute|morgen|am|um|den|fuer)\b|(?:^|\s)für(?=\s|$)/g, ' ').replace(/\b\d{1,2}(?:[:.]\d{2})? ?uhr(?: \d{1,2})?\b|\b\d{1,2}[:.]\d{2}\b|\bum \d{1,2}\b/g, ' ').replace(/(?:^|\s)\d{1,2}\.(?=\s|$)/g, ' ').replace(/\b\d{1,2}\.\d{1,2}\.?(?:\d{2,4})?\b|\b\d{1,2}\.? (?:januar|februar|märz|april|mai|juni|juli|august|september|oktober|november|dezember)\b/g, ' ')
+      .replace(/\b(?:nächsten|naechsten|diesen|kommenden)?\s?(?:montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)\b/g, ' ').replace(/^\s*(?:ein|eintragen|und|mit dem titel|titel|thema|wegen|:)\s+/, '').replace(/\s+/g, ' ').trim();
+    if (!titel) titel = 'Termin'; else { var io = String(t).toLowerCase().indexOf(titel); if (io >= 0) titel = String(t).substr(io, titel.length); }
+    titel = titel.charAt(0).toUpperCase() + titel.slice(1);
+    var d = D(); if (!d) return null; var j = Date.now();
+    d.meineTermine = d.meineTermine || []; d.meineTermine.push({ id: 't' + j, ti: titel, d: isoD(Z.d), u: hh != null ? p2(hh) + ':' + p2(mm) : '', erstellt: j, geaendert: j });
+    try { sichern(); } catch (e) {} try { if (typeof tmZeichnen === 'function' && document.getElementById('blattT').classList.contains('offen')) tmZeichnen(); tmStartNeu(); } catch (e) {}
+    return 'Eingetragen, Meister: ' + titel + ', ' + klein1(wannTxt(Z.d)) + (hh != null ? ' um ' + hh + (mm ? ':' + p2(mm) : '') + ' Uhr' : ', ganztägig') + '.';
+  }
+  function termineTxt(q) {
+    var L = termine(), Z = zeit(q, true);
+    if (Z && Z.art === 'tag') { var iso = isoD(Z.d), T = L.filter(function (e) { return isoD(new Date(e.t)) === iso; }); return T.length ? wannTxt(Z.d) + ' hast du ' + (T.length === 1 ? 'einen Termin: ' : T.length + ' Termine: ') + liste(T.map(function (e) { return (e.g ? '' : new Date(e.t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr ') + e.ti; })) + '.' : wannTxt(Z.d) + ' hast du keine Termine.'; }
+    if (Z && (Z.art === 'woche' || Z.art === 'monat')) { var a = Z.art === 'woche' ? isoD(Z.von) : Z.j + '-' + p2(Z.m + 1) + '-01', b = Z.art === 'woche' ? isoD(Z.bis) : Z.j + '-' + p2(Z.m + 1) + '-31', T2 = L.filter(function (e) { var i = isoD(new Date(e.t)); return i >= a && i <= b; }); return T2.length ? (T2.length === 1 ? 'Ein Termin: ' : T2.length + ' Termine: ') + T2.map(terminTxt).join('; ') + '.' : 'Da hast du keine Termine.'; }
+    if (!L.length) return 'Du hast keine Termine eingetragen, Meister. Sag zum Beispiel: Termin morgen um 9 Uhr Besprechung.';
+    if (/alle|welche|liste|was für|was fuer/.test(q) && L.length > 1) return 'Deine nächsten Termine: ' + L.slice(0, 6).map(terminTxt).join('; ') + '.';
+    return 'Dein nächster Termin: ' + terminTxt(L[0]) + '.' + (L[1] ? ' Danach ' + terminTxt(L[1]).replace(/^Am /, 'am ') + '.' : '');
+  }
+
+  /* ---------- Hauptfunktion ---------- */
+  function frage(t) {
+    var q = norm(t); if (!q || q.length > 220) return null;
+    var d = D(); if (!d) return null;
+    if (/\b(?:aktie|aktien|depot|kurs|kurse|krypto|bitcoin|ethereum|etf|watchlist|börse|boerse|portfolio|vermögen|vermoegen|dividende|nvidia|silber|gold)\b/.test(q) && !/sparplan|sparpläne|sparplaene/.test(q)) return null; /* Depot-Fragen beantwortet jvDepot bzw. der Mac */
+    var h = heute0(), Z, x;
+
+    /* Termin eintragen */
+    if (/^(?:trag|neuer termin|neuen termin|termin (?:eintragen|anlegen)|leg (?:mir )?(?:einen |nen )?termin|erstell|merk dir (?:einen )?termin|termin (?:am|für|fuer|morgen|heute|übermorgen|nächsten|naechsten|\d))/.test(q) && /termin/.test(q)) { x = terminNeu(t); if (x) return x; }
+    /* Termine abfragen */
+    if ((/\btermin|\btermine\b|\bverabredung|\bkalender\b|was steht an\b|was (?:hab|habe) ich vor(?:\s|$)/.test(q)) && !/stunde|eingetragen|gearbeitet/.test(q)) return termineTxt(q);
+
+    /* Arbeitszeitkonto */
+    if (/arbeitszeitkonto|zeitkonto|azk\b|stundenkonto|überstundenkonto|ueberstundenkonto/.test(q)) { var L0 = null; try { L0 = lohnDaten(); } catch (e) {} var A = L0 && L0.azk; if (!A) return 'Zum Arbeitszeitkonto habe ich noch keine Daten.'; var pl = (A.plan || []).filter(function (p) { return p.m >= isoD(h).slice(0, 7); }); return 'Auf deinem Arbeitszeitkonto stehen ' + std(A.stand) + ', laut Abrechnung ' + monTxt(+A.monat.slice(0, 4), +A.monat.slice(5) - 1) + '.' + (pl.length ? ' Geplant: ' + pl.map(function (p) { return monTxt(+p.m.slice(0, 4), +p.m.slice(5) - 1) + ' ' + p.text; }).join('; ') + '.' : ''); }
+
+    /* Überstunden */
+    if (/überstunden|ueberstunden/.test(q)) { Z = zeit(q) || { art: 'monat', j: h.getFullYear(), m: h.getMonth() }; if (Z.art === 'monat') { var lm = lohnM(Z.j, Z.m); if (!lm) { var lm2 = lohnM(new Date(Z.j, Z.m - 1, 1).getFullYear(), new Date(Z.j, Z.m - 1, 1).getMonth()); lm = Z.j === h.getFullYear() && Z.m === h.getMonth() ? lm2 : null; } if (lm) { var ub = (lm.b || []).filter(function (b) { return /überstund|ueberstund/i.test(b.t); })[0]; return ub ? 'Laut Lohnabrechnung ' + monTxt(+lm.m.slice(0, 4), +lm.m.slice(5) - 1) + ' wurden ' + zs(ub.h) + ' Überstunden bezahlt, das sind ' + eu(ub.e) + ' brutto.' : 'In der Abrechnung ' + monTxt(+lm.m.slice(0, 4), +lm.m.slice(5) - 1) + ' stehen keine Überstunden.'; } } return stundenSpanne(Z); }
+
+    /* Lohn / Verdienst / Abrechnung */
+    if (/verdien|gehalt|\blohn|lohnabrechnung|abrechnung|ausgezahlt|ausbezahlt|überwiesen|ueberwiesen|wie viel geld|wieviel geld|brutto|netto|bekomme ich|bekommen|kohle|knete|geld (?:gemacht|bekommen|verdient)/.test(q) && !/kosten|übrig|uebrig|steuer|ausgaben|zahle ich|abbuchung/.test(q)) {
+      if (/welche|wie viele|liste/.test(q) && /abrechnung/.test(q)) { var LL = null; try { LL = lohnDaten(); } catch (e) {} return LL && LL.m && LL.m.length ? 'Ich habe ' + LL.m.length + ' Lohnabrechnungen, von ' + monTxt(+LL.m[0].m.slice(0, 4), +LL.m[0].m.slice(5) - 1) + ' bis ' + monTxt(+LL.m[LL.m.length - 1].m.slice(0, 4), +LL.m[LL.m.length - 1].m.slice(5) - 1) + '.' : 'Ich habe noch keine Lohnabrechnungen.'; }
+      if (/wann/.test(q) && /(?:geld|lohn|gehalt)/.test(q)) return 'Dein Lohn kommt am 15. des Monats, fällt der aufs Wochenende, am Montag danach.';
+      return verdienst(zeit(q), q); }
+
+    /* Stunden */
+    if (/stunde|gearbeitet|arbeitszeit|angefangen|feierabend|aufgehört|aufgehoert|schluss gemacht|durchschnitt|(?:welcher|welche|an welchem) tag .*(?:längst|laengst|kürzest|kuerzest|meist|wenigst)|wie lange (?:war|hab|habe|bin)|wie lang (?:war|hab|habe)|eingetragen|geschafft|geschuftet|malocht|wann (?:hab|habe) ich angefangen|wann (?:hab|habe) ich (?:aufgehört|feierabend)|feierabend gemacht|arbeitstage|tage gearbeitet|wie viele tage/.test(q) && !/urlaub|krank|feiertag/.test(q)) {
+      Z = zeit(q);
+      if (/fahrzeit|gefahren|fahrt|fahrten/.test(q) && Z && Z.art === 'tag') { x = eintrag(isoD(Z.d)); return x ? wannTxt(Z.d) + ': hin ' + (x.hinZeit || '–') + (x.fahrHin ? ' (' + x.fahrHin + ' Minuten)' : '') + ', zurück ' + (x.zurZeit || '–') + (x.fahrZur ? ' (' + x.fahrZur + ' Minuten)' : '') + (x.zwZeit ? ', Zwischenfahrt ' + x.zwZeit : '') + '.' : 'Für ' + datTxt(Z.d) + ' ist nichts eingetragen.'; }
+      if (Z && Z.art === 'tag') { if (/wann (?:hab|habe) ich angefangen|angefangen|anfang/.test(q) && (x = eintrag(isoD(Z.d)))) { var z0 = ((x.laeden || [])[0] || {}).zeiten || []; return z0[0] && z0[0].von ? wannTxt(Z.d) + ' hast du um ' + z0[0].von + ' Uhr angefangen' + (x.hinZeit ? ', losgefahren um ' + x.hinZeit.split('–')[0] + ' Uhr' : '') + '.' : tagStunden(Z.d); }
+        if (/aufgehört|aufgehoert|feierabend|schluss/.test(q) && (x = eintrag(isoD(Z.d)))) { var lz = (x.laeden || []).filter(function (l) { return (l.zeiten || []).length; }).pop(), zz = lz ? lz.zeiten[lz.zeiten.length - 1] : null; return zz && zz.bis ? wannTxt(Z.d) + ' war um ' + zz.bis + ' Uhr Schluss im Laden' + (x.zurZeit ? ', zurück warst du um ' + x.zurZeit.split('–').pop() + ' Uhr' : '') + '.' : tagStunden(Z.d); }
+        return tagStunden(Z.d); }
+      if (!Z) Z = { art: 'monat', j: h.getFullYear(), m: h.getMonth() };
+      if (/wie viele tage|arbeitstage|tage gearbeitet/.test(q) && !/stunde/.test(q)) { var o = spanneTxt(Z); return o.txt + ' hast du an ' + arbT(o.r.n) + ' gearbeitet' + (o.r.u ? ', dazu ' + tage(o.r.u) + ' Urlaub' : '') + (o.r.k ? ', ' + tage(o.r.k) + ' krank' : '') + '.'; }
+      if (/durchschnitt|schnitt|pro tag/.test(q)) { var o2 = spanneTxt(Z); return o2.r.n ? o2.txt + ' im Schnitt ' + std(o2.r.s / o2.r.n) + ' pro Arbeitstag.' : o2.txt + ' hast du nicht gearbeitet.'; }
+      if (/meiste|längste|laengste|bester|stärkste|wenigste|kürzeste|kuerzeste/.test(q)) { var o3 = spanneTxt(Z), a3 = isoD(o3.von), b3 = isoD(o3.bis), E = eintr().filter(function (y) { return y.datum >= a3 && y.datum <= b3 && (y.laeden || []).length; }).map(function (y) { return { x: y, s: ber(y).gesamt || 0 }; }).sort(function (u, v) { return v.s - u.s; }); if (!E.length) return o3.txt + ' gibt es keine Arbeitstage.'; var e3 = /wenigste|kürzeste|kuerzeste/.test(q) ? E[E.length - 1] : E[0]; return (/wenigste|kürzeste|kuerzeste/.test(q) ? 'Am kürzesten' : 'Am längsten') + ' war der ' + datTxt(new Date(e3.x.datum + 'T12:00')) + ' mit ' + std(e3.s) + '.'; }
+      if (Z.art === 'jahr' && /monat/.test(q) && /pro|je|jeden|jedem|schnitt/.test(q)) { var tot = spanneTxt(Z).r.s, mo = Z.j === h.getFullYear() ? h.getMonth() + 1 : 12; return 'Im Schnitt ' + std(tot / mo) + ' pro Monat.'; }
+      return stundenSpanne(Z, !/nur stunden/.test(q));
+    }
+
+    /* Urlaub */
+    if (/urlaub|urlaubstag|frei genommen|freie tage/.test(q)) {
+      var j = h.getFullYear(); Z = zeit(q, true); if (Z && Z.art === 'jahr') j = Z.j;
+      var u = null; try { u = urlaubKonto(j); } catch (e) {} if (!u) return null;
+      if (/wann|nächste|naechste|geplant|kommende/.test(q) && !/wann hatte|wann war/.test(q)) return u.tageGep.length ? 'Geplanter Urlaub: ' + liste(u.tageGep.slice(0, 8).map(function (s) { return datTxt(new Date(s + 'T12:00')); })) + (u.tageGep.length > 8 ? ' und ' + (u.tageGep.length - 8) + ' weitere Tage' : '') + '.' : 'Du hast keinen Urlaub mehr eingeplant' + (u.rest != null ? ', aber noch ' + tage(u.rest) + ' übrig' : '') + '.';
+      if (/wann hatte|wann war|welche tage|an welchen tagen/.test(q)) return u.tageGen.length ? 'Urlaub ' + j + ' mit Datum: ' + liste(u.tageGen.map(function (s) { return datTxt(new Date(s + 'T12:00'), false); })) + (u.ohneDatum ? ', dazu ' + tage(u.ohneDatum) + ' ohne Datum' : '') + '.' : 'Ich sehe ' + j + ' keine eingetragenen Urlaubstage' + (u.ohneDatum ? ' mit Datum, nur ' + tage(u.ohneDatum) + ' ohne Datum' : '') + '.';
+      if (/anspruch|wie viel (?:urlaub )?(?:hab|habe|steht|bekomme)|insgesamt|pro jahr|im jahr/.test(q) && u.anspruch != null && !/noch|übrig|uebrig|rest|verbleib/.test(q)) return 'Dein Urlaubsanspruch ' + j + ': ' + tage(u.anspruch) + (u.uebertrag ? ' plus ' + tage(u.uebertrag) + ' aus dem Vorjahr' : '') + '. Genommen ' + tage(u.genommen) + (u.geplant ? ', geplant ' + tage(u.geplant) : '') + (u.rest != null ? ', übrig ' + tage(u.rest) : '') + '.';
+      if (/genommen|verbraucht|gehabt|hatte/.test(q) && !/noch|übrig|uebrig|rest/.test(q)) return 'Du hast ' + (j === h.getFullYear() ? 'dieses Jahr ' : j + ' ') + tage(u.genommen) + ' Urlaub genommen' + (u.geplant ? ' und ' + tage(u.geplant) + ' geplant' : '') + '.';
+      return u.anspruch != null ? 'Du hast ' + (j === h.getFullYear() ? 'noch ' : j + ' noch ') + tage(u.rest) + ' Urlaub übrig. Genommen ' + tage(u.genommen) + (u.geplant ? ', geplant ' + tage(u.geplant) : '') + ', Anspruch ' + tage(u.gesamt) + '.' : 'Du hast ' + tage(u.genommen) + ' Urlaub genommen. Trag deinen Anspruch ein, dann rechne ich den Rest aus.';
+    }
+
+    /* Krank */
+    if (/krank|krankheitstag|krankgeschrieben|krankmeldung|gelber schein/.test(q)) { Z = zeit(q) || { art: 'jahr', j: h.getFullYear() }; if (Z.art === 'tag') { x = eintrag(isoD(Z.d)); return x && x.krank ? wannTxt(Z.d) + ' warst du krank gemeldet.' : wannTxt(Z.d) + ' warst du nicht krank eingetragen.'; } var ok = spanneTxt(Z), a4 = isoD(ok.von), b4 = isoD(ok.bis), KD = eintr().filter(function (y) { return y.krank && y.datum >= a4 && y.datum <= b4; }).map(function (y) { return y.datum; }).sort(); return KD.length ? ok.txt + ' warst du ' + tage(KD.length) + ' krank: ' + liste(KD.slice(0, 10).map(function (s) { return datTxt(new Date(s + 'T12:00'), false); })) + '.' : ok.txt + ' warst du keinen Tag krank. Stark, Meister.'; }
+
+    /* Feiertage */
+    if (/feiertag/.test(q)) { var F = []; try { F = feiertageSN(h.getFullYear()).concat(feiertageSN(h.getFullYear() + 1)); } catch (e) {} F = F.map(function (f) { return typeof f === 'string' ? { d: f } : f; });
+      var hi0 = isoD(h), nx = F.filter(function (f) { return (f.d || f.datum) >= hi0; }).sort(function (a, b) { return (a.d || a.datum) < (b.d || b.datum) ? -1 : 1; })[0];
+      if (!nx) return null; var nd = new Date((nx.d || nx.datum) + 'T12:00'); return 'Der nächste Feiertag in Sachsen ist ' + (nx.n || nx.name ? (nx.n || nx.name) + ' am ' : 'am ') + datTxt(nd) + '. Dafür gibt es 3,08 Stunden.'; }
+
+    /* Steuer */
+    if (/steuer|erstattung|rückzahlung|rueckzahlung|zurück vom finanzamt|finanzamt|werbungskosten|verpflegungsmehraufwand|absetz|nachzahlung|nachzahlen/.test(q)) {
+      var sj = null; try { sj = stJahrStart(); } catch (e) {} Z = zeit(q); if (Z && Z.art === 'jahr') sj = Z.j; if (sj == null) return null;
+      var E2 = null, S2 = null; try { E2 = stErstattung(sj); } catch (e) {} try { S2 = stSumme(sj); } catch (e) {}
+      if (/verpflegung/.test(q) && S2) return 'Verpflegungsmehraufwand ' + sj + ': gesetzlich ' + eu(S2.s.ges) + ', von der Firma erhalten ' + eu(S2.s.erh) + ', absetzbar ' + eu(S2.vp) + '.';
+      if (/werbungskosten|absetz/.test(q) && S2) return 'Absetzbar für ' + sj + ' sind bisher etwa ' + eu(S2.wk) + ' Werbungskosten' + (S2.wk < 1230 ? ', das liegt unter der Pauschale von 1.230 Euro' : '') + '.';
+      if (E2 && E2.a) return 'Für die Steuererklärung ' + sj + ' bekommst du ' + (E2.a.erst >= 0 ? 'schätzungsweise ' + eu(E2.a.erst) + ' zurück' : 'eine Nachzahlung von etwa ' + eu(-E2.a.erst)) + (E2.lauf ? ', hochgerechnet aufs ganze Jahr' : '') + '. Werbungskosten etwa ' + eu(E2.wkEcht) + '. Ist nur eine Schätzung, Meister.';
+      if (S2) return 'Für ' + sj + ' sind etwa ' + eu(S2.wk) + ' absetzbar. Für die Erstattung fehlen noch die Lohnabrechnungen.';
+      return 'Für die Steuererklärung habe ich noch keine Daten.';
+    }
+
+    /* Was übrig bleibt */
+    if (/übrig|uebrig|bleibt (?:mir|übrig|uebrig|am ende)|sparen kann|kann ich sparen|zum leben|nach (?:den |allen )?kosten/.test(q) && !/urlaub/.test(q)) {
+      var U = []; try { U = ubMonate(); } catch (e) {} if (!U.length) return 'Dafür fehlen mir noch Lohnabrechnungen oder die laufenden Kosten.';
+      Z = zeit(q); var ux = U[U.length - 1]; if (Z && Z.art === 'monat') { var k5 = Z.j + '-' + p2(Z.m + 1); var ux5 = U.filter(function (y) { return y.m === k5; })[0]; if (ux5) ux = ux5; else if (/januar|februar|märz|maerz|april|mai|juni|juli|august|september|oktober|november|dezember|letzten monat/.test(q)) return 'Für ' + monTxt(Z.j, Z.m) + ' habe ich noch keine Lohnabrechnung.'; }
+      if (Z && Z.art === 'jahr') { var UJ = U.filter(function (y) { return +y.m.slice(0, 4) === Z.j; }), sU = UJ.reduce(function (a, y) { return a + y.ue; }, 0); return UJ.length ? 'Im Jahr ' + Z.j + ' sind nach Kosten ' + eu(sU) + ' übrig geblieben, im Schnitt ' + eu(sU / UJ.length) + ' pro Monat.' : 'Für ' + Z.j + ' habe ich keine Daten.'; }
+      return 'Im ' + monTxt(+ux.m.slice(0, 4), +ux.m.slice(5) - 1) + ' sind nach Kosten' + (ux.sp ? ' und Sparplänen' : '') + ' ' + eu(ux.ue) + ' übrig geblieben. Ausgezahlt ' + eu(ux.au) + ', laufende Kosten ' + eu(ux.k) + (ux.sp ? ', Sparpläne ' + eu(ux.sp) : '') + (ux.le ? ', zum Leben ' + eu(ux.le) : '') + '.';
+    }
+
+    /* Laufende Kosten / Sparpläne / Abbuchungen */
+    if (/kosten|abo\b|abos|vertrag|teuerst|verträge|vertraege|fixkosten|abbuchung|abgebucht|zahle ich|bezahle ich|kostet|sparpl|monatlich|ausgaben/.test(q)) {
+      var f = d.fixkosten; if (!f) return 'Die laufenden Kosten sind noch nicht geladen.';
+      var hiK = isoD(h), P = (f.posten || []).filter(function (p) { return !p.ende || p.ende >= hiK; }), SP = (f.sparplaene || []).filter(function (p) { return !p.ende || p.ende >= hiK; });
+      var pm = function (p) { try { return proMonat(p); } catch (e) { return +p.betrag || 0; } };
+      var alle = P.concat(SP), hit = null, qq = ' ' + q + ' ';
+      alle.forEach(function (p) { if (hit) return; var n = String(p.name || '').toLowerCase(), w = n.replace(/[()–\-\/,]/g, ' ').split(/\s+/).filter(function (w) { return w.length >= 4 && !/^(?:handy|monat|core|acc|vertrag)$/.test(w); }); if (qq.indexOf(' ' + n + ' ') >= 0 || w.some(function (w) { return qq.indexOf(' ' + w) >= 0; })) hit = p; });
+      if (hit && !/alle|gesamt|insgesamt|zusammen/.test(q)) { var nd2 = null; try { nd2 = fixNaechste(hit, new Date(h.getFullYear(), h.getMonth(), h.getDate())); } catch (e) {} var rh = { monat: 'im Monat', jahr: 'im Jahr', quartal: 'im Quartal', woche: 'in der Woche' }[hit.rhythmus] || ''; return hit.name + ' kostet ' + eu(hit.betrag) + (rh ? ' ' + rh : '') + (nd2 ? ', nächste Abbuchung am ' + datTxt(nd2) : '') + (hit.notiz ? '. ' + hit.notiz.charAt(0).toUpperCase() + hit.notiz.slice(1) : '') + '.'; }
+      if (/nächste|naechste|als nächstes|als naechstes|bald|demnächst|demnaechst/.test(q)) { var N = alle.map(function (p) { var x = null; try { x = fixNaechste(p, new Date(h.getFullYear(), h.getMonth(), h.getDate())); } catch (e) {} return { p: p, d: x }; }).filter(function (o) { return o.d; }).sort(function (a, b) { return a.d - b.d; }); if (!N.length) return null; var n0 = N[0], n1 = N.filter(function (o) { return +o.d === +n0.d; }); return 'Als Nächstes ' + (n1.length > 1 ? 'werden abgebucht: ' + liste(n1.map(function (o) { return o.p.name + ' ' + eu(o.p.betrag); })) : 'wird ' + n0.p.name + ' mit ' + eu(n0.p.betrag) + ' abgebucht') + ', am ' + datTxt(n0.d) + '.'; }
+      if (/sparpl/.test(q)) { var ss = SP.reduce(function (a, p) { return a + pm(p); }, 0); return 'Du hast ' + SP.length + ' Sparpläne mit zusammen ' + eu(ss) + ' im Monat' + (SP.length ? ': ' + liste(SP.slice(0, 8).map(function (p) { return depotName(p.name) + ' ' + eu(p.betrag); })) : '') + '.'; }
+      if (/teuerste|größte|groesste|meiste/.test(q)) { var T5 = P.slice().sort(function (a, b) { return pm(b) - pm(a); }).slice(0, 3); return 'Am teuersten sind ' + liste(T5.map(function (p) { return p.name + ' mit ' + eu(pm(p)) + ' im Monat'; })) + '.'; }
+      var sK = P.reduce(function (a, p) { return a + pm(p); }, 0), sS = SP.reduce(function (a, p) { return a + pm(p); }, 0);
+      if (/welche|liste|was für|was fuer|alle/.test(q)) return 'Deine laufenden Kosten: ' + liste(P.map(function (p) { return p.name + ' ' + eu(pm(p)); })) + '. Zusammen ' + eu(sK) + ' im Monat.';
+      return 'Deine laufenden Kosten liegen bei ' + eu(sK) + ' im Monat, aufs Jahr ' + eu(sK * 12) + '. Dazu ' + eu(sS) + ' Sparpläne im Monat. Das sind ' + P.length + ' Posten.';
+    }
+
+    /* Geburtstage */
+    if (/geburtstag|wird .* alt|wie alt wird|wie alt ist/.test(q)) {
+      var G = []; try { G = gbSortiert(); } catch (e) {} if (!G.length) return 'Ich kenne noch keine Geburtstage.';
+      var gh = G.filter(function (g) { var nm = g.x.name.toLowerCase().replace(/\s*\(.*\)/, ''), alias = (g.x.name.toLowerCase().match(/\(([^)]+)\)/) || [])[1] || ''; return (' ' + q + ' ').indexOf(' ' + nm + ' ') >= 0 || (' ' + q).indexOf(' ' + nm.split(' ')[0]) >= 0 || (alias && (' ' + q + ' ').indexOf(' ' + alias + ' ') >= 0) || (/mutter|mama|mami/.test(q) && /mama|mutter/.test(nm)) || (/bruder/.test(q) && /bruder/.test(alias)) || (/freundin|schatz/.test(q) && /freundin|schatz/.test(alias + ' ' + nm)); })[0];
+      var gt = function (g) { return g.tage === 0 ? 'heute' : g.tage === 1 ? 'morgen' : 'am ' + datTxt(g.n) + ', in ' + g.tage + ' Tagen'; };
+      if (gh) return gh.x.name + ' hat ' + gt(gh) + ' Geburtstag' + (gh.alter ? ' und wird ' + gh.alter : '') + '.';
+      if (/diesen monat|im monat|nächsten monat|naechsten monat|welche|alle/.test(q)) { var M5 = /nächsten monat|naechsten monat/.test(q) ? (h.getMonth() + 1) % 12 : h.getMonth(), GM = G.filter(function (g) { return g.n.getMonth() === M5; }); if (/alle|welche/.test(q) && !/monat/.test(q)) GM = G.slice(0, 8); return GM.length ? 'Geburtstage: ' + liste(GM.map(function (g) { return g.x.name + ' ' + gt(g); })) + '.' : 'Da hat niemand Geburtstag.'; }
+      return (G[0].tage === 0 ? 'Heute hat ' + G[0].x.name + ' Geburtstag' : 'Als Nächstes hat ' + G[0].x.name + ' Geburtstag, ' + gt(G[0])) + (G[0].alter ? ' und wird ' + G[0].alter : '') + '.' + (G[1] ? ' Danach ' + G[1].x.name + ' ' + gt(G[1]) + '.' : '');
+    }
+
+    /* Einsatzplan */
+    var planWort = /was steht .*an|wann geht(?:s| es|'s)? .*los|adresse|anschrift|was ist .*los|was liegt an|einsatz|einsatzplan|\bplan\b|arbeite ich|arbeiten wir|muss ich arbeiten|wo bin ich|wo sind wir|wohin|wo geht|wo gehts|wo geht's|wo muss ich|welcher laden|welche läden|welche laeden|welche filiale|filiale|treffpunkt|wann geht es los|wann gehts los|wann geht's los|losfahren|abfahrt|hotel|übernacht|uebernacht|mit wem|kollegen|wer arbeitet|wer ist (?:dabei|alles|im team)|personalnummer|team|anreise|abreise|wann fahr|inventur/;
+    if (planWort.test(q)) {
+      if (/personalnummer/.test(q) && /meine|ich/.test(q) && !/von|vom|der|des/.test(q)) return 'Deine Personalnummer ist 4 0 4 8.';
+      Z = zeit(q, !/\b(?:war|warst|hatte|hattest|gearbeitet|gewesen)\b/.test(q));
+      if (/anreise|abreise/.test(q) && !(Z && Z.art === 'tag')) { var ri = d.reiseinfo; if (ri && (ri.anreise || ri.abreise)) return 'Laut Reiseinfo KW ' + (ri.kw || '') + ': Anreise ' + (ri.anreise ? datTxt(new Date(ri.anreise + 'T12:00')) : 'offen') + ', Abreise ' + (ri.abreise ? datTxt(new Date(ri.abreise + 'T12:00')) : 'offen') + (ri.team ? ', Team ' + ri.team : '') + '.'; }
+      if (Z && Z.art === 'woche') return wochePlan(Z);
+      if (Z && Z.art === 'tag') return planTxt(Z.d, q);
+      if (/hotel|übernacht|uebernacht/.test(q)) { var ho = hotelAb(isoD(h)) || ((naechsterEinsatz() || {}).hotel); return ho ? 'Dein Hotel: ' + ho + '.' : 'Ich sehe gerade kein Hotel im Plan.'; }
+      if (/(?:mit wem|wer arbeitet|kollegen|wer ist|personalnummer|team)/.test(q)) { var pt = planTagX(isoD(h)); if (!pt || !(pt.laeden || []).length) pt = naechsterEinsatz(); if (!pt) return 'Ich sehe gerade keinen Einsatz im Plan.'; return leuteTxt(pt, wannTxt(new Date(pt.datum + 'T12:00')), q); }
+      var nx2 = planTagX(isoD(h)); if (!(nx2 && (nx2.laeden || []).length) || h.getHours() >= 17) nx2 = naechsterEinsatz(); if (!nx2) return 'Ich sehe gerade keinen nächsten Einsatz im Plan.';
+      return planTxt(new Date(nx2.datum + 'T12:00'), q);
+    }
+
+    /* Notizen */
+    if (/notiz/.test(q) && !/^(?:notier|merk dir|schreib auf|notiz[:,]? )/.test(q)) { var no = (d.notizen || []).filter(function (y) { return !y.erledigt; }); return no.length ? 'Du hast ' + no.length + ' offene Notiz' + (no.length > 1 ? 'en' : '') + ': ' + no.map(function (y) { return y.text.split('\n')[0]; }).join('; ') + '.' : 'Keine offenen Notizen. Sauber, Meister.'; }
+
+    /* Allgemein: Tag ohne Stichwort („Was war am 17.?“, „Was ist morgen?“) */
+    if (/(?:^|\s)(?:was|wie) (?:war|ist|steht|läuft|lief) (?:am |den |für |fuer )?(?:heute|morgen|gestern|übermorgen|vorgestern|\d|[a-z]+tag|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)/.test(q)) {
+      Z = zeit(q, !/\b(?:war|hatte|hattest|lief|gearbeitet)\b/.test(q)); if (Z && Z.art === 'tag') { var tx = []; var iso5 = isoD(Z.d), e5 = eintrag(iso5); if (e5 && Z.d <= heute0()) tx.push(tagStunden(Z.d)); else { var p5 = planTagX(iso5); if (p5) tx.push(planTxt(Z.d, q)); }
+        var T6 = termine().filter(function (e) { return isoD(new Date(e.t)) === iso5; }); if (T6.length) tx.push('Termine: ' + liste(T6.map(function (e) { return (e.g ? '' : new Date(e.t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr ') + e.ti; })) + '.');
+        if (tx.length) return tx.join(' '); }
+    }
+
+    /* Abgleich */
+    if (/abgleich|synchron|aktuell(?:er)? stand|wann (?:zuletzt|das letzte mal) (?:geladen|aktualisiert)/.test(q)) { var la = d.letzterAbgleich; return la ? 'Zuletzt abgeglichen um ' + new Date(la).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr' + (isoD(new Date(la)) !== isoD(h) ? ' am ' + datTxt(new Date(la)) : '') + '.' : 'Noch nicht abgeglichen.'; }
+
+    return null;
+  }
+  function depotName(n) { try { return depotKurz(n); } catch (e) { return n; } }
+  window.jvCockpitFrage = frage;
+  window.__jvCpTest = { zeit: zeit, norm: norm };
+})();
+
+</script><!--/cpfragen-->
 </body>
 </html>
