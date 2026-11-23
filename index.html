@@ -383,6 +383,12 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .htroute svg{width:14px;height:14px;flex:none;stroke:#e0e0e0;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .htz .hl b{display:block;font-size:17px;font-weight:700;margin:1px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .htz:not(.erst){opacity:.75}
+.htleute{padding:2px 0 10px}.htleute small{display:block;font-size:12px;color:var(--grau);margin:2px 0 4px}
+.htz:not(.erst)+.htleute{opacity:.75}
+.htp{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;background:none;border:0;border-radius:8px;color:#fff;font:inherit;font-size:14px;padding:5px 6px;margin:0 -6px;width:calc(100% + 12px);cursor:pointer;text-align:left;transition:background .2s}
+.htp span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.htp em{font-style:normal;font-size:11px;color:var(--grau)}
+.htp b{font-weight:700;font-variant-numeric:tabular-nums}.htp.kopiert{background:rgba(52,199,89,.14)}.htp.kopiert b{color:var(--ok)}
+.htleute+.htz{border-top:1px solid var(--rand)}
 .htnr{flex:none;display:flex;flex-direction:column;align-items:flex-end;border:1px solid var(--rand);background:rgba(0,0,0,.25);color:#fff;border-radius:12px;padding:6px 10px;font:inherit;cursor:pointer;transition:background .2s,border-color .2s}
 .htnr b{font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1}
 .htnr i{font-style:normal;font-size:10px;color:var(--grau)}
@@ -679,7 +685,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.21';
+var VERSION = '3.22';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2894,14 +2900,19 @@ function lohnErfasst(k) { // Stunden, die im Cockpit für diesen Monat eingetrag
 }
 function lohnVz(n) { return '<span class="vzb"><i>' + (n >= 0 ? '+' : '−') + '</i>' + euroH(Math.abs(n)) + '</span>'; } // (2.64) Vorzeichen mittig neben dem Betrag
 function lohnZ(t, w, sub, kl) { return '<div class="lz' + (kl ? ' ' + kl : '') + '"><div>' + t + (sub ? '<small>' + sub + '</small>' : '') + '</div><div class="r">' + w + '</div></div>'; }
-// ---------- (2.71) Nächste Läden: bis 9 Uhr 1. und 2. Laden von heute, ab 9 Uhr rückt alles eins weiter (der 1. Laden ist dann fertig) ----------
+// ---------- (3.22) Nächste Läden: alle Läden des nächsten Plantags (heute: 1. und 2.) plus der 1. Laden vom Plantag danach; Wechsel um 0 Uhr ----------
 var LADENART = { NMD: 'Netto', GM: 'Getränkemarkt', NC: 'Netto City' };
 function htFolge(jetzt) {
   var d = jetzt || new Date(), hi = iso2(d), n = daten.nachweis, out = []; if (!n || !n.tage) return out;
-  n.tage.filter(function (x) { return x.datum >= hi && !x.nurReise && (x.laeden || []).length; }).sort(function (a, b) { return a.datum < b.datum ? -1 : 1; }).forEach(function (x) {
-    x.laeden.forEach(function (l, i) { if (x.datum === hi && i === 0 && d.getHours() >= 9) return; out.push({ tag: x, l: l, i: i, n: x.laeden.length }); });
-  });
+  var T = n.tage.filter(function (x) { return x.datum >= hi && !x.nurReise && (x.laeden || []).length; }).sort(function (a, b) { return a.datum < b.datum ? -1 : 1; });
+  if (T[0]) T[0].laeden.forEach(function (l, i) { out.push({ tag: T[0], l: l, i: i, n: T[0].laeden.length, erst: true }); });
+  if (T[1]) out.push({ tag: T[1], l: T[1].laeden[0], i: 0, n: T[1].laeden.length });
   return out;
+}
+function htLeute(tag) { // (3.22) Team des Tages mit Personalnummer (aus dem Einsatzplan), Antippen kopiert die Nummer
+  var L = (tag.leute || []).filter(function (p) { return p && p.name; }); if (!L.length) return '';
+  return '<div class="htleute"><small>Team ' + htTagName(tag.datum).replace(/^(Heute|Morgen|Übermorgen)$/, function (w) { return w.toLowerCase(); }) + '</small>' +
+    L.map(function (p) { return '<button type="button" class="htp"' + (p.nr ? ' data-nr="' + esc(p.nr) + '"' : '') + '><span>' + esc(p.name) + (p.rolle ? ' <em>' + esc(p.rolle) + '</em>' : '') + '</span><b>' + esc(p.nr || '–') + '</b></button>'; }).join('') + '</div>';
 }
 function htTagName(datum) {
   var d = new Date(datum + 'T12:00:00'), h = new Date(); h.setHours(12, 0, 0, 0); var t = Math.round((d - h) / 864e5);
@@ -2916,17 +2927,18 @@ function htZeichnen() {
   var fl = fahrtLiveHtml(hi);
   if (F.length || fl) {
     h += '<div class="htbox">' + (fl ? '<div class="htfahrt">' + fl + '</div>' : '');
-    F.slice(0, 2).forEach(function (f, k) {
+    F.forEach(function (f, k) {
       var l = f.l, art = LADENART[l.art] || l.art || '';
-      h += '<div class="htz' + (k === 0 ? ' erst' : '') + '"><div class="hl"><small>' + htTagName(f.tag.datum) + ' · ' + (f.n > 1 ? (f.i + 1) + '. Laden' : 'ein Laden') + (art ? ' · ' + esc(art) : '') + '</small><b>' + esc(l.ort || '–') + '</b>' +
+      h += '<div class="htz' + (f.erst ? ' erst' : '') + '"><div class="hl"><small>' + htTagName(f.tag.datum) + ' · ' + (f.n > 1 ? (f.i + 1) + '. Laden' : 'ein Laden') + (art ? ' · ' + esc(art) : '') + '</small><b>' + esc(l.ort || '–') + '</b>' +
         (l.str || l.ort ? '<button type="button" class="htroute" data-ziel="' + esc([l.str, ((l.plz || '') + ' ' + (l.ort || '')).trim()].filter(Boolean).join(', ')) + '"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8z"/></svg><span>' + esc(l.str || l.ort) + '</span><i>Route ›</i></button>' : '') +
         (f.i === 0 && f.tag.tp ? '<small>Treffpunkt ' + esc(f.tag.tp) + '</small>' : '') + '</div>' +
         (l.fil ? '<button type="button" class="htnr" data-nr="' + esc(l.fil) + '"><b>' + esc(l.fil) + '</b><i>Markt-Nr.</i></button>' : '') + '</div>';
+      if (!F[k + 1] || F[k + 1].tag !== f.tag) h += htLeute(f.tag);
     });
     h += '</div>';
   }
   h += '<button type="button" class="lknopf" id="htStunden">' + (eh ? 'Stunden von heute ansehen' : 'Stunden für heute eintragen') + '</button>';
-  h += '<p class="hinweis" style="margin-top:14px">Bis 9 Uhr stehen oben der 1. und der 2. Laden von heute. Ab 9 Uhr rückt alles eins weiter. Marktnummer antippen kopiert sie.</p>';
+  h += '<p class="hinweis" style="margin-top:14px">Oben stehen alle Läden von heute und der 1. Laden vom nächsten Tag, jeweils mit dem Team. Um 0 Uhr rückt alles einen Tag weiter. Markt- oder Personalnummer antippen kopiert sie.</p>';
   $('htKoerper').innerHTML = h;
   // (3.13) Einsatzplan der Woche im Heute-Fenster; der Knoten wird behalten (Zoom bleibt beim Aktualisieren jede Minute erhalten)
   try { var PW = planWoche(), hk = $('htKoerper'), hn = hk.querySelector('.hinweis:last-of-type');
@@ -2937,6 +2949,9 @@ function htZeichnen() {
       planLaden(PW, function (url) { box.innerHTML = '<img alt="Einsatzplan KW ' + esc(PW.kw) + '" src="' + url + '">'; zoomBild(box, box.querySelector('img')); },
         function () { box.innerHTML = '<p class="hinweis" style="margin:18px 0">Der Plan für KW ' + esc(PW.kw) + ' ist noch nicht da.</p>'; }); }
     hk.insertBefore(HTP.el, $('htStunden')); } catch (x) {}
+  [].forEach.call(document.querySelectorAll('#htKoerper .htp[data-nr]'), function (b) { b.onclick = function () { var nr = b.dataset.nr;
+    var ok = function () { b.classList.add('kopiert'); setTimeout(function () { b.classList.remove('kopiert'); }, 1500); };
+    try { navigator.clipboard.writeText(nr).then(ok, function () { toast('Personalnummer ' + nr); }); } catch (x) { toast('Personalnummer ' + nr); } }; });
   [].forEach.call(document.querySelectorAll('#htKoerper .htnr[data-nr]'), function (b) { b.onclick = function () { var nr = b.dataset.nr;
     var ok = function () { b.classList.add('kopiert'); b.querySelector('i').textContent = 'kopiert ✓'; setTimeout(function () { b.classList.remove('kopiert'); b.querySelector('i').textContent = 'Markt-Nr.'; }, 1500); };
     try { navigator.clipboard.writeText(nr).then(ok, function () { toast('Marktnummer ' + nr); }); } catch (x) { toast('Marktnummer ' + nr); } }; });
@@ -2950,7 +2965,7 @@ function htRoute(ziel) {
   setTimeout(function () { document.removeEventListener('visibilitychange', vis); if (!weg && !document.hidden) window.open(web, '_blank'); }, 1500);
   location.href = 'comgooglemaps://?daddr=' + q + '&directionsmode=driving';
 }
-setInterval(function () { if (!document.hidden && $('blattHt') && $('blattHt').classList.contains('offen')) htZeichnen(); }, 60000); // um 9 Uhr von selbst weiterrücken
+setInterval(function () { if (!document.hidden && $('blattHt') && $('blattHt').classList.contains('offen')) htZeichnen(); }, 60000); // um 0 Uhr von selbst weiterrücken
 // ---------- (2.68) Was übrig bleibt: ausgezahlter Lohn minus laufende Kosten und Sparpläne, je Monat ----------
 var ubJahr = null;
 function ubKosten(mon) { // mon = 'JJJJ-MM'; zählt alles, was in dem Monat lief (Ende nicht davor, Beginn nicht danach)
