@@ -686,7 +686,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.29';
+var VERSION = '3.30';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -4256,11 +4256,9 @@ if ('serviceWorker' in navigator) {
     if (b.zwischen) teile.push(zs(b.zwischen) + ' Zwischenfahrt');
     if (b.anreise) teile.push(zs(b.anreise) + (x.abreise && !x.anreise ? ' Abreise' : ' Anreise'));
     if (b.feiertag && L.length) teile.push(zs(b.feiertag) + ' Feiertagszuschlag');
-    var r = (w === 'Heute' ? 'Heute hast du bisher ' : w === 'Gestern' ? 'Gestern hattest du ' : w === 'Vorgestern' ? 'Vorgestern hattest du ' : w + ' hattest du ') + std(s) + '.';
-    /* (3.29, Andi) ohne Läden und ohne Notiz: nur die Stunden */
-    if (teile.length > 1) r += ' Das sind ' + liste(teile) + '.';
-    if (x.fahrHin || x.fahrZur) r += ' Fahrzeit ' + (x.fahrHin ? x.fahrHin + ' Minuten hin' : '') + (x.fahrHin && x.fahrZur ? ' und ' : '') + (x.fahrZur ? x.fahrZur + ' Minuten zurück' : '') + '.';
-    return r;
+    /* (3.30, Andi) nur die Stundenzahl; ist es nur An- oder Abreise (kein Laden), steht das dahinter */
+    var reiseNur = !L.length && b.anreise ? (x.anreise && x.abreise ? ' An- und Abreise' : x.abreise ? ' Abreise' : ' Anreise') : '';
+    return (w === 'Heute' ? 'Heute hast du bisher ' : w === 'Gestern' ? 'Gestern hattest du ' : w === 'Vorgestern' ? 'Vorgestern hattest du ' : w + ' hattest du ') + std(s) + reiseNur + '.';
   }
   function spanne(von, bis) { var a = isoD(von), b = isoD(bis), s = 0, n = 0, u = 0, k = 0, f = 0;
     eintr().forEach(function (x) { if (x.datum < a || x.datum > b) return; var g = ber(x).gesamt || 0; s += g; if (x.urlaub) u++; else if (x.krank) k++; else if ((x.laeden || []).some(function (l) { return l.fil || l.ort; })) n++; else if (x.feiertag) f++; });
