@@ -686,7 +686,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.30';
+var VERSION = '3.31';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -4204,6 +4204,10 @@ if ('serviceWorker' in navigator) {
     if (m && +m[1] >= 1 && +m[1] <= 31 && (/\.$/.test(m[0]) || !/\b(?:uhr|stunden?|tage?n?|euro|prozent|kw|woche)\b/.test(q.slice(m.index + m[0].length, m.index + m[0].length + 8)))) return { art: 'tag', d: tagImMonat(+m[1], zukunft) };
     m = /\b(?:am|den|vom|zum|für|fuer)\s([a-zäöü]+ten|[a-zäöü]+te)\b/.exec(q);
     if (m && ORD[m[1]]) return { art: 'tag', d: tagImMonat(ORD[m[1]], zukunft) };
+    /* (3.31, Andi) „letzte Woche Montag“, „vorletzte Woche Dienstag“, „Mittwoch letzte Woche“, „nächste Woche Freitag“ */
+    m = /\b(vorletzte[nrs]?|letzte[nrs]?|vorige[nrs]?|vergangene[nrs]?|nächste[nrs]?|naechste[nrs]?|kommende[nrs]?|diese[nrs]?)\s+woche\s+(?:am\s+|den\s+)?(sonntag|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonnabend)\b/.exec(q);
+    if (!m) { m = /\b(sonntag|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonnabend)\s+(?:der\s+|in\s+der\s+)?(vorletzte[nrs]?|letzte[nrs]?|vorige[nrs]?|vergangene[nrs]?|nächste[nrs]?|naechste[nrs]?|kommende[nrs]?|diese[nrs]?)\s+woche\b/.exec(q); if (m) m = [m[0], m[2], m[1]]; }
+    if (m) { var wv = m[1], wo = /vorletzt/.test(wv) ? -14 : /letzt|vorig|vergangen/.test(wv) ? -7 : /nächst|naechst|kommend/.test(wv) ? 7 : 0; return { art: 'tag', d: plus(montag(h), wo + (WTK[m[2]] + 6) % 7) }; }
     /* Wochentag: „am Montag“, „letzten Montag“, „nächsten Freitag“, „diesen Mittwoch“ */
     m = /\b(letzten|letzte|letzter|vorigen|vergangenen|nächsten|naechsten|nächste|naechste|kommenden|diesen|diese|dieser|am|an dem|den)?\s?(sonntag|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonnabend)\b/.exec(q);
     if (m) { var wt = WTK[m[2]], v = m[1] || '', diff = (wt - h.getDay() + 7) % 7;
@@ -4512,6 +4516,10 @@ if ('serviceWorker' in navigator) {
   function zPhrase(Z) { if (Z.art === 'tag') return 'am ' + Z.d.getDate() + '.' + (Z.d.getMonth() + 1) + '.' + Z.d.getFullYear(); if (Z.art === 'monat') return 'im ' + MON[Z.m] + ' ' + Z.j; if (Z.art === 'woche') return 'vom ' + Z.von.getDate() + '.' + (Z.von.getMonth() + 1) + '.' + Z.von.getFullYear() + ' woche'; return '' + Z.j; }
   function folge(t) {
     var q = norm(t), m = /^(?:und|und was ist mit|und wie ist es mit|und wie sieht es mit|wie sieht es mit|was ist mit|wie ist es mit|und wie siehts mit|und wie viel|und wie viele|und wann|und wo|und dann|und für|und fuer)\s+(.*)$/.exec(q);
+    if (!m && LETZTE && Date.now() - LETZTE.t <= 5 * 60000 && q.split(' ').length <= 6) { /* (3.31, Andi) Folgefrage ohne „und“: nur eine Zeitangabe („letzte Woche Freitag“, „gestern“, „am 20.“) */
+      var nurZeit = q.replace(/\b(?:und|am|an|den|dem|der|die|im|in|von|vom|vorletzte[nrs]?|letzte[nrs]?|vorige[nrs]?|vergangene[nrs]?|nächste[nrs]?|naechste[nrs]?|diese[nrs]?|woche|monat|jahr|heute|gestern|vorgestern|morgen|übermorgen|uebermorgen|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag|januar|februar|märz|maerz|april|mai|juni|juli|august|september|oktober|november|dezember|\d+\.?)\b/g, ' ').trim();
+      if (!nurZeit) { var Zf = null; try { Zf = zeit(q, LETZTE.zuk); } catch (e) {} if (Zf) m = [q, q]; }
+    }
     if (!m || !LETZTE || Date.now() - LETZTE.t > 5 * 60000) return null;
     var rest = m[1].replace(/\s*aus$/, '').trim(), basis = ohneZeit(LETZTE.q);
     var Zr = zeit(rest, LETZTE.zuk);
