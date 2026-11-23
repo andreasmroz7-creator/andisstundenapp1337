@@ -679,7 +679,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.18';
+var VERSION = '3.19';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -770,19 +770,24 @@ function fahrtenUebernehmen(x) {
     var spanne = function (L) { return L.length ? { von: L[0].von, bis: L[L.length - 1].bis } : null; };
     var hin = spanne(fa.filter(function (f) { return f.bis <= beg + 15; })), zur = spanne(fa.filter(function (f) { return f.von >= end - 10; })), zw = null;
     if (LZ.length >= 2) zw = spanne(fa.filter(function (f) { return f.von >= LZ[0].b - 10 && f.bis <= LZ[1].v + 15; }));
-    if (hin && !x.hinZeit) { x.hinZeit = mz(hin.von) + '–' + mz(hin.bis); x.fahrHin = hin.bis - hin.von; g2 = true; }
-    if (zw && !x.zwZeit) { x.zwZeit = mz(zw.von) + '–' + mz(zw.bis); x.fahrZw = zw.bis - zw.von; g2 = true; }
-    if (zur && !x.zurZeit && !offen) { x.zurZeit = mz(zur.von) + '–' + mz(zur.bis); x.fahrZur = zur.bis - zur.von; g2 = true; }
+    var au = x.fahrtAuto || {}, frei = function (k) { return !x[k] || (au[k] && au[k] === x[k]); }; /* leer oder noch der automatisch gesetzte Wert (nicht von Hand geändert) */
+    var setz3 = function (k, km, f) { var w = mz(f.von) + '–' + mz(f.bis); if (!frei(k) || x[k] === w) return; x[k] = w; x[km] = f.bis - f.von; au[k] = w; g2 = true; };
+    if (hin) setz3('hinZeit', 'fahrHin', hin);
+    if (zw) setz3('zwZeit', 'fahrZw', zw);
+    if (zur && !offen) setz3('zurZeit', 'fahrZur', zur);
+    var weg3 = function (k, km) { if (x[k] && au[k] && au[k] === x[k]) { x[k] = ''; x[km] = 0; delete au[k]; g2 = true; } }; /* automatisch gesetzt, passt aber nicht mehr (z. B. Stau-Stopp vorher als Rückfahrt erkannt) */
+    if (!hin) weg3('hinZeit', 'fahrHin'); if (!zw) weg3('zwZeit', 'fahrZw'); if (!zur || offen) weg3('zurZeit', 'fahrZur');
+    x.fahrtAuto = au;
     if (g2) x.fahrMin = (x.fahrHin || 0) + (x.fahrZur || 0);
     return g2;
   }
   var geaendert = false, gem = (x.laeden || []).filter(function (l) { return !l.ausfall; }).length;
-  function setz(k, kz, f) { if (!x[kz]) { x[kz] = mz(f.von) + '–' + mz(f.bis); x[k] = f.bis - f.von; geaendert = true; } }
+  function setz(k, kz, f) { if (!x[kz]) { x[kz] = mz(f.von) + '–' + mz(f.bis); x[k] = f.bis - f.von; (x.fahrtAuto = x.fahrtAuto || {})[kz] = x[kz]; geaendert = true; } }
   setz('fahrHin', 'hinZeit', fa[0]);
   if (fa.length >= 2) setz('fahrZur', 'zurZeit', fa[fa.length - 1]);
   if (gem >= 2 && fa.length >= 3 && !x.zwZeit) {
     var mitte = fa.slice(1, -1), sum = 0; mitte.forEach(function (f) { sum += f.bis - f.von; });
-    x.zwZeit = mz(mitte[0].von) + '–' + mz(mitte[mitte.length - 1].bis); x.fahrZw = sum; geaendert = true;
+    x.zwZeit = mz(mitte[0].von) + '–' + mz(mitte[mitte.length - 1].bis); x.fahrZw = sum; (x.fahrtAuto = x.fahrtAuto || {}).zwZeit = x.zwZeit; geaendert = true;
   }
   if (geaendert) x.fahrMin = (x.fahrHin || 0) + (x.fahrZur || 0);
   return geaendert;
@@ -800,7 +805,7 @@ function fahrtenAuto() {
     var offen = tagEv.length && tagEv[tagEv.length - 1].art === 'an';
     var vorher = JSON.stringify([x.hinZeit, x.zurZeit, x.zwZeit]);
     if (letzteArbeit) fahrtenUebernehmen(x);
-    else if (fa.length >= 2 && (offen || fa[fa.length - 1].von < letzteArbeit - 10)) { if (!x.hinZeit) { var f0 = fa[0]; x.hinZeit = mz(f0.von) + '–' + mz(f0.bis); x.fahrHin = f0.bis - f0.von; x.fahrMin = (x.fahrHin || 0) + (x.fahrZur || 0); } }
+    else if (fa.length >= 2 && (offen || fa[fa.length - 1].von < letzteArbeit - 10)) { if (!x.hinZeit || (x.fahrtAuto && x.fahrtAuto.hinZeit === x.hinZeit)) { var f0 = { von: fa[0].von, bis: fa[fa.length - 1].bis }; if (!offen && fa.length >= 2) f0 = { von: fa[0].von, bis: fa[fa.length - 2].bis }; x.hinZeit = mz(f0.von) + '–' + mz(f0.bis); x.fahrHin = f0.bis - f0.von; (x.fahrtAuto = x.fahrtAuto || {}).hinZeit = x.hinZeit; x.fahrMin = (x.fahrHin || 0) + (x.fahrZur || 0); } }
     else fahrtenUebernehmen(x);
     if (JSON.stringify([x.hinZeit, x.zurZeit, x.zwZeit]) !== vorher) { x.geaendert = Date.now(); geaendert++; }
   });
