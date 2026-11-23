@@ -686,7 +686,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.25';
+var VERSION = '3.26';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -775,7 +775,13 @@ function fahrtenUebernehmen(x) {
   if (LZ.length) {
     var beg = LZ[0].v, end = LZ[LZ.length - 1].b, g2 = false, ev = (daten.fahrtEvents || []).filter(function (y) { return y.datum === x.datum; }).sort(function (a, b) { return a.min - b.min; }), offen = ev.length && ev[ev.length - 1].art === 'an';
     var spanne = function (L) { return L.length ? { von: L[0].von, bis: L[L.length - 1].bis } : null; };
-    var hin = spanne(fa.filter(function (f) { return f.bis <= beg + 15; })), zur = spanne(fa.filter(function (f) { return f.von >= end - 10; })), zw = null;
+    /* (3.26) nur zusammenhängende Fahrten: Stopps bis 30 Min. (Tanken, Stau) gehören dazu, eine längere Lücke (z. B. ein Laden dazwischen) nicht.
+       Hinfahrt = der Block direkt vor Arbeitsbeginn, Rückfahrt = der letzte Block des Tages, der erst nach Arbeitsende beginnt */
+    var block = function (L, vonHinten) { if (!L.length) return []; var B = vonHinten ? [L[L.length - 1]] : [L[0]];
+      if (vonHinten) { for (var i = L.length - 2; i >= 0; i--) { if (B[0].von - L[i].bis <= 30) B.unshift(L[i]); else break; } }
+      else { for (var j = 1; j < L.length; j++) { if (L[j].von - B[B.length - 1].bis <= 30) B.push(L[j]); else break; } } return B; };
+    var zurL = block(fa.filter(function (f) { return f.von >= end - 10; }), true);
+    var hin = spanne(block(fa.filter(function (f) { return f.bis <= beg + 15; }), true)), zur = spanne(zurL), zw = null;
     if (LZ.length >= 2) zw = spanne(fa.filter(function (f) { return f.von >= LZ[0].b - 10 && f.bis <= LZ[1].v + 15; }));
     var au = x.fahrtAuto || {}, frei = function (k) { return !x[k] || (au[k] && au[k] === x[k]); }; /* leer oder noch der automatisch gesetzte Wert (nicht von Hand geändert) */
     var setz3 = function (k, km, f) { var w = mz(f.von) + '–' + mz(f.bis); if (!frei(k) || x[k] === w) return; x[k] = w; x[km] = f.bis - f.von; au[k] = w; g2 = true; };
@@ -4356,7 +4362,8 @@ if ('serviceWorker' in navigator) {
       .replace(/\bbis um\b/g, 'bis').replace(/\bum (\d)/g, '$1').replace(/\bvon (\d)/g, '$1').replace(/(\d)\s*-\s*(\d)/g, '$1 bis $2');
   }
   var ZEITSPANNE = /(?<![\d.:,])(\d{1,2}(?:[.:,]\d{2})?)\s*(?:bis|–)\s*(\d{1,2}(?:[.:,]\d{2})?)(?![\d]|[.:,]\d)/g;
-  function zeitenEintragen(t, q) {
+  var STD_OFFEN = null; /* (3.26, Andi 23.11.: „Er hat das direkt eingetragen ohne zu fragen“) wartende Rückfrage vor dem Überschreiben */
+  function zeitenEintragen(t, q, bestaetigt) {
     if (/termin|urlaub|krank|\?|zeig|rendite|diagramm|kurs|prozent|euro|€|aktie|depot|bitcoin|nvidia|chart|grad|kilometer|km\b|minuten?\b/.test(q) || /(?:^|\s)(?:wie|was|wann|welche|welcher|wieviel|wo|warum|wieso)(?=\s|$)/.test(q)) return null;
     var u = uhrText(t), sp = [], m; ZEITSPANNE.lastIndex = 0;
     while ((m = ZEITSPANNE.exec(u))) { var a = m[1].replace(',', '.').replace(':', '.'), b = m[2].replace(',', '.').replace(':', '.'); var va = null, vb = null; try { va = R.zeitZuMin(a); vb = R.zeitZuMin(b); } catch (e) {} if (va == null || vb == null || va < 240 || va > 1200 || ((vb - va + 1440) % 1440) > 14 * 60 || ((vb - va + 1440) % 1440) < 15) continue; sp.push({ von: a, bis: b }); }
@@ -4368,6 +4375,14 @@ if ('serviceWorker' in navigator) {
     var rest = u.replace(ZEITSPANNE, ' '), Z = zeit(norm(rest), false), d = Z && Z.art === 'tag' ? Z.d : heute0();
     if (isoD(d) > isoD(heute0())) return 'Stunden für die Zukunft trage ich nicht ein, Meister. Sag sie mir am Tag selbst oder danach.';
     var iso = isoD(d), alt = eintrag(iso), x;
+    if (alt && hatArbeit(alt) && !bestaetigt) {
+      STD_OFFEN = { t: t, q: q, iso: iso, zeit: Date.now() };
+      var AL = (alt.laeden || []).filter(function (l) { return !l.ausfall; }), ag = 0; try { ag = ber(alt).gesamt || 0; } catch (e) {}
+      var altTxt = AL.map(function (l) { var z = (l.zeiten || []).filter(function (q_) { return q_.von && q_.bis; }).map(function (q_) { return uhr(q_.von) + ' bis ' + uhr(q_.bis); }).join(' und '); return (l.ort || 'Laden') + (z ? ' ' + z : (l.std ? ' ' + l.std + ' Stunden' : '')); });
+      var neuTxt = sp.length ? sp.map(function (z) { return uhr(z.von) + ' bis ' + uhr(z.bis); }).join(' und ') : st.join(' und ') + ' Stunden';
+      var wt_ = wannTxt(d); return 'Für ' + (/^Am /.test(wt_) ? 'den ' + wt_.slice(3) : wt_.toLowerCase()) + ' steht schon etwas drin, Meister: ' + liste(altTxt) + (ag ? ', zusammen ' + std(ag) : '') + '. Soll ich das durch ' + neuTxt + ' ersetzen? Sag ja oder nein.';
+    }
+    STD_OFFEN = null;
     if (alt) { x = JSON.parse(JSON.stringify(alt)); x.urlaub = false; x.krank = false; }
     else { var alt_e = window.e; try { window.e = neuerEintrag(iso); var pr = profile().filter(function (p) { return p.id === D().letztesProfil; })[0] || profile()[0]; profilAnwenden(pr); if (istFeiertagSN(iso)) window.e.feiertag = true; planFuellen(window.e); x = window.e; } finally { window.e = alt_e; } }
     if (/aushilfe|anderes team|anderen team/.test(q)) { x.auswaerts = true; x.notiz = (x.notiz ? x.notiz + ' · ' : '') + 'Aushilfe anderes Team'; }
@@ -4506,6 +4521,12 @@ if ('serviceWorker' in navigator) {
   /* ---------- Hauptfunktion ---------- */
   function frage(t) {
     var q0 = norm(t); if (!q0) return null;
+    if (STD_OFFEN) { /* Antwort auf die Rückfrage vor dem Überschreiben (2 Minuten lang) */
+      var so = STD_OFFEN; if (Date.now() - so.zeit > 120000) STD_OFFEN = null;
+      else if (/^(?:ja|jo|jap|jep|jawohl|genau|klar|ok|okay|passt|mach(?: das| es)?|ersetz\w*|überschreib\w*|ueberschreib\w*)(?:\s|$)/.test(q0)) { STD_OFFEN = null; try { var rj = zeitenEintragen(so.t, so.q, true); if (rj) return rj; } catch (e) {} return 'Das hat nicht geklappt, Meister. Ich habe nichts geändert.'; }
+      else if (/^(?:nein|nee|ne|nö|noe|lass(?: es| das)?|stopp|stop|abbrechen|doch nicht|nicht ersetzen)(?:\s|$)/.test(q0)) { STD_OFFEN = null; return 'Alles klar, Meister, ich lasse es so wie es ist.'; }
+      else STD_OFFEN = null;
+    }
     var f = null; try { f = folge(t); } catch (e) { f = null; } if (f) { try { var zr = zeit(q0, LETZTE.zuk); if (zr) LETZTE.Z = zr; LETZTE.t = Date.now(); } catch (e) {} return f; }
     var r = null, d0 = D(); if (!d0) return null;
     var art_ = 'frage';
