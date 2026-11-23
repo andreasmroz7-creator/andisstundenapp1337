@@ -686,7 +686,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.23';
+var VERSION = '3.24';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2937,7 +2937,7 @@ function htZeichnen() {
     h += '<div class="htbox">' + (fl ? '<div class="htfahrt">' + fl + '</div>' : '');
     F.forEach(function (f, k) {
       var l = f.l, art = LADENART[l.art] || l.art || '';
-      h += '<div class="htz' + (f.erst ? ' erst' : '') + '"><div class="hl"><small>' + htTagName(f.tag.datum) + ' · ' + (f.n > 1 ? (f.i + 1) + '. Laden' : 'ein Laden') + (art ? ' · ' + esc(art) : '') + '</small><b>' + esc(l.ort || '–') + '</b>' +
+      h += '<div class="htz' + (f.erst ? ' erst' : '') + '"><div class="hl"><small>' + htTagName(f.tag.datum) + ' · ' + (f.n > 1 ? (f.i + 1) + '. Laden' : 'ein Laden') + (art ? ' · ' + esc(art) : '') + (l.nl ? ' · NL ' + esc(l.nl) : '') + '</small><b>' + esc(l.ort || '–') + '</b>' +
         (l.str || l.ort ? '<button type="button" class="htroute" data-ziel="' + esc([l.str, ((l.plz || '') + ' ' + (l.ort || '')).trim()].filter(Boolean).join(', ')) + '"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8z"/></svg><span>' + esc(l.str || l.ort) + '</span><i>Route ›</i></button>' : '') +
         (f.i === 0 && f.tag.tp ? '<small>Treffpunkt ' + esc(f.tag.tp) + '</small>' : '') + '</div>' +
         (l.fil ? '<button type="button" class="htnr" data-nr="' + esc(l.fil) + '"><b>' + esc(l.fil) + '</b><i>Markt-Nr.</i></button>' : '') + '</div>';
