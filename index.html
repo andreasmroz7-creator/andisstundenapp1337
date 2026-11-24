@@ -689,7 +689,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.35';
+var VERSION = '3.36';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -4287,7 +4287,7 @@ if ('serviceWorker' in navigator) {
     /* Woche */
     m = /\bkw ?(\d{1,2})\b|\bkalenderwoche (\d{1,2})\b/.exec(q);
     if (m) { var kw = +(m[1] || m[2]); return woche(kwMontag(h.getFullYear(), kw)); }
-    if (/\b(?:diese|dieser|diesen|aktuelle|aktuellen|laufende|laufenden) woche\b/.test(q)) return woche(montag(h));
+    if (/\b(?:diese|dieser|diesen|aktuelle|aktuellen|laufende|laufenden|die) woche\b/.test(q)) return woche(montag(h)); /* (25.11.) auch „wie muss ich die Woche arbeiten“ */
     if (/\b(?:letzte|letzten|letzter|vorige|vorigen|vergangene|vergangenen) woche\b/.test(q)) return woche(plus(montag(h), -7));
     if (/\b(?:vorletzte|vorletzten) woche\b/.test(q)) return woche(plus(montag(h), -14));
     if (/\b(?:nächste|naechste|nächsten|naechsten|kommende|kommenden) woche\b/.test(q)) return woche(plus(montag(h), 7));
@@ -4722,7 +4722,7 @@ if ('serviceWorker' in navigator) {
     }
 
     /* Einsatzplan */
-    var planWort = /was steht .*an|wo war ich|wo waren wir|wo hab ich gearbeitet|wo habe ich gearbeitet|wann geht(?:s| es|'s)? .*los|adresse|anschrift|was ist .*los|was liegt an|einsatz|einsatzplan|\bplan\b|arbeite ich|arbeiten wir|muss ich arbeiten|wo bin ich|wo sind wir|wohin|wo geht|wo gehts|wo geht's|wo muss ich|welcher laden|welche läden|welche laeden|welche filiale|filiale|treffpunkt|wann geht es los|wann gehts los|wann geht's los|losfahren|abfahrt|hotel|übernacht|uebernacht|mit wem|kollegen|wer arbeitet|wer ist (?:dabei|alles|im team)|personalnummer|team|anreise|abreise|wann fahr|inventur/;
+    var planWort = /was steht .*an|wo war ich|wo waren wir|wo hab ich gearbeitet|wo habe ich gearbeitet|wann geht(?:s| es|'s)? .*los|adresse|anschrift|was ist .*los|was liegt an|einsatz|einsatzplan|\bplan\b|arbeite ich|arbeiten wir|muss ich arbeiten|arbeiten muss|arbeiten soll|wie arbeite ich|wann muss ich (?:morgen |heute )?(?:los|anfangen|da sein)|wo bin ich|wo sind wir|wohin|wo geht|wo gehts|wo geht's|wo muss ich|welcher laden|welche läden|welche laeden|welche filiale|filiale|treffpunkt|wann geht es los|wann gehts los|wann geht's los|losfahren|abfahrt|hotel|übernacht|uebernacht|mit wem|kollegen|wer arbeitet|wer ist (?:dabei|alles|im team)|personalnummer|team|anreise|abreise|wann fahr|inventur/;
     if (planWort.test(q)) {
       if (/personalnummer/.test(q) && /meine|ich/.test(q) && !/von|vom|der|des/.test(q)) return 'Deine Personalnummer ist 4 0 4 8.';
       Z = zeit(q, !/\b(?:war|warst|hatte|hattest|gearbeitet|gewesen)\b/.test(q));
