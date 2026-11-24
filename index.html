@@ -686,7 +686,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.32';
+var VERSION = '3.33';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -3110,7 +3110,11 @@ function posReihe(P, cb) { // → {vor:[werte grau], heute:[werte], ref}
   if (m.k === 'krypto') { posKrypto(m, posZr).then(function (v) { if (!v || v.length < 2) return cb(null); if (posZr !== '1d') return cb({ vor: [], heute: v.map(function (x) { return x[1]; }).concat([P.kurs]), ht: v.map(function (x) { return x[0]; }).concat([null]) });
       var b6 = depotSechsTs() / 1000, vo = v.filter(function (x) { return x[0] < b6; }), he = v.filter(function (x) { return x[0] >= b6; }); cb({ vor: vo.map(function (x) { return x[1]; }), vt: vo.map(function (x) { return x[0]; }), heute: he.map(function (x) { return x[1]; }).concat([P.kurs]), ht: he.map(function (x) { return x[0]; }).concat([null]), ref: vo.length ? vo[vo.length - 1][1] : null }); }); return; }
   if (!kv) return cb(null);
-  if (posZr === '1d') { var t = kv['1d']; if (!t || !t.today || t.today.length < 1) return cb(null); return cb({ vor: t.prev || [], heute: P.rente ? t.today.slice() : t.today.concat([P.kurs]), ref: t.base || (t.prev && t.prev.length ? t.prev[t.prev.length - 1] : null) }); }
+  if (posZr === '1d') { var t = kv['1d']; if (!t || !t.today || t.today.length < 1) return cb(null);
+    // (3.33) morgens (gettex handelt schon, die US-Kurse für heute fehlen noch): grau der komplette gestrige Tag, grün heute ab Vortagesschluss bis jetzt – passend zur Zahl darüber
+    var h0 = new Date(); h0.setHours(0, 0, 0, 0);
+    if (t.t1 && t.t1 * 1000 < h0.getTime() && !P.rente && P.kurs != null && P.pct != null && boerseOffen()) { var rf = P.kurs / (1 + P.pct / 100); return cb({ vor: t.today.slice(), heute: [rf, P.kurs], ref: rf }); }
+    return cb({ vor: t.prev || [], heute: P.rente ? t.today.slice() : t.today.concat([P.kurs]), ref: t.base || (t.prev && t.prev.length ? t.prev[t.prev.length - 1] : null) }); }
   var z = kv[posZr]; if (!z || z.length < 2) return cb(null); cb({ vor: [], heute: z.map(function (x) { return x[1]; }).concat([P.kurs]), ht: z.map(function (x) { return x[0]; }).concat([null]) });
 }
 function posGrafik(S, up) {
