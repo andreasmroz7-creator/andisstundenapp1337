@@ -365,7 +365,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .tmzeit{display:grid;grid-template-columns:1fr 120px;gap:10px}.tmz.eig{cursor:pointer}.tmz .bt{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.tmz .bt .nobtn{padding:8px 16px;font-size:13px}
 .tmtag{font-size:13px;color:var(--grau);font-weight:700;margin:22px 0 4px;text-transform:uppercase;letter-spacing:.4px}.tmtag:first-child{margin-top:4px}
 .tmz{display:flex;gap:12px;padding:11px 0;border-top:1px solid var(--rand)}.tmz .uz{width:52px;flex-shrink:0;font-size:14px;font-weight:700}.tmz .uz small{display:block;color:var(--grau);font-size:11px;font-weight:600}
-.tmz .ti{font-size:15px;font-weight:600}.tmz .no{font-size:12px;color:var(--grau);margin-top:3px}
+.tmz .ti{font-size:15px;font-weight:600}.tmz .tmkarte{align-self:center;margin-left:4px}.tmz .no{font-size:12px;color:var(--grau);margin-top:3px}
 .tmk{display:inline-block;font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.1);color:#cfcfcf;margin-right:6px;vertical-align:2px}.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:22px}
 .pgrid>div{background:var(--karte);border:1px solid var(--rand);border-radius:16px;padding:12px 14px;position:relative}.pgrid small{display:block;color:var(--grau);font-size:12px;margin-bottom:3px}.pgrid b{font-size:18px;font-weight:700}
 .lbox{margin-top:4px}
@@ -686,7 +686,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.33';
+var VERSION = '3.34';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2847,6 +2847,35 @@ function wlZeichnen() {
 function tmListe() { var h = new Date(); h.setHours(0, 0, 0, 0); var n = Date.now() - 2 * 36e5;
   return (daten.meineTermine || []).map(function (x) { return { id: x.id, ti: x.ti, no: x.no || '', g: !x.u, t: x.u ? new Date(x.d + 'T' + x.u + ':00').toISOString() : x.d + 'T00:00:00', d: x.d }; })
     .filter(function (e) { return e.g ? new Date(e.d + 'T23:59:59') >= h : Date.parse(e.t) >= n; }).sort(function (a, b) { return Date.parse(a.t) - Date.parse(b.t); }); }
+// (3.34) Adresse im Termin erkennen und mit einem Knopf als Route in Google Maps öffnen
+function tmAdresse(t) {
+  t = String(t || ''); var m, STRW = /(?:str\.|straße|strasse|weg|allee|platz|gasse|ring|damm|markt|ufer|berg|hof|anger|graben|park|wall)$/i;
+  // Hausnummer (+ optional PLZ und Ort) suchen, dann die Straße davor rückwärts einsammeln
+  var re = /(\d{1,4}(?:\s?[a-zA-Z](?![a-zäöüß]))?)(\s*,?\s*\d{5}\s+[A-ZÄÖÜ][\wäöüßÄÖÜ.\-]*(?:\s+(?:[A-ZÄÖÜ(][\wäöüßÄÖÜ.\-)]*|an der|am|im|a\.|b\.|i\.|\/))*)?/g;
+  var best = '';
+  while ((m = re.exec(t))) {
+    if (/\d/.test(t.charAt(m.index - 1))) continue;
+    var vor = t.slice(0, m.index).replace(/\s+$/, ''), w = [], k = vor.split(/\s+/);
+    for (var i = k.length - 1; i >= 0 && w.length < 4; i--) { var x = k[i]; if (!x || /,$/.test(x) && w.length) break; if (/^[A-ZÄÖÜ]/.test(x) || STRW.test(x) || /^(?:an|am|im|in|zum|zur|der|den|dem|vor|hinter)$/i.test(x) && w.length) w.unshift(x.replace(/,$/, '')); else break; }
+    while (w.length > 1 && !STRW.test(w[w.length - 1]) && !STRW.test(w[0]) && !/^(?:Am|An|Im|In|Zum|Zur|Hinter|Vor)$/.test(w[0])) w.shift();
+    var si = -1; w.forEach(function (x, j) { if (si < 0 && STRW.test(x)) si = j; }); if (si >= 0) { var ab = /^(?:str\.|straße|strasse|weg|allee|platz|gasse|ring|damm|markt)$/i.test(w[si]) ? si - 1 : si; for (var j2 = 0; j2 < ab; j2++) if (/^(?:Am|An|Im|In|Zum|Zur|Hinter|Vor|Alte|Alter|Neue|Neuer|Große|Kleine)$/.test(w[j2])) { ab = j2; break; } if (ab > 0) w = w.slice(ab); }
+    if (!w.length) continue;
+    var hatStr = w.some(function (x) { return STRW.test(x); }) || /^(?:Am|An|Im|In|Zum|Zur|Hinter|Vor)$/.test(w[0]);
+    if (!hatStr && !m[2]) continue;
+    var ad = (w.join(' ') + ' ' + m[1] + (m[2] ? ', ' + m[2].replace(/^\s*,?\s*/, '') : '')).trim();
+    if (!m[2]) { var r = /^\s*,?\s*([A-ZÄÖÜ][\wäöüßÄÖÜ\-]+)/.exec(t.slice(m.index + m[0].length)); if (r) ad += ', ' + r[1]; }
+    if (ad.length > best.length) best = ad;
+  }
+  if (best) return best;
+  m = /(\d{5}\s+[A-ZÄÖÜ][\wäöüßÄÖÜ.\-]*)/.exec(t);
+  return m ? m[1].trim() : '';
+}
+function tmRoute(a) {
+  var q = encodeURIComponent(a), web = 'https://www.google.com/maps/dir/?api=1&destination=' + q + '&travelmode=driving', weg = false;
+  var w = function () { if (document.visibilityState === 'hidden') weg = true; }; document.addEventListener('visibilitychange', w);
+  setTimeout(function () { document.removeEventListener('visibilitychange', w); if (!weg && document.visibilityState === 'visible') location.href = web; }, 1200);
+  location.href = 'comgooglemaps://?daddr=' + q + '&directionsmode=driving';
+}
 function tmUhr(e) { return new Date(e.t).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr'; }
 function tmTagKurz(e) { var d = new Date(e.t), h = new Date(); h.setHours(0, 0, 0, 0); var t = Math.round((new Date(d.getFullYear(), d.getMonth(), d.getDate()) - h) / 864e5);
   return t === 0 ? 'Heute' : t === 1 ? 'Morgen' : ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][d.getDay()] + '. ' + d.getDate() + '.' + (d.getMonth() + 1) + '.'; }
@@ -2857,11 +2886,12 @@ function tmZeichnen() {
   var h = '', tag = '';
   L.forEach(function (e) { var d = new Date(e.t), tg = d.toDateString();
     if (tg !== tag) { tag = tg; h += '<div class="tmtag">' + (tmTagKurz(e).length < 8 ? tmTagKurz(e) + ' · ' : '') + d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' }) + '</div>'; }
-    h += '<div class="tmz eig" data-id="' + esc(e.id) + '"><div class="uz">' + (e.g ? '<small>ganztägig</small>' : d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })) + '</div><div style="flex:1;min-width:0"><div class="ti">' + esc(e.ti) + '</div>' + (e.no ? '<div class="no">' + esc(e.no) + '</div>' : '') + '</div></div>';
+    h += '<div class="tmz eig" data-id="' + esc(e.id) + '"><div class="uz">' + (e.g ? '<small>ganztägig</small>' : d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })) + '</div><div style="flex:1;min-width:0"><div class="ti">' + esc(e.ti) + '</div>' + (e.no ? '<div class="no">' + esc(e.no) + '</div>' : '') + '</div>' + ((e.ad = tmAdresse(e.ti + ' ' + e.no)) ? '<button class="kugel klein tmkarte" data-ad="' + esc(e.ad) + '" aria-label="Route in Google Maps"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.1-7-11.5A7 7 0 0 1 19 9.5C19 14.9 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></button>' : '') + '</div>';
   });
   $('tKoerper').innerHTML = h;
+  [].forEach.call($('tKoerper').querySelectorAll('.tmkarte'), function (b) { b.onclick = function (ev) { ev.stopPropagation(); tmRoute(b.dataset.ad); }; });
   [].forEach.call($('tKoerper').querySelectorAll('.tmz.eig'), function (el) { el.onclick = function () {
-    if (el.querySelector('.bt')) return; var x = (daten.meineTermine || []).find(function (y) { return y.id === el.dataset.id; }); if (!x) return;
+    if (el.querySelector('.bt')) return; var bk = el.querySelector('.tmkarte'); if (bk) bk.style.display = 'none'; var x = (daten.meineTermine || []).find(function (y) { return y.id === el.dataset.id; }); if (!x) return;
     var bt = document.createElement('div'); bt.className = 'bt'; bt.innerHTML = '<button class="nobtn zweit">Abbrechen</button><button class="nobtn rot">Löschen</button>'; el.children[1].appendChild(bt);
     bt.children[0].onclick = function (ev) { ev.stopPropagation(); tmZeichnen(); };
     bt.children[1].onclick = function (ev) { ev.stopPropagation(); tmLoeschen(x); };
