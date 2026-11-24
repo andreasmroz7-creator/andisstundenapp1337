@@ -686,7 +686,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.31';
+var VERSION = '3.32';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2614,7 +2614,9 @@ function euroK(n) { return (Math.round(n)).toLocaleString('de-DE') + ' €'; }
 var depotKvT = 0;
 function depotKurvenHolen(kopf) { // (2.41) Kursverläufe der Positionen (positionen.json, schreibt der Mac alle 15 Min.)
   if (Date.now() - depotKvT < 5 * 60e3) return; depotKvT = Date.now();
-  fetch(GH.replace('daten.json', 'positionen.json') + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+  // (3.32) zuerst aus dem eigenen Speicher stunden-kurse (alte Fassungen werden dort wöchentlich gelöscht), sonst wie bisher aus stunden-raten
+  var hol = function (u) { return fetch(u + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); };
+  hol(GH.replace('stunden-raten/contents/daten.json', 'stunden-kurse/contents/positionen.json')).then(function (j) { return j || hol(GH.replace('daten.json', 'positionen.json')); }).then(function (j) {
     if (!j) return; var k = JSON.parse(b64dec(j.content) || '{}'); if (k && k.k) { daten.depotKurven = k; sichern(true); if ($('blattP').classList.contains('offen')) posZeichnen(); }
   }).catch(function () {});
 }
