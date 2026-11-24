@@ -53,10 +53,11 @@
     var arbeitMin = 0, arbeit = 0;
     if (e.modus === 'std') {
       laeden.forEach(function (l) { arbeit += +l.std || 0; });
-      arbeitMin = Math.round(arbeit * 60);
+      arbeitMin = Math.round(arbeit * 60) + (+e.sonderMin || 0);
       arbeit = rundeViertel(arbeitMin) / 60;
     } else {
       laeden.forEach(function (l) { (l.zeiten || []).forEach(function (z) { arbeitMin += spanneMin(z.von, z.bis); }); });
+      arbeitMin += +e.sonderMin || 0; // (3.35) Sonderzeit (z. B. TÜV) zählt komplett als Arbeitszeit
       arbeit = rundeViertel(arbeitMin) / 60;
     }
     var zwischen = n >= 2 ? 0.5 : 0;

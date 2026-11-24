@@ -562,6 +562,9 @@ body.istoffline .sstand{color:#ff6b61}
   <div class="hinweis">0,5 Std. sind immer bezahlt. Was über 30 Min. geht, zählt zur Fahrzeit dazu.</div></div>
   <label class="l">Rückfahrt (letzter Laden → Treffpunkt) <span id="frDauer" style="color:var(--akz);text-transform:none"></span></label>
   <div class="zeile" style="margin-top:0"><input type="text" inputmode="decimal" id="frV" placeholder="von 14:25"><span>–</span><input type="text" inputmode="decimal" id="frB" placeholder="bis 15:05"></div>
+  <label class="l">Sonderzeit (z. B. TÜV) <span id="sdDauer" style="color:var(--akz);text-transform:none"></span></label>
+  <div class="zeile" style="margin-top:0"><input type="text" id="sdT" placeholder="TÜV" style="flex:1.2"><input type="text" inputmode="decimal" id="sdV" placeholder="von 14:30"><span>–</span><input type="text" inputmode="decimal" id="sdB" placeholder="bis (auto)"></div>
+  <div class="hinweis">Zählt komplett als Arbeitszeit (ohne TL-Stunde, ohne Zwischenfahrt). Auto-Fahrten in dieser Zeit sind keine Fahrzeit. Bleibt „bis“ leer, setzt es das Auto-Signal, wenn du zurück bist.</div>
   <div class="sw" data-k="auswaerts"><div>Auswärts (Inventur für anderes Team)<small>ganze Fahrzeit zählt</small></div><div class="knopf"></div></div>
   <div class="sw" data-k="tl"><div>Teamleiter-Stunde</div><div class="knopf"></div></div>
   <div class="sw" data-k="fahrer"><div>Ich bin Fahrer</div><div class="knopf"></div></div>
@@ -686,7 +689,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.34';
+var VERSION = '3.35';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -766,7 +769,7 @@ function fahrtenTag(datum) {
 function mz(m) { return Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2); }
 // erkannte Fahrten in den Eintrag übernehmen (nur leere Felder)
 function fahrtenUebernehmen(x) {
-  var fa = fahrtenTag(x.datum); if (!fa.length) return false;
+  var fa = sonderFahrten(x, fahrtenTag(x.datum)); if (!fa.length) return false;
   /* (3.18) Fahrten nach Arbeitszeiten zuordnen, sobald die Zeiten eingetragen sind:
      Hinfahrt = alles vor Arbeitsbeginn (Tank-/Pausenstopps eingeschlossen), Zwischenfahrt = zwischen Ende Laden 1 und Beginn Laden 2,
      Rückfahrt = alles nach Arbeitsende, aber erst wenn sie abgeschlossen ist. So zählt ein Tankstopp auf der Hinfahrt nicht als Zwischenfahrt,
@@ -812,7 +815,7 @@ function fahrtenAuto() {
   ev.forEach(function (x) { tage[x.datum] = 1; });
   daten.eintraege.forEach(function (x) {
     if (!tage[x.datum] || (daten.geloescht || {})[x.id] || ($('blattE').classList.contains('offen') && e && e.id === x.id)) return;
-    var fa = fahrtenTag(x.datum); if (!fa.length) return;
+    var sv = x.sonderZeit, fa = sonderFahrten(x, fahrtenTag(x.datum)); if (x.sonderZeit !== sv) geaendert++; if (!fa.length) { if (x.sonderZeit !== sv) x.geaendert = Date.now(); return; }
     var letzteArbeit = 0; (x.laeden || []).forEach(function (l) { (l.zeiten || []).forEach(function (z) { var b = R.zeitZuMin(z.bis); if (b != null && b > letzteArbeit) letzteArbeit = b; }); });
     var tagEv = ev.filter(function (y) { return y.datum === x.datum; }).sort(function (a, b) { return a.min - b.min; });
     var offen = tagEv.length && tagEv[tagEv.length - 1].art === 'an';
@@ -888,6 +891,34 @@ function fahrFelder() {
     var t = (p[1] || '').split('–'); $(p[0] + 'V').value = t[0] || ''; $(p[0] + 'B').value = t[1] || '';
     $(p[0] + 'Dauer').textContent = p[2] ? '· ' + dauer(p[2]) : '';
   });
+  var st = (e.sonderZeit || '').split('–'); $('sdT').value = e.sonderText || ''; $('sdV').value = st[0] || ''; $('sdB').value = st[1] || '';
+  $('sdDauer').textContent = e.sonderMin ? '· ' + dauer(e.sonderMin) : (st[0] && !st[1] ? '· läuft' : '');
+}
+// (3.35) Sonderzeit (z. B. TÜV-Termin): ganze Zeit bezahlt, Auto-Fahrten darin zählen nicht als Fahrzeit
+function sonderLesen() {
+  var t = $('sdT').value.trim(), v = $('sdV').value.trim(), b = $('sdB').value.trim();
+  e.sonderText = t;
+  if (v && R.zeitZuMin(v) != null) { if (b && R.zeitZuMin(b) != null) { e.sonderZeit = uhr(v) + '–' + uhr(b); e.sonderMin = R.spanneMin(v, b); } else { e.sonderZeit = uhr(v) + '–'; e.sonderMin = 0; } }
+  else if (!v && !b) { e.sonderZeit = ''; e.sonderMin = 0; }
+  $('sdDauer').textContent = e.sonderMin ? '· ' + dauer(e.sonderMin) : (e.sonderZeit ? '· läuft' : '');
+  rechnung();
+}
+['sdT', 'sdV', 'sdB'].forEach(function (id) {
+  $(id).oninput = sonderLesen;
+  if (id !== 'sdT') $(id).addEventListener('focusout', function () { if (this.value.trim() && R.zeitZuMin(this.value) != null) { this.value = uhr(this.value); sonderLesen(); } });
+});
+function sonderSpanne(x) { if (!x || !x.sonderZeit) return null; var t = x.sonderZeit.split('–'), v = R.zeitZuMin(t[0]); if (v == null) return null; var b = t[1] ? R.zeitZuMin(t[1]) : null; return { von: v, bis: b }; }
+// Fahrten, die in die Sonderzeit fallen, herausnehmen; ist das Ende noch offen, setzt die letzte fertige Fahrt danach das Ende
+function sonderFahrten(x, fa) {
+  var sp = sonderSpanne(x); if (!sp) return fa;
+  if (sp.bis == null) {
+    var ev = (daten.fahrtEvents || []).filter(function (y) { return y.datum === x.datum; }).sort(function (a, b) { return a.min - b.min; });
+    var offen = ev.length && ev[ev.length - 1].art === 'an', nach = fa.filter(function (f) { return f.von >= sp.von - 10; });
+    var hinD = nach.length ? nach[0].bis - nach[0].von : 0, letzte = nach[nach.length - 1]; /* Rückweg ungefähr so lang wie der Hinweg – kurze Fahrten der Prüfer zählen nicht als Ende */
+    if (nach.length >= 2 && !offen && letzte.bis - letzte.von >= Math.max(5, hinD * 0.6)) { var ende = nach[nach.length - 1].bis; x.sonderZeit = mz(sp.von) + '–' + mz(ende); x.sonderMin = ende - sp.von; x.geaendert = Date.now(); sp.bis = ende; }
+    else return fa.filter(function (f) { return f.von < sp.von - 10; });
+  }
+  return fa.filter(function (f) { return f.von < sp.von - 10 || f.von > sp.bis + 10; });
 }
 function pxEuro(n, klein) { // (2.33) Betrag im Dashboard-/Scalable-Stil
   var t = (Math.round(n * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), k = t.lastIndexOf(',');
@@ -947,6 +978,7 @@ function zeichneEcht() {
     if (r.zwischen) teile.push('Zw. ' + z(r.zwischen));
     if (r.tl) teile.push('TL ' + z(r.tl));
     if (x.fahrMin) teile.push('Fahrt ' + dauer(x.fahrMin).replace(' Std.', '') + (r.fahrt ? ' (' + z(r.fahrt) + ')' : ''));
+    if (x.sonderZeit) teile.push((x.sonderText || 'Sonderzeit') + ' ' + (x.sonderMin ? dauer(x.sonderMin).replace(' Std.', '') : 'läuft'));
     if (r.anreise) teile.push((x.abreise && !x.anreise ? 'Abreise ' : 'Anreise ') + z(r.anreise));
     if (r.feiertag) teile.push('Feiertag ' + z(r.feiertag));
     if (r.urlaub) teile.push('Urlaub ' + z(r.urlaub));
@@ -1319,6 +1351,7 @@ $('pdfknopf').onclick = function () {
       return s; });
     if (!ld.length) ld = [x.anreise ? 'Anreise (Reisetag)' : x.abreise ? 'Abreise (Reisetag)' : x.urlaub ? 'Urlaub' : x.krank ? 'Krankheitstag' : x.feiertag ? 'Feiertag' : '–'];
     var gemacht = (x.laeden || []).filter(function (l) { return !l.ausfall; }).length;
+    if (x.sonderZeit && x.sonderMin) ld.push((x.sonderText || 'Sonderzeit') + ' ' + x.sonderZeit + ' (' + dauer(x.sonderMin).replace(' Std.', '') + ')');
     if (gemacht >= 2 && (x.zwZeit || x.fahrZw)) ld.splice(1, 0, 'Zwischenfahrt ' + (x.zwZeit ? x.zwZeit + ' ' : '') + '(' + dauer(x.fahrZw || 0).replace(' Std.', '') + ')');
     var teamNotiz = x.team === 'halle' ? 'Halle' : x.team === 'reise' ? (x.anreise ? 'Anreisetag' : x.abreise ? 'Abreisetag' : '') : '';
     if (r.feiertag) teamNotiz = (teamNotiz ? teamNotiz + ', ' : '') + 'Feiertag ' + z(r.feiertag);
