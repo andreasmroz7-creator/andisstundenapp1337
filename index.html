@@ -689,7 +689,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.40';
+var VERSION = '3.41';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -3178,7 +3178,7 @@ function posReihe(P, cb) { // → {vor:[werte grau], heute:[werte], ref}
     var h0 = new Date(); h0.setHours(0, 0, 0, 0);
     if (t.t1 && t.t1 * 1000 < h0.getTime() && !P.rente && P.kurs != null && P.pct != null && boerseOffen()) { var rf = P.kurs / (1 + P.pct / 100); return cb({ vor: t.today.slice(), heute: [rf, P.kurs], ref: rf }); }
     var tt_ = (!P.rente && t.t0 && t.t1 && t.t1 * 1000 >= h0.getTime()) ? [t.t0, t.t1] : null, lin = function (n, a, z) { return Array.apply(null, Array(n)).map(function (_, i) { return Math.round(a + (n > 1 ? i / (n - 1) : 0) * (z - a)); }); }; // (3.40, Andi 25.11.) Uhrzeit beim Darüberfahren wie bei Krypto
-    return cb({ vor: t.prev || [], heute: P.rente ? t.today.slice() : t.today.concat([P.kurs]), ref: t.base || (t.prev && t.prev.length ? t.prev[t.prev.length - 1] : null), tt: tt_,
+    return cb({ vor: t.prev || [], heute: P.rente ? t.today.slice() : t.today.concat([P.kurs]), ref: (!P.rente && P.kurs != null && P.pct != null && isFinite(P.pct) && P.pct > -100) ? P.kurs / (1 + P.pct / 100) : (t.base || (t.prev && t.prev.length ? t.prev[t.prev.length - 1] : null)), tt: tt_, // (3.41, Andi 25.11.) Bezugslinie und Farbe = Vortagesschluss von Scalable, passend zur Prozentzahl oben (Ocugen: −1,36 % aber grüne Linie)
       ht: tt_ ? lin(t.today.length, tt_[0], tt_[1]).concat([null]) : null, vt: (tt_ && t.v0 && t.v1 && (t.prev || []).length) ? lin(t.prev.length, t.v0, t.v1) : null }); } // (3.39) tt: erster/letzter Kurs von heute → Linie nach Uhrzeit
   var z = kv[posZr]; if (!z || z.length < 2) return cb(null); cb({ vor: [], heute: z.map(function (x) { return x[1]; }).concat([P.kurs]), ht: z.map(function (x) { return x[0]; }).concat([null]) });
 }
