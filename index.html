@@ -689,7 +689,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.44';
+var VERSION = '3.45';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -3478,6 +3478,17 @@ function depotVgDazu(R) {
   if (mitZeit) { P = P.filter(function (x) { return x[0] >= T[0] - 60 && x[0] <= T[n - 1] + 60; }); }
   if (P.length < 2) return R;
   if (P.length > 300) { var st = P.length / 299, Q2 = []; for (var i = 0; i < 299; i++) Q2.push(P[Math.floor(i * st)]); Q2.push(P[P.length - 1]); P = Q2; }
+  if (R.r !== '1d' && mitZeit) { // (3.45, Andi 25.11.: „ab 6 Monaten nur eine gerade Linie“) Einzahlungen mitrechnen: jede Einzahlung kauft zum damaligen Kurs MSCI/Bitcoin – sonst war der Start (z. B. 392 € im Juni) viel zu klein und die Linie flach
+    var ix = function (t) { if (t <= P[0][0]) return P[0][1]; for (var k = 1; k < P.length; k++) if (P[k][0] >= t) return P[k - 1][1] + (P[k][1] - P[k - 1][1]) * (t - P[k - 1][0]) / ((P[k][0] - P[k - 1][0]) || 1); return P[P.length - 1][1]; };
+    var inv = function (i) { return R.g ? R.v[i] - R.g[i] : R.v[i]; }, ct = [], cv = [], U = null, i0 = -1;
+    for (var i = 0; i < n; i++) { if (T[i] < P[0][0] - 60) continue; var x = ix(T[i]); if (!(x > 0)) continue;
+      if (U == null) { U = R.v[i] / x; i0 = i; } else U += (inv(i) - inv(i - 1)) / x;
+      ct.push(T[i]); cv.push(l[i] + (U * x - R.v[i])); }
+    if (cv.length < 2) return R;
+    var iE = n - 1, ein = R.v[i0] + inv(iE) - inv(i0), gw = U * ix(T[iE]) - ein; // Gewinn mit MSCI/Bitcoin bezogen auf Startwert + Einzahlungen im Zeitraum
+    R.cmp = { t: ct, f: ct.map(function (t, k) { return k / (ct.length - 1); }), v: cv, zeit: true, txt: Q.n + ' mit deinen Einzahlungen: ' + pzKurz(ein > 0 ? gw / ein * 100 : 0) };
+    return R;
+  }
   var tag = R.r === '1d', rf = R.lref !== undefined ? R.lref : R.ref, b, l0, v0;
   if (tag && R.ref != null) { b = Q.b || P[0][1]; l0 = rf != null ? rf : l[0]; v0 = R.ref; } // 1 Tag: beide ab dem gestrigen Schluss
   else { b = P[0][1]; l0 = mitZeit ? ein(l, P[0][0]) : l[0]; v0 = mitZeit ? ein(R.v, P[0][0]) : R.v[0]; } // sonst: ab dem ersten gemeinsamen Zeitpunkt
