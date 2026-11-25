@@ -694,7 +694,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.50';
+var VERSION = '3.51';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -3402,24 +3402,24 @@ function depotZeichnen() {
 }
 // Finger über dem Diagramm: Linie und Punkt folgen, oben stehen Wert und Veränderung zu diesem Zeitpunkt; beim Loslassen wieder der aktuelle Stand
 function depotFinger(d, R) {
-  var c = $('dChart'); if (!c || R.v.length < 2) return; var l = R.l || R.g || R.v, n = l.length, aktiv = false, letzt = -1;
+  var c = $('dChart'); if (!c || R.v.length < 2) return; var cur0 = c.querySelector('.dcur') || $('dCur'), dot0 = c.querySelector('.ddot') || $('dDot'); /* (3.51, Andi 25.11.: im Dashboard kein Punkt) Punkt und Linie aus genau diesem Diagramm – die Kachel der Startseite hat Doppel mit derselben id */ var l = R.l || R.g || R.v, n = l.length, aktiv = false, letzt = -1;
   var zeig = function (cx) { // (2.43) auch über den grauen Vortag (0–6 Uhr) fahrbar
     if (c.classList.contains('zwei')) return;
     var b = c.getBoundingClientRect(), GZ = depotGrafik.ziel, k0 = GZ && GZ.k0 && R.vor && R.vor.length === GZ.k0 ? GZ.k0 : 0, ZX = GZ && GZ.x && GZ.x.length - (GZ.k0 || 0) === n ? GZ.x : null, i;
     if (ZX) { var fx = (cx - b.left) / b.width * GZ.W, bi = (GZ.k0 || 0) - k0; for (var k = bi; k < ZX.length; k++) if (Math.abs(ZX[k] - fx) < Math.abs(ZX[bi] - fx)) bi = k; i = bi; } else i = Math.max(0, Math.min(n - 1, Math.round((cx - b.left) / b.width * (n - 1))));
     if (i === letzt) return; letzt = i;
     var px = ZX ? ZX[i] / GZ.W * b.width : i / (n - 1) * b.width, py = (ZX ? GZ.p[i] : depotGrafik.y(l[i])) / depotGrafik.H * b.height;
-    $('dCur').style.left = px + 'px'; $('dDot').style.left = px + 'px'; $('dDot').style.top = py + 'px';
+    cur0.style.left = px + 'px'; dot0.style.left = px + 'px'; dot0.style.top = py + 'px';
     var grau = ZX && i < (GZ.k0 || 0), j = ZX ? i - (GZ.k0 || 0) : i, v, chg, base, txt;
     if (grau) { v = R.vor[i][1]; chg = v - R.ref; base = R.ref; var td = new Date(R.vor[i][0] * 1000); txt = td.toLocaleDateString('de-DE', { weekday: 'short' }) + ' ' + td.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr'; }
     else { v = R.v[j]; if (R.g) { chg = R.g[j]; base = v - chg; } else { chg = v - R.ref; base = R.ref; } txt = R.t ? depotZeit(R.t[j], R.r) : (j === n - 1 ? R.txt : ''); }
-    $('dDot').style.background = grau ? '#a0a0a0' : '#fff';
+    dot0.style.background = grau ? '#a0a0a0' : '#fff';
     $('dGross').innerHTML = '<span class="dpkt">••••••</span><span class="dw">' + pxEuro(v) + '</span>';
     $('dAend').innerHTML = depotAend(chg, !grau && j === n - 1 ? R.pct : base > 0 ? chg / base * 100 : 0, txt);
     var st = c.querySelector('stop.g2'), st2 = st && st.nextElementSibling; if (st) { st.style.stopColor = chg >= 0 ? 'var(--ok)' : 'var(--rot)'; if (st2) st2.style.stopColor = st.style.stopColor; }
   };
   var ende = function () { if (!aktiv) return; aktiv = false; letzt = -1; c.classList.remove('zieht');
-    $('dGross').innerHTML = '<span class="dpkt">••••••</span><span class="dw">' + pxEuro(d.gesamt) + '</span>'; $('dAend').innerHTML = depotAend(R.eur, R.pct, R.txt); $('dDot').style.background = '#fff';
+    $('dGross').innerHTML = '<span class="dpkt">••••••</span><span class="dw">' + pxEuro(d.gesamt) + '</span>'; $('dAend').innerHTML = depotAend(R.eur, R.pct, R.txt); dot0.style.background = '#fff';
     var st = c.querySelector('stop.g2'), st2 = st && st.nextElementSibling; if (st) { st.style.stopColor = R.eur >= 0 ? 'var(--ok)' : 'var(--rot)'; if (st2) st2.style.stopColor = st.style.stopColor; } };
   c.addEventListener('pointerdown', function (e) { if (!depotSicht) return; if (e.pointerType === 'mouse' && aktiv) return; aktiv = true; c.classList.add('zieht'); try { c.setPointerCapture(e.pointerId); } catch (x) {} zeig(e.clientX); });
   c.addEventListener('pointermove', function (e) { if (e.pointerType === 'mouse' && !aktiv && depotSicht) { aktiv = true; c.classList.add('zieht'); } if (aktiv) zeig(e.clientX); }); /* (3.27) Mac: Linie schon beim Darüberfahren mit der Maus */
