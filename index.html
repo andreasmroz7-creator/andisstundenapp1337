@@ -689,7 +689,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.43';
+var VERSION = '3.44';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -3317,7 +3317,7 @@ function posZeichnen() {
 function depotAend(eur, pct, txt) { return '<span class="dpkt">•••</span><span class="dw ' + (eur >= 0 ? 'dplus' : 'dminus') + '">' + (eur >= 0 ? '+' : '') + euroH(eur) + ' (' + (pct >= 0 ? '+' : '') + String((Math.round(pct * 100) / 100)).replace('.', ',') + ' %) <span class="dwann">' + txt + '</span></span>'; }
 function depotGrafik(R) {
   var l = R.l || R.g || R.v, rf = R.lref !== undefined ? R.lref : R.ref; if (l.length < 2) { depotGrafik.ziel = null; return '<p class="hinweis" style="margin-top:22px">Für diesen Zeitraum gibt es noch keine Daten vom Mac.</p>'; }
-  var W = 300, H = 180, TX = R.r === '1d' && R.vl ? depotTagX(R.ax, R.vor, R.t, W) : null, mm = (rf != null ? l.concat([rf]) : l).concat(TX ? R.vl : []), mn = Math.min.apply(null, mm), mx = Math.max.apply(null, mm), sp = (mx - mn) || 1;
+  var W = 300, H = 180, TX = R.r === '1d' && R.vl ? depotTagX(R.ax, R.vor, R.t, W) : null, mm = (rf != null ? l.concat([rf]) : l).concat(TX ? R.vl : []).concat(R.cmp ? R.cmp.v : []), mn = Math.min.apply(null, mm), mx = Math.max.apply(null, mm), sp = (mx - mn) || 1;
   var y = function (v) { return (H - 4 - (v - mn) / sp * (H - 8)); }, x = function (i) { return (TX ? TX.xh[i] : i / (l.length - 1) * W).toFixed(1); };
   var pf = l.map(function (v, i) { return (i ? 'L' : 'M') + x(i) + ' ' + y(v).toFixed(1); }).join('');
   // (2.39) grauer Vortag und heutiger Verlauf sind EINE Linie (wie im Dashboard); die Farbe wechselt an der Grenze (Farbverlauf), beim Wechsel wandert die Grenze mit
@@ -3327,7 +3327,9 @@ function depotGrafik(R) {
   var farbe = R.eur >= 0 ? 'var(--ok)' : 'var(--rot)', of = (xb / W).toFixed(4);
   var grad = '<defs><linearGradient id="dGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="' + W + '" y2="0"><stop offset="0" style="stop-color:rgba(255,255,255,.38)"/><stop class="g1" offset="' + of + '" style="stop-color:rgba(255,255,255,.38)"/><stop class="g2" offset="' + of + '" style="stop-color:' + farbe + '"/><stop offset="1" style="stop-color:' + farbe + '"/></linearGradient></defs>';
   depotGrafik.y = y; depotGrafik.H = H; depotGrafik.ziel = { p: AP, x: AX, k0: gp.length, ref: rf != null ? y(rf) : null, W: W, H: H, d: pfa, xb: xb };
-  return '<div class="dchart" id="dChart"><svg class="dlinie gross" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + grad + '<path class="tg" d="M' + xb.toFixed(1) + ' 0V' + H + '" style="opacity:' + (TX ? 1 : 0) + '" vector-effect="non-scaling-stroke"/>' + (rf != null ? '<path class="ref" d="M' + xb.toFixed(1) + ' ' + y(rf).toFixed(1) + 'H' + W + '"/>' : '') + '<path class="l" d="' + pfa + '" style="stroke:url(#dGrad)" vector-effect="non-scaling-stroke"/><path class="f" d="M0 ' + (H / 2) + 'H' + W + '" vector-effect="non-scaling-stroke"/></svg><i class="dcur" id="dCur"></i><i class="ddot" id="dDot"></i></div>';
+  return '<div class="dchart" id="dChart"><svg class="dlinie gross" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + grad + '<path class="tg" d="M' + xb.toFixed(1) + ' 0V' + H + '" style="opacity:' + (TX ? 1 : 0) + '" vector-effect="non-scaling-stroke"/>' + (rf != null ? '<path class="ref" d="M' + xb.toFixed(1) + ' ' + y(rf).toFixed(1) + 'H' + W + '"/>' : '') + (R.cmp ? '<path class="cmp" d="' + (function () { var C = R.cmp, XT = TX ? TX.xh : l.map(function (v, i) { return i / (l.length - 1) * W; }), T = R.t && R.t.length === l.length ? R.t : null;
+    var cx = function (k) { if (!(C.zeit && T)) return xb + C.f[k] * ((TX ? XT[XT.length - 1] : W) - xb); var t = C.t[k]; if (t <= T[0]) return XT[0]; for (var i = 1; i < T.length; i++) if (T[i] >= t) return XT[i - 1] + (XT[i] - XT[i - 1]) * (t - T[i - 1]) / ((T[i] - T[i - 1]) || 1); return XT[XT.length - 1]; };
+    return C.v.map(function (v, k) { return (k ? 'L' : 'M') + cx(k).toFixed(1) + ' ' + y(v).toFixed(1); }).join(''); })() + '" vector-effect="non-scaling-stroke"/>' : '') + '<path class="l" d="' + pfa + '" style="stroke:url(#dGrad)" vector-effect="non-scaling-stroke"/><path class="f" d="M0 ' + (H / 2) + 'H' + W + '" vector-effect="non-scaling-stroke"/></svg><i class="dcur" id="dCur"></i><i class="ddot" id="dDot"></i></div>';
 }
 function depotZeit(t, r) {
   var d = new Date(t * 1000);
@@ -3340,13 +3342,15 @@ function depotZeichnen() {
   var d = depotEff(), zu = !depotSicht;
   $('dAuge').innerHTML = zu ? AUGE_ZU : AUGE_AUF;
   if (!d) { $('dKoerper').innerHTML = '<p class="hinweis">Noch kein Depot-Stand. Er kommt vom Mac, sobald das Dashboard läuft.</p>'; return; }
-  var st = new Date(d.stand), alt = (Date.now() - st) > 3 * 3600e3, R = depotLinieWahl(depotReihe(d, depotZr));
+  var st = new Date(d.stand), alt = (Date.now() - st) > 3 * 3600e3, R = depotVgDazu(depotLinieWahl(depotReihe(d, depotZr)));
   if (!$('blattD').classList.contains('offen')) depotAltLinie = null; // beim Öffnen ohne Übergang
   $('dKoerper').innerHTML = '<div class="dbox' + (zu ? ' verdeckt' : '') + '" id="dBox"><div class="dkopf"><small class="hinweis">Gesamtvermögen</small><span class="dart' + (depotArt === 'eur' ? ' eu' : '') + '" id="dArt" role="switch" aria-checked="' + (depotArt === 'eur') + '" aria-label="Diagramm Plus/Minus oder Euro"><span>±</span><span>€</span></span></div><div class="dgross" id="dGross"><span class="dpkt">••••••</span><span class="dw">' + pxEuro(d.gesamt) + '</span></div>' +
     '<div class="dheute" id="dAend">' + (R.leer ? '<span class="dwann">' + R.txt + ': kommt mit dem nächsten Stand vom Mac</span>' : depotAend(R.eur, R.pct, R.txt)) + '</div>' + depotGrafik(R) + '</div>' +
     '<div class="dzr" id="dZr">' + DZR.map(function (z) { return '<button type="button" data-r="' + z[0] + '" class="' + (z[0] === depotZr ? 'an' : '') + '">' + z[1] + '</button>'; }).join('') + '</div>' +
+    '<div class="dzr pvg" id="dVg">' + [['', 'Kein Vergleich'], ['msci', 'MSCI World'], ['btc', 'Bitcoin']].map(function (z) { return '<button type="button" data-v="' + z[0] + '" class="' + (z[0] === depotVg ? 'an' : '') + '">' + z[1] + '</button>'; }).join('') + '</div><div class="pvgtxt" id="dVgTxt">' + (R.cmp ? '┄ ' + esc(R.cmp.txt) : depotVg && !R.leer ? 'Vergleich wird geladen …' : '') + '</div>' +
     '<p class="hinweis" style="margin-top:14px">' + (d.live ? (Date.now() - st > 20 * 60e3 ? 'Mac aus: live' : 'Live') + ' gerechnet (' + (d.live.neuK ? 'Krypto alle 5 s' : '') + (d.live.neuK && d.live.neuW ? ', ' : '') + (d.live.neuW ? 'Aktien/ETFs ' + (boerseOffen() ? 'alle 10 s' : 'Börse zu') + ', Stand ' + new Date(d.live.tW * 1000).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' Uhr' : '') + '). Letzter Stand vom Mac: ' : 'Stand ') + st.toLocaleString('de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr' + (d.live ? '' : ', vom Mac' + (alt ? ' (älter, der Mac ist wohl aus)' : '')) + '. Mit dem Finger über das Diagramm fahren zeigt den Wert zu jedem Zeitpunkt.</p>';
   [].forEach.call(document.querySelectorAll('#dZr button'), function (b) { b.onclick = function () { depotZr = b.dataset.r; depotZeichnen(); }; });
+  [].forEach.call(document.querySelectorAll('#dVg button'), function (b) { b.onclick = function () { depotVg = b.dataset.v; try { localStorage.setItem('cockpit_vergleich_depot', depotVg); } catch (x) {} depotZeichnen(); }; });
   $('dArt').onclick = function () { depotArt = depotArt === 'pm' ? 'eur' : 'pm'; try { localStorage.setItem('cockpit_depotart2', depotArt); } catch (x) {} depotZeichnen(); }; // ganze Breite schaltet um
   $('dKoerper').insertAdjacentHTML('beforeend', depotPosHtml(d));
   [].forEach.call(document.querySelectorAll('#dKoerper .dprow[data-key]'), function (z) { z.onclick = function () { posOeffnen(z.dataset.key); }; });
@@ -3449,6 +3453,37 @@ function posVgDazu(S) {
   if (P.length > 300) { var st = P.length / 299, Q = []; for (var i = 0; i < 299; i++) Q.push(P[Math.floor(i * st)]); Q.push(P[P.length - 1]); P = Q; }
   var b = R.b || P[0].w, pct = (P[P.length - 1].w / b - 1) * 100;
   return Object.assign({}, S, { cmp: { f: P.map(function (q) { return Math.min(1, q.f); }), v: P.map(function (q) { return ref * q.w / b; }), txt: R.n + ' ' + pzKurz(pct) + (posZr === '1d' ? ' heute' : ' im Zeitraum') } });
+}
+// (3.44, Andi 25.11.: „im Vermögen-Diagramm einen Vergleich wie bei den anderen Sachen“) Vergleichslinie fürs Gesamtvermögen: gleicher Startpunkt wie das Depot, danach so, als wäre alles in MSCI World bzw. Bitcoin gewesen
+var depotVg = (function () { try { return localStorage.getItem('cockpit_vergleich_depot') || ''; } catch (x) { return ''; } })();
+function depotVgReihe(art, zr) {
+  var q = zr === '6m' ? '1y' : zr === 'max' ? (art === 'btc' ? '5y' : '1y') : zr;
+  if (art === 'msci') { var kv = daten.depotKurven && daten.depotKurven.k && daten.depotKurven.k['IE00B4L5Y983']; if (!kv) return null;
+    if (q === '1d') { var t = kv['1d']; if (!t || !t.today || t.today.length < 2) return null; var n = t.today.length - 1, a = t.t0, e = t.t1;
+      return { v: t.today.map(function (x, i) { return [a && e ? a + i / n * (e - a) : null, x]; }), b: t.base || t.today[0], n: 'MSCI World' }; }
+    var z = kv[q]; if (!z || z.length < 2) return null; return { v: z.map(function (x) { return [x[0], x[1]]; }), b: null, n: 'MSCI World' }; }
+  if (art === 'btc') { var k = 'BTC|' + q, c = posBin[k];
+    if ((!c || Date.now() - c.t > (q === '1d' ? 60e3 : 15 * 60e3)) && !posVgLaedt[k]) { posVgLaedt[k] = 1; posKrypto({ sym: 'BTC' }, q).then(function () { delete posVgLaedt[k]; if (depotVg === 'btc' && depotZr === zr && $('blattD').classList.contains('offen')) depotZeichnen(); }, function () { delete posVgLaedt[k]; }); }
+    if (!c || !c.v || c.v.length < 2) return null; var v = c.v;
+    if (q === '1d') { var b6 = depotSechsTs() / 1000, vo = v.filter(function (x) { return x[0] < b6; }), he = v.filter(function (x) { return x[0] >= b6; }); if (he.length < 2) return null; return { v: he, b: vo.length ? vo[vo.length - 1][1] : he[0][1], n: 'Bitcoin' }; }
+    return { v: v, b: null, n: 'Bitcoin' }; }
+  return null;
+}
+function depotVgDazu(R) {
+  R.cmp = null; if (!depotVg || R.leer || !R.v || R.v.length < 2) return R;
+  var Q = depotVgReihe(depotVg, R.r); if (!Q) return R;
+  var l = R.l || R.v, n = l.length, T = R.t && R.t.length === n ? R.t : null, ein = function (A, t) { // Wert der Depot-Reihe A zur Zeit t (dazwischen gerade gerechnet)
+    if (!T) return A[0]; if (t <= T[0]) return A[0]; for (var i = 1; i < n; i++) if (T[i] >= t) { var f = (t - T[i - 1]) / ((T[i] - T[i - 1]) || 1); return A[i - 1] + (A[i] - A[i - 1]) * f; } return A[n - 1]; };
+  var mitZeit = T && Q.v[0][0] != null, P = Q.v;
+  if (mitZeit) { P = P.filter(function (x) { return x[0] >= T[0] - 60 && x[0] <= T[n - 1] + 60; }); }
+  if (P.length < 2) return R;
+  if (P.length > 300) { var st = P.length / 299, Q2 = []; for (var i = 0; i < 299; i++) Q2.push(P[Math.floor(i * st)]); Q2.push(P[P.length - 1]); P = Q2; }
+  var tag = R.r === '1d', rf = R.lref !== undefined ? R.lref : R.ref, b, l0, v0;
+  if (tag && R.ref != null) { b = Q.b || P[0][1]; l0 = rf != null ? rf : l[0]; v0 = R.ref; } // 1 Tag: beide ab dem gestrigen Schluss
+  else { b = P[0][1]; l0 = mitZeit ? ein(l, P[0][0]) : l[0]; v0 = mitZeit ? ein(R.v, P[0][0]) : R.v[0]; } // sonst: ab dem ersten gemeinsamen Zeitpunkt
+  var pct = (P[P.length - 1][1] / b - 1) * 100;
+  R.cmp = { t: P.map(function (x) { return x[0]; }), f: P.map(function (x, i) { return i / (P.length - 1); }), v: P.map(function (x) { return l0 + v0 * (x[1] / b - 1); }), zeit: mitZeit, txt: Q.n + ' ' + pzKurz(pct) + (tag ? ' heute' : ' im Zeitraum') };
+  return R;
 }
 // --- Querformat: Diagramm über den ganzen Bildschirm ---
 var querAn = false;
