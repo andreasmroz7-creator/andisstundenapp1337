@@ -689,7 +689,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.37';
+var VERSION = '3.38';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -3183,7 +3183,7 @@ function posReihe(P, cb) { // → {vor:[werte grau], heute:[werte], ref}
 function posGrafik(S, up) {
   var W = 300, H = 170, V = S.vor || [], He = S.heute, alle = V.concat(He).concat(S.ref != null ? [S.ref] : []).concat(S.cmp ? S.cmp.v : []), mn = Math.min.apply(null, alle), mx = Math.max.apply(null, alle), sp = (mx - mn) || 1;
   var y = function (v) { return H - 4 - (v - mn) / sp * (H - 8); }, TE = V.length ? 1 / 6 : 0, xb = TE * W;
-  var X = V.map(function (v, i) { return V.length > 1 ? i / (V.length - 1) * xb : 0; }).concat(He.map(function (v, i) { return xb + (He.length > 1 ? i / (He.length - 1) : 0) * (W - xb); }));
+  var X = V.map(function (v, i) { return V.length > 1 ? i / (V.length - 1) * (xb - 2.5) : 0; }).concat(He.map(function (v, i) { return xb + (He.length > 1 ? i / (He.length - 1) : 0) * (W - xb); })); // (3.38) grauer Vortag endet knapp vor der Trennlinie – sonst färbt der Farbverlauf sein Ende als roten Punkt
   var Y = V.concat(He).map(y), d = Y.map(function (yy, i) { return (i && i !== V.length ? 'L' : 'M') + X[i].toFixed(1) + ' ' + yy.toFixed(1); }).join(''), /* (3.37, Andi 25.11.) keine Verbindung zwischen grauem Vortag und heute – die heutige Linie beginnt bei ihrem ersten Kurs */ f = up ? 'var(--ok)' : 'var(--rot)', of = (xb / W).toFixed(4);
   posGrafik.ziel = { p: Y, x: X, W: W, xb: xb, d: d, ref: S.ref != null ? y(S.ref) : null };
   return '<div class="dchart" id="pChart"><svg class="dlinie gross" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none"><defs><linearGradient id="pGrad" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="' + W + '" y2="0"><stop offset="0" style="stop-color:rgba(255,255,255,.38)"/><stop class="g1" offset="' + of + '" style="stop-color:rgba(255,255,255,.38)"/><stop class="g2" offset="' + of + '" style="stop-color:' + f + '"/><stop offset="1" style="stop-color:' + f + '"/></linearGradient></defs>' +
