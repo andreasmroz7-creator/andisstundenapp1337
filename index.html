@@ -689,7 +689,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.42';
+var VERSION = '3.43';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -3223,20 +3223,26 @@ function posFinger(P, S) {
   c.addEventListener('pointerup', ende); c.addEventListener('pointercancel', ende); c.addEventListener('lostpointercapture', ende);
 }
 function posMorph() { // gleicher weicher Übergang wie im Depot-Diagramm
-  var c = $('pChart'), Z = posGrafik.ziel, A = posAlt; cancelAnimationFrame(posMorphR); if (!c || !Z) { posAlt = null; return; }
-  var pl = c.querySelector('path.l'), pr = c.querySelector('path.ref'), ptg = c.querySelector('path.tg'), g1 = c.querySelector('stop.g1'), g2 = c.querySelector('stop.g2');
-  var art = posKey + '|' + posZr, wechsel = posMorph.art !== art; posMorph.art = art; // (2.80) nur beim Wechsel von Position oder Zeitraum verformen; neue Kurse ohne Animation (vorher alle 5 s grob → fein)
+  var c = $('pChart'), Z = posGrafik.ziel, A = posAlt;
+  var art = posKey + '|' + posZr, wechsel = posMorph.art !== art;
+  // (3.43, Andi 25.11.: „1 Monat → 1 Jahr ohne Animation“) Neue Kurse (alle paar Sekunden) während eines laufenden Übergangs brachen ihn ab → Sprung. Jetzt läuft er weiter, nur das Ziel wird erneuert.
+  if (!wechsel && posMorph.laeuft && c && Z) { posMorph.ziel = Z; return; }
+  cancelAnimationFrame(posMorphR); posMorph.laeuft = false; if (!c || !Z) { posAlt = null; return; }
+  posMorph.art = art; // (2.80) nur beim Wechsel von Position oder Zeitraum verformen; neue Kurse ohne Animation (vorher alle 5 s grob → fein)
   if (!A || !wechsel || matchMedia('(prefers-reduced-motion:reduce)').matches) { posAlt = Z; return; }
   var N = Math.max(A.p.length, Z.p.length), an = function (P, f) { var x = f * (P.length - 1), i = Math.floor(x), k = x - i, a = P[i], b = P[Math.min(P.length - 1, i + 1)]; return a + (b - a) * k; };
   var a = [], b = [], xa = [], xz = [], i; for (i = 0; i < N; i++) { var f = N > 1 ? i / (N - 1) : 0; a.push(an(A.p, f)); b.push(an(Z.p, f)); xa.push(an(A.x, f)); xz.push(an(Z.x, f)); }
   var t0 = performance.now(), W = Z.W, ba = A.xb || 0, bz = Z.xb || 0, ra = A.ref != null ? A.ref : Z.ref, rb = Z.ref;
+  posMorph.ziel = Z; posMorph.laeuft = true;
   var schritt = function (jetzt) {
+    var cc = $('pChart'); if (!cc || posMorph.art !== art) { posMorph.laeuft = false; return; } // Elemente jedes Mal neu holen (bei neuen Kursen wird das Diagramm neu eingesetzt)
+    var pl = cc.querySelector('path.l'), pr = cc.querySelector('path.ref'), ptg = cc.querySelector('path.tg'), g1 = cc.querySelector('stop.g1'), g2 = cc.querySelector('stop.g2'); if (!pl) { posMorph.laeuft = false; return; }
     var q = Math.min(1, (jetzt - t0) / 650), e = q < .5 ? 4 * q * q * q : 1 - Math.pow(-2 * q + 2, 3) / 2, bx = ba + (bz - ba) * e, P = a.map(function (y, i) { return y + (b[i] - y) * e; }), X = xa.map(function (x, i) { return x + (xz[i] - x) * e; });
     pl.setAttribute('d', P.map(function (y, i) { return (i ? 'L' : 'M') + X[i].toFixed(1) + ' ' + y.toFixed(1); }).join(''));
     var o = (bx / W).toFixed(4); if (g1) g1.setAttribute('offset', o); if (g2) g2.setAttribute('offset', o); if (ptg) { ptg.setAttribute('d', 'M' + bx.toFixed(1) + ' 0V170'); ptg.style.opacity = Math.min(1, bx / 8); }
     if (pr && ra != null && rb != null) pr.setAttribute('d', 'M' + bx.toFixed(1) + ' ' + (ra + (rb - ra) * e).toFixed(1) + 'H' + W);
     posAlt = { p: P, x: X, W: W, xb: bx, ref: rb };
-    if (q < 1) posMorphR = requestAnimationFrame(schritt); else { pl.setAttribute('d', Z.d); posAlt = Z; }
+    if (q < 1) posMorphR = requestAnimationFrame(schritt); else { var Zz = posMorph.ziel || Z; pl.setAttribute('d', Zz.d); if (pr && Zz.ref != null) pr.setAttribute('d', 'M' + Zz.xb.toFixed(1) + ' ' + Zz.ref.toFixed(1) + 'H' + W); posAlt = Zz; posMorph.laeuft = false; }
   };
   posMorphR = requestAnimationFrame(schritt);
 }
