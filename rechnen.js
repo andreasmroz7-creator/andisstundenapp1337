@@ -53,13 +53,14 @@
     var arbeitMin = 0, arbeit = 0;
     if (e.modus === 'std') {
       laeden.forEach(function (l) { arbeit += +l.std || 0; });
-      arbeitMin = Math.round(arbeit * 60) + (+e.sonderMin || 0);
+      arbeitMin = Math.round(arbeit * 60);
       arbeit = rundeViertel(arbeitMin) / 60;
     } else {
       laeden.forEach(function (l) { (l.zeiten || []).forEach(function (z) { arbeitMin += spanneMin(z.von, z.bis); }); });
-      arbeitMin += +e.sonderMin || 0; // (3.35) Sonderzeit (z. B. TÜV) zählt komplett als Arbeitszeit
       arbeit = rundeViertel(arbeitMin) / 60;
     }
+    // (3.35) Sonderzeit (z. B. TÜV) zählt komplett als Arbeitszeit – (3.50, Andi 25.11.) eigene Zeile, eigene Viertelstunde
+    var sonderMin = +e.sonderMin || 0, sonder = rundeViertel(sonderMin) / 60;
     var zwischen = n >= 2 ? 0.5 : 0;
     var tl = 0;
     if (e.tl) laeden.forEach(function (l) { tl += tlLaden(l.art, e.fahrer); });
@@ -87,13 +88,13 @@
     var urlaub = e.urlaub ? ((e.urlaubStd != null && e.urlaubStd !== '') ? +e.urlaubStd : 3.08) : 0;
     // (22.11.) Krankheitstag: ebenfalls pauschal 3,08 Std. bezahlt
     var krank = e.krank ? ((e.krankStd != null && e.krankStd !== '') ? +e.krankStd : 3.08) : 0;
-    var gesamt = Math.round((arbeit + zwischen + tl + fahrt + anreise + feiertag + urlaub + krank) * 100) / 100;
+    var gesamt = Math.round((arbeit + sonder + zwischen + tl + fahrt + anreise + feiertag + urlaub + krank) * 100) / 100;
     // (20.11.) alte Tage ohne Uhrzeiten: Gesamtzeit aus der früheren Zeiterfassungs-App fest übernehmen (enthält schon Fahrt, TL usw.)
     if (e.festGesamt != null && e.festGesamt !== '') {
       var fg = Math.round(+e.festGesamt * 100) / 100, t = e.festTeile || { arbeit: fg };
       return { zwUeber: 0, fahrGesamt: 0, arbeitMin: Math.round((+t.arbeit || 0) * 60), arbeit: +t.arbeit || 0, zwischen: 0, tl: +t.tl || 0, fahrt: +t.fahrt || 0, anreise: +t.anreise || 0, gesamt: Math.round((fg + feiertag + urlaub + krank) * 100) / 100, feiertag: feiertag, urlaub: urlaub, krank: krank, verpflegung: verpflegung, fest: true };
     }
-    return { zwUeber: zwUeber, fahrGesamt: fz, arbeitMin: arbeitMin, arbeit: arbeit, zwischen: zwischen, tl: tl, fahrt: fahrt,
+    return { zwUeber: zwUeber, fahrGesamt: fz, arbeitMin: arbeitMin, arbeit: arbeit, sonder: sonder, sonderMin: sonderMin, zwischen: zwischen, tl: tl, fahrt: fahrt,
       anreise: anreise, feiertag: feiertag, urlaub: urlaub, krank: krank, gesamt: gesamt, verpflegung: verpflegung };
   }
 

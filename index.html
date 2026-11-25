@@ -694,7 +694,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.49';
+var VERSION = '3.50';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1088,6 +1088,7 @@ function rechnung() {
   var am = r.arbeitMin;
   if (r.fest) { h += '<div><span>' + esc(e.festText || 'Gesamtzeit (fest übernommen)') + '</span></div>' + (e.quelle ? '<div class="hinweis" style="display:block">Quelle: ' + esc(e.quelle) + '</div>' : '') + '<div class="hinweis" style="display:block"><button class="mini" id="festWeg">Festen Wert entfernen und selbst rechnen lassen</button></div>'; if (r.verpflegung) h += '<div><span>Verpflegung</span><b>' + euroH(r.verpflegung) + '</b></div>'; h += (r.feiertag ? '<div><span>Feiertag (Sachsen)</span><b>' + z(r.feiertag) + '</b></div>' : '') + (r.urlaub ? '<div><span>Urlaub</span><b>' + z(r.urlaub) + '</b></div>' : '') + '<div class="ges"><span>Gesamt</span><span>' + z(r.gesamt) + '</span></div>'; $('rechnung').innerHTML = h; $('festWeg').onclick = function () { delete e.festGesamt; formZeichnen(); }; return; }
   h += '<div><span>Arbeitszeit' + (e.modus === 'zeit' && am ? ' (' + Math.floor(am / 60) + ' Std. ' + (am % 60) + ' Min.)' : '') + '</span><b>' + z(r.arbeit) + '</b></div>';
+  if (r.sonder) h += '<div><span>Sonderzeit' + (e.sonderText ? ' ' + esc(e.sonderText) : '') + ' (' + Math.floor(r.sonderMin / 60) + ' Std. ' + (r.sonderMin % 60) + ' Min.)</span><b>' + z(r.sonder) + '</b></div>'; // (3.50, Andi 25.11.) eigene Zeile
   if (r.zwischen) h += '<div><span>Fahrt zwischen den Läden</span><b>' + z(r.zwischen) + '</b></div>';
   if (r.tl) h += '<div><span>Teamleiter</span><b>' + z(r.tl) + '</b></div>';
   if (r.fahrGesamt) h += '<div><span>Fahrzeit ' + dauer(r.fahrGesamt) + (r.zwUeber ? ' (inkl. ' + r.zwUeber + ' Min. Zwischenfahrt)' : '') + ', bezahlt</span><b>' + z(r.fahrt) + '</b></div>';
@@ -1378,7 +1379,7 @@ $('pdfknopf').onclick = function () {
   ls.forEach(function (x) {
     if (y > 530) { doc.addPage(); y = 50; kopf(); }
     var r = R.berechne(x), d = new Date(x.datum + 'T12:00:00');
-    Object.keys(S).forEach(function (k) { S[k] += r[k]; });
+    Object.keys(S).forEach(function (k) { S[k] += r[k]; }); S.arbeit += r.sonder || 0; // (3.50) im Nachweis zählt die Sonderzeit wie bisher in der Spalte Arbeit
     var ld = (x.laeden || []).map(function (l) {
       var s = (l.ort ? l.ort + ' ' : '') + (l.fil ? l.fil + ' ' : '') + l.art; if (l.ausfall) return s + ' – abgesagt'; if (x.modus === 'zeit') s += ' ' + (l.zeiten || []).filter(function (q) { return q.von && q.bis; }).map(function (q) { return uhr(q.von) + '–' + uhr(q.bis); }).join(', ');
       return s; });
@@ -1403,7 +1404,7 @@ $('pdfknopf').onclick = function () {
       if (zur) neu.push('Rückfahrt Laden–Treffp. ' + (x.zurZeit ? x.zurZeit + ' ' : '') + '(' + dauer(zur).replace(' Std.', '') + ')');
       ld = neu;
     }
-    var w = [d.toLocaleDateString('de-DE'), TAGE[d.getDay()], ld[0].slice(0, 46), z(r.arbeit), r.zwischen ? z(r.zwischen) : '', r.tl ? z(r.tl) : '', r.fahrt ? z(r.fahrt) : '', r.anreise ? z(r.anreise) : '', z(r.gesamt), r.verpflegung ? r.verpflegung + ' €' : '', [teamNotiz, x.notiz || ''].filter(Boolean).join(', ').slice(0, 22)];
+    var w = [d.toLocaleDateString('de-DE'), TAGE[d.getDay()], ld[0].slice(0, 46), z(r.arbeit + (r.sonder || 0)), r.zwischen ? z(r.zwischen) : '', r.tl ? z(r.tl) : '', r.fahrt ? z(r.fahrt) : '', r.anreise ? z(r.anreise) : '', z(r.gesamt), r.verpflegung ? r.verpflegung + ' €' : '', [teamNotiz, x.notiz || ''].filter(Boolean).join(', ').slice(0, 22)];
     sp.forEach(function (s, i) { doc.text(s.x, y, w[i], 9, i === 8, s.r ? 'r' : ''); });
     for (var li = 1; li < ld.length; li++) { y += 12; doc.text(sp[2].x, y, ld[li].slice(0, 46), 9); }
     doc.line(36, y + 5, 806, y + 5, 0.3, 0.8); y += 17;
@@ -4418,6 +4419,7 @@ if ('serviceWorker' in navigator) {
     if (!L.length && (x.feiertag || b.feiertag)) return w + ' war ein Feiertag' + (x.notiz ? ' (' + x.notiz.replace(/\s*–.*$/, '').replace(/^Feiertag \(Sachsen\):\s*/, '') + ')' : '') + ', dafür bekommst du ' + std(s) + '.';
     var teile = [];
     if (b.arbeit) teile.push(zs(b.arbeit) + ' Arbeit');
+    if (b.sonder) teile.push(zs(b.sonder) + ' ' + (x.sonderText || 'Sonderzeit'));
     if (b.tl) teile.push(zs(b.tl) + ' Teamleiter-Stunde' + (b.tl === 1 ? '' : 'n'));
     if (b.fahrt) teile.push(zs(b.fahrt) + ' Fahrt');
     if (b.zwischen) teile.push(zs(b.zwischen) + ' Zwischenfahrt');
@@ -4575,7 +4577,7 @@ if ('serviceWorker' in navigator) {
     try { fahrtenUebernehmen(x); } catch (e) {}
     speichern(x);
     var b = ber(x), g = b.gesamt || 0, teile = [];
-    if (b.arbeit) teile.push(zs(b.arbeit) + ' Arbeit'); if (b.tl) teile.push(zs(b.tl) + ' Teamleiter'); if (b.zwischen) teile.push(zs(b.zwischen) + ' Zwischenfahrt'); if (b.fahrt) teile.push(zs(b.fahrt) + ' Fahrt'); if (b.anreise) teile.push(zs(b.anreise) + (x.abreise && !x.anreise ? ' Abreise' : ' Anreise')); if (b.feiertag) teile.push(zs(b.feiertag) + ' Feiertag');
+    if (b.arbeit) teile.push(zs(b.arbeit) + ' Arbeit'); if (b.sonder) teile.push(zs(b.sonder) + ' Sonderzeit'); if (b.tl) teile.push(zs(b.tl) + ' Teamleiter'); if (b.zwischen) teile.push(zs(b.zwischen) + ' Zwischenfahrt'); if (b.fahrt) teile.push(zs(b.fahrt) + ' Fahrt'); if (b.anreise) teile.push(zs(b.anreise) + (x.abreise && !x.anreise ? ' Abreise' : ' Anreise')); if (b.feiertag) teile.push(zs(b.feiertag) + ' Feiertag');
     var LL = x.laeden.filter(function (l) { return !l.ausfall && (l.ort || l.fil); }), ab = x.laeden.filter(function (l) { return l.ausfall; });
     return (alt ? 'Geändert, Meister. ' : 'Eingetragen, Meister. ') + wannTxt(d) + ': ' + std(g) + ' für dein Protokoll.' + (LL.length ? ' ' + liste(LL.map(ladenTxt)) + '.' : '') + (teile.length > 1 ? ' Davon ' + liste(teile) + '.' : '') + (ab.length ? ' ' + liste(ab.map(function (l) { return (l.ort || 'Zweiter Laden') + (l.fil ? ' ' + l.fil : ''); })) + ' steht als abgesagt.' : '');
   }
