@@ -694,7 +694,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.47';
+var VERSION = '3.48';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -926,7 +926,7 @@ function sonderLesen() {
 });
 function sonderStart(x, fa) { // Beginn = erste Abfahrt nach dem Haken (am selben Tag); sonst (Haken erst hinterher gesetzt) die erste Fahrt nach der Rückfahrt von der Arbeit
   var L = fa.slice().sort(function (a, b) { return a.von - b.von; }), d0 = x.sonderSeit ? new Date(x.sonderSeit) : null;
-  if (d0 && iso2(d0) === x.datum) { var m0 = d0.getHours() * 60 + d0.getMinutes(), f = L.filter(function (q) { return q.bis >= m0 - 5; })[0]; /* auch wenn der Haken erst unterwegs gesetzt wird: die laufende Fahrt zählt */ return f ? f.von : null; }
+  if (d0 && iso2(d0) === x.datum) { var m0 = d0.getHours() * 60 + d0.getMinutes(), f = L.filter(function (q) { return q.bis > m0; })[0]; /* (3.48, Andi 25.11.: nahm die gerade beendete Rückfahrt vom Laden als Beginn) nur eine Fahrt, die nach dem Haken endet: die nächste Abfahrt oder die gerade laufende Fahrt */ return f ? f.von : null; }
   var la = 0; (x.laeden || []).forEach(function (l) { (l.zeiten || []).forEach(function (z) { var b = R.zeitZuMin(z.bis); if (b != null && b > la) la = b; }); });
   var B = []; L.filter(function (q) { return q.von >= la - 10; }).forEach(function (q) { var l = B[B.length - 1]; if (l && q.von - l.bis <= 30) l.bis = q.bis; else B.push({ von: q.von, bis: q.bis }); });
   return la ? (B[1] ? B[1].von : null) : (B[0] ? B[0].von : null);
