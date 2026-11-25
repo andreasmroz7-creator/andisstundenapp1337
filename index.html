@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.54';
+var VERSION = '3.55';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -4549,7 +4549,12 @@ if ('serviceWorker' in navigator) {
       var tz = (String(p.tp).match(/(\d{1,2})[:.](\d{2})/) || []), tort = String(p.tp).replace(/^\s*\d{1,2}[:.]\d{2}\s*(?:uhr)?\s*/i, '').replace(/\b\d{5}\b\s*/, '').trim();
       return tz[1] ? w + ' um ' + (+tz[1]) + ':' + tz[2] + ' Uhr' + (tort ? ', Treffpunkt ' + tort : '') + '.' : w + ' ist Treffpunkt ' + p.tp + '.'; }
     var L = p.laeden || [];
+    planLetzt = { iso: iso, t: Date.now() };
     var vorbei = isoD(d) < isoD(heute0());
+    if (/adresse|straße|strasse|wo genau|anschrift/.test(q)) { var Lq = L.filter(function (l) { return l.ort && q.indexOf(String(l.ort).toLowerCase().split(/[ ,(]/)[0]) >= 0; }); if (!Lq.length) Lq = L; // (3.54) „Welche Straße ist es in Bayreuth?“ → nur dieser Ort, ganze Adresse
+      return (Lq.length === 1 ? 'In ' + Lq[0].ort + ': ' : w + ': ') + liste(Lq.map(function (l) { return (l.str || 'Straße fehlt im Plan') + ', ' + (l.plz ? l.plz + ' ' : '') + l.ort + (Lq.length > 1 ? ' (Filiale ' + l.fil + ')' : ''); })) + '.'; }
+    if (/\bwo\b|wohin|wo hin/.test(q)) { var O = L.map(function (l) { return l.ort; }), O1 = O.filter(function (o, i) { return O.indexOf(o) === i; }); // (3.54) „Wo bin ich am Dienstag?“ → nur die Orte
+      return w + (vorbei ? ' warst du in ' : ' bist du in ') + (O1.length === 1 && O.length > 1 ? O1[0] + ' (' + O.length + ' Läden)' : liste(O1)) + '.'; }
     var r = w + (vorbei ? ' warst du in ' : ' geht es nach ') + liste(L.map(function (l) { return l.ort + ' ' + l.fil; })) + (p.tp ? '. Treffpunkt ' + (vorbei ? 'war ' : '') + p.tp : '') + (p.team ? '. Team ' + p.team : '') + '.';
     if (/adresse|straße|strasse|wo genau|anschrift/.test(q)) r = w + ': ' + liste(L.map(function (l) { return 'Filiale ' + l.fil + ', ' + (l.str || '') + ', ' + (l.plz ? l.plz + ' ' : '') + l.ort; })) + '.';
     return r;
@@ -4568,10 +4573,14 @@ if ('serviceWorker' in navigator) {
     return w + ' arbeitest du mit ' + liste(A.map(function (x) { var n = x.name.split(','); return (n[1] ? n[1].trim().split(' ')[0] + ' ' : '') + n[0]; })) + '.';
   }
   function naechsterEinsatz() { var d = D(), n = d && d.nachweis, hi = isoD(heute0()); var x = n && n.tage ? n.tage.filter(function (t) { return t.datum > hi && (t.laeden || []).length; })[0] : null; return x; }
-  function wochePlan(Z) { var r = [], a = isoD(Z.von), b = isoD(Z.bis), d = D(), n = d && d.nachweis;
+  var planLetzt = null;
+  function wochePlan(Z, q) { var r = [], a = isoD(Z.von), b = isoD(Z.bis), d = D(), n = d && d.nachweis, zahl = ['keinen', 'einen Laden', 'zwei Läden', 'drei Läden', 'vier Läden'], kurz = !/\bwo\b|wohin|welche (?:läden|orte|städte)|wo hin/.test(q || ''); // (3.54, Andi 25.11.) kurz: nur wie viele Läden je Tag – „wo“ erst auf Nachfrage
+    if (kurz) { (n && n.tage ? n.tage : []).forEach(function (t) { if (t.datum < a || t.datum > b) return; var dd = new Date(t.datum + 'T12:00'), k = (t.laeden || []).length; if (t.nurReise) r.push(WTG[dd.getDay()] + ' Anreise'); else if (k) r.push(WTG[dd.getDay()] + ' ' + (zahl[k] || k + ' Läden')); });
+      if (!r.length) return 'In der Woche vom ' + datTxt(Z.von, false) + ' steht nichts im Einsatzplan.';
+      planLetzt = { w: Z, t: Date.now() }; return 'Diese Woche: ' + r.join(', ') + '.'; }
     (n && n.tage ? n.tage : []).forEach(function (t) { if (t.datum < a || t.datum > b) return; var dd = new Date(t.datum + 'T12:00'); if (t.nurReise) r.push(WTG[dd.getDay()] + ' Anreise'); else if ((t.laeden || []).length) r.push(WTG[dd.getDay()] + ' ' + liste(t.laeden.map(function (l) { return l.ort; }))); });
     if (!r.length) return 'In der Woche vom ' + datTxt(Z.von, false) + ' steht nichts im Einsatzplan.';
-    return 'Plan für die Woche vom ' + datTxt(Z.von, false) + ': ' + r.join('; ') + '.'; }
+    planLetzt = { w: Z, t: Date.now() }; return 'Plan für die Woche vom ' + datTxt(Z.von, false) + ': ' + r.join('; ') + '.'; }
 
   /* ---------- Termine ---------- */
   function termine() { try { return tmListe(); } catch (e) { return []; } }
@@ -4896,13 +4905,16 @@ if ('serviceWorker' in navigator) {
     }
 
     /* Einsatzplan */
-    var planWort = /was steht .*an|wo war ich|wo waren wir|wo hab ich gearbeitet|wo habe ich gearbeitet|wann geht(?:s| es|'s)? .*los|adresse|anschrift|was ist .*los|was liegt an|einsatz|einsatzplan|\bplan\b|arbeite ich|arbeiten wir|muss ich arbeiten|arbeiten muss|arbeiten soll|wie arbeite ich|(?:muss|soll) ich (?:\S+ ){0,4}arbeiten|wie (?:arbeite|arbeiten) (?:ich|wir) (?:\S+ ){0,3}|wann muss ich (?:morgen |heute )?(?:los|anfangen|da sein)|wo bin ich|wo sind wir|wohin|wo geht|wo gehts|wo geht's|wo muss ich|welcher laden|welche läden|welche laeden|welche filiale|filiale|treffpunkt|wann geht es los|wann gehts los|wann geht's los|losfahren|abfahrt|hotel|übernacht|uebernacht|mit wem|kollegen|wer arbeitet|wer ist (?:dabei|alles|im team)|personalnummer|team|anreise|abreise|wann fahr|inventur/;
+    var planWort = /welche stra(?:ß|ss)e|was steht .*an|wo war ich|wo waren wir|wo hab ich gearbeitet|wo habe ich gearbeitet|wann geht(?:s| es|'s)? .*los|adresse|anschrift|was ist .*los|was liegt an|einsatz|einsatzplan|\bplan\b|arbeite ich|arbeiten wir|muss ich arbeiten|arbeiten muss|arbeiten soll|wie arbeite ich|(?:muss|soll) ich (?:\S+ ){0,4}arbeiten|wie (?:arbeite|arbeiten) (?:ich|wir) (?:\S+ ){0,3}|wann muss ich (?:morgen |heute )?(?:los|anfangen|da sein)|wo bin ich|wo sind wir|wohin|wo geht|wo gehts|wo geht's|wo muss ich|welcher laden|welche läden|welche laeden|welche filiale|filiale|treffpunkt|wann geht es los|wann gehts los|wann geht's los|losfahren|abfahrt|hotel|übernacht|uebernacht|mit wem|kollegen|wer arbeitet|wer ist (?:dabei|alles|im team)|personalnummer|team|anreise|abreise|wann fahr|inventur/;
     if (planWort.test(q)) {
       if (/personalnummer/.test(q) && /meine|ich/.test(q) && !/von|vom|der|des/.test(q)) return 'Deine Personalnummer ist 4 0 4 8.';
       Z = zeit(q, !/\b(?:war|warst|hatte|hattest|gearbeitet|gewesen)\b/.test(q));
       if (/anreise|abreise/.test(q) && !(Z && Z.art === 'tag')) { var ri = d.reiseinfo; if (ri && (ri.anreise || ri.abreise)) return 'Laut Reiseinfo KW ' + (ri.kw || '') + ': Anreise ' + (ri.anreise ? datTxt(new Date(ri.anreise + 'T12:00')) : 'offen') + ', Abreise ' + (ri.abreise ? datTxt(new Date(ri.abreise + 'T12:00')) : 'offen') + (ri.team ? ', Team ' + ri.team : '') + '.'; }
-      if (Z && Z.art === 'woche') return wochePlan(Z);
+      if (Z && Z.art === 'woche') return wochePlan(Z, q);
+      if (Z && Z.art === 'tag' && planLetzt && planLetzt.w && Date.now() - planLetzt.t < 5 * 60e3 && !/nächst|naechst|kommend|übernächst/.test(q)) { var wt_ = ['sonntag', 'montag', 'dienstag', 'mittwoch', 'donnerstag', 'freitag', 'samstag'].filter(function (x) { return q.indexOf(x) >= 0; })[0]; // (3.55) nach „Wie muss ich die Woche arbeiten?“ meint „Dienstag“ den Dienstag DIESER Woche
+        if (wt_) { var v_ = new Date(planLetzt.w.von); v_.setHours(12, 0, 0, 0); for (var k_ = 0; k_ < 7; k_++) { var d_ = new Date(v_); d_.setDate(v_.getDate() + k_); if (d_.getDay() === ['sonntag', 'montag', 'dienstag', 'mittwoch', 'donnerstag', 'freitag', 'samstag'].indexOf(wt_)) { Z = { art: 'tag', d: d_ }; break; } } } }
       if (Z && Z.art === 'tag') return planTxt(Z.d, q);
+      if (planLetzt && planLetzt.iso && Date.now() - planLetzt.t < 5 * 60e3 && /adresse|straße|strasse|wo genau|anschrift/.test(q)) return planTxt(new Date(planLetzt.iso + 'T12:00'), q); // (3.54) Folgefrage zum zuletzt genannten Tag
       if (/hotel|übernacht|uebernacht/.test(q)) { var ho = hotelAb(isoD(h)) || ((naechsterEinsatz() || {}).hotel); return ho ? 'Dein Hotel: ' + ho + '.' : 'Ich sehe gerade kein Hotel im Plan.'; }
       if (/(?:mit wem|wer arbeitet|kollegen|wer ist|personalnummer|team)/.test(q)) { var pt = planTagX(isoD(h)); if (!pt || !(pt.laeden || []).length) pt = naechsterEinsatz(); if (!pt) return 'Ich sehe gerade keinen Einsatz im Plan.'; return leuteTxt(pt, wannTxt(new Date(pt.datum + 'T12:00')), q); }
       var nx2 = planTagX(isoD(h)); if (!(nx2 && (nx2.laeden || []).length) || h.getHours() >= 17) nx2 = naechsterEinsatz(); if (!nx2) return 'Ich sehe gerade keinen nächsten Einsatz im Plan.';
