@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.55';
+var VERSION = '3.56';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -4577,7 +4577,8 @@ if ('serviceWorker' in navigator) {
   function wochePlan(Z, q) { var r = [], a = isoD(Z.von), b = isoD(Z.bis), d = D(), n = d && d.nachweis, zahl = ['keinen', 'einen Laden', 'zwei Läden', 'drei Läden', 'vier Läden'], kurz = !/\bwo\b|wohin|welche (?:läden|orte|städte)|wo hin/.test(q || ''); // (3.54, Andi 25.11.) kurz: nur wie viele Läden je Tag – „wo“ erst auf Nachfrage
     if (kurz) { (n && n.tage ? n.tage : []).forEach(function (t) { if (t.datum < a || t.datum > b) return; var dd = new Date(t.datum + 'T12:00'), k = (t.laeden || []).length; if (t.nurReise) r.push(WTG[dd.getDay()] + ' Anreise'); else if (k) r.push(WTG[dd.getDay()] + ' ' + (zahl[k] || k + ' Läden')); });
       if (!r.length) return 'In der Woche vom ' + datTxt(Z.von, false) + ' steht nichts im Einsatzplan.';
-      planLetzt = { w: Z, t: Date.now() }; return 'Diese Woche: ' + r.join(', ') + '.'; }
+      planLetzt = { w: Z, t: Date.now() }; var mo_ = new Date(); mo_.setHours(12, 0, 0, 0); mo_.setDate(mo_.getDate() - ((mo_.getDay() + 6) % 7)); var df_ = Math.round((new Date(isoD(Z.von) + 'T12:00') - mo_) / 864e5 / 7); // (3.56, Andi 18:42: „nächste Woche“ hieß trotzdem „Diese Woche“)
+      return (df_ === 0 ? 'Diese Woche' : df_ === 1 ? 'Nächste Woche' : df_ === -1 ? 'Letzte Woche' : 'In der Woche vom ' + datTxt(Z.von, false)) + ': ' + r.join(', ') + '.'; }
     (n && n.tage ? n.tage : []).forEach(function (t) { if (t.datum < a || t.datum > b) return; var dd = new Date(t.datum + 'T12:00'); if (t.nurReise) r.push(WTG[dd.getDay()] + ' Anreise'); else if ((t.laeden || []).length) r.push(WTG[dd.getDay()] + ' ' + liste(t.laeden.map(function (l) { return l.ort; }))); });
     if (!r.length) return 'In der Woche vom ' + datTxt(Z.von, false) + ' steht nichts im Einsatzplan.';
     planLetzt = { w: Z, t: Date.now() }; return 'Plan für die Woche vom ' + datTxt(Z.von, false) + ': ' + r.join('; ') + '.'; }
