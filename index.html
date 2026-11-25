@@ -503,6 +503,51 @@ body.istoffline .sstand{color:#ff6b61}
 .monatzeile{display:flex;align-items:center;justify-content:center;gap:10px}
 .monatzeile .wh{color:var(--grau);opacity:.45;font-size:20px;line-height:1}
 .toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top) + 12px);transform:translateX(-50%);background:rgba(37,37,37,.95);border:1px solid var(--rand);padding:10px 16px;border-radius:14px;z-index:20;font-size:14px;display:none;white-space:nowrap}
+/* (3.52) dunkler Einsatzplan wie im Dashboard-Cockpit */
+.htplanD .pgrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.htplanD .ptag{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);min-width:0}
+.htplanD .ptag.heute{background:rgba(255,255,255,.09);border-color:rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+.htplanD .ptag .pkopf{display:flex;justify-content:space-between;align-items:baseline}
+.htplanD .ptag .pkopf b{font-size:15px}
+.htplanD .ptag .pkopf span{font-size:12px;color:#8e8e93}
+.htplanD .ptag .ptp{font-size:12px;color:#c7c7cc;display:flex;gap:6px;align-items:center}
+.htplanD .ptag .ptp i{font-style:normal;font-weight:700;color:#fff;background:rgba(255,255,255,.1);border-radius:6px;padding:2px 6px}
+.htplanD .ptag .pladen{display:flex;flex-direction:column;gap:2px;padding-top:8px;border-top:1px solid rgba(255,255,255,.07);min-width:0}
+.htplanD .ptag .pladen small{font-size:10.5px;letter-spacing:.4px;text-transform:uppercase;color:#8e8e93}
+.htplanD .ptag .pladen b{font-size:14px;line-height:1.25;overflow-wrap:anywhere}
+.htplanD .ptag .pladen span{font-size:12px;color:#aeaeb2;overflow-wrap:anywhere}
+.htplanD .ptag .pladen .pnr{color:#e5e5ea;font-variant-numeric:tabular-nums}
+.htplanD .ptag .pfrei{font-size:13px;color:#636366;padding-top:8px;border-top:1px solid rgba(255,255,255,.07)}
+.htplanD .orig{display:block;margin:10px 2px 0;background:none;border:0;color:#8e8e93;font:inherit;font-size:13px;cursor:pointer;padding:0}
+.htplanD .ptag .pleute{display:flex;flex-direction:column;gap:3px;margin-top:auto;padding-top:8px;border-top:1px solid rgba(255,255,255,.07);font-size:12px;color:#c7c7cc}
+.htplanD .ptag .pleute div{display:flex;gap:7px}
+.htplanD .ptag .pleute i{font-style:normal;color:#8e8e93;font-variant-numeric:tabular-nums;min-width:30px}
+.htplanD .pteam{margin-top:14px;padding:14px 16px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.htplanD .pteam .preise{display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:0;color:#e5e5ea;font:inherit;font-size:14px;font-weight:600;cursor:pointer;padding:0}
+.htplanD .pteam .preise svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;transition:transform .25s}
+.htplanD .pteam .preise[aria-expanded=true] svg{transform:rotate(180deg)}
+.htplanD .pteam .pnum{display:block;margin-top:14px}
+.htplanD .pteam .phot{display:flex;flex-direction:column;gap:3px;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.04);margin-bottom:14px}
+.htplanD .pteam .phot b{font-size:14px;font-weight:600}
+.htplanD .pteam small{display:block;font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:#8e8e93}
+.htplanD .pteam .pleut{margin:0 2px 6px}
+.htplanD .pteam .pliste{display:flex;flex-direction:column}
+.htplanD .pteam .pzeile{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 170px;gap:14px;align-items:center;padding:10px 2px;border-top:1px solid rgba(255,255,255,.06);font-size:14px}
+.htplanD .pteam .pzeile:first-child{border-top:0}
+.htplanD .pteam .pzeile b{font-weight:600}
+.htplanD .pteam .pzeile span{color:#8e8e93;font-size:13px}
+.htplanD .pteam .pzeile a{text-align:right}
+.htplanD .pteam .pnum[hidden]{display:none!important}
+.htplanD .pteam .pnum a{color:#e5e5ea;text-decoration:none;font-variant-numeric:tabular-nums}
+.htplanD .pteam .pnum a:hover{text-decoration:underline}
+.htplanD{margin:18px 0 6px}
+.htplanD .kopf2{display:flex;justify-content:space-between;align-items:center;margin:0 2px 10px}
+.htplanD .kopf2 b{font-size:16px}
+.htplanD .kopf2 button{background:none;border:0;color:var(--grau);font:inherit;font-size:13px;cursor:pointer}
+.htplanD .bild{border-radius:16px;overflow:hidden;background:#fff;cursor:zoom-in}
+.htplanD img{display:block;width:100%;height:auto}
+.htplanD .pgrid{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(148px,44%);overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px;scrollbar-width:none}.htplanD .pgrid::-webkit-scrollbar{display:none}.htplanD .ptag{scroll-snap-align:start}
+.htplanD .pteam .pzeile{grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr) auto;gap:10px;font-size:13px}
 </style>
 </head>
 <body style="background:#000;margin:0">
@@ -694,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.51';
+var VERSION = '3.52';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -3040,6 +3085,24 @@ function htTagName(datum) {
   return t === 0 ? 'Heute' : t === 1 ? 'Morgen' : t === 2 ? 'Übermorgen' : ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'][d.getDay()] + ', ' + d.getDate() + '.' + (d.getMonth() + 1) + '.';
 }
 var HTP = { el: null, kw: null };
+function planTabelle(PW) { // (3.52, Andi 25.11.: auf dem Handy auch der dunkle Einsatzplan wie im Dashboard-Cockpit) aus cockpit_mac.js übernommen
+        try { var T = ((daten.nachweis && daten.nachweis.tage) || []), d0 = new Date(PW.von + 'T12:00:00'), hi = iso2(new Date()), h = '', n = 0;
+          for (var i = 0; i < 6; i++) { var d = new Date(d0); d.setDate(d0.getDate() + i); var ds = iso2(d), t = T.find(function (x) { return x.datum === ds; }), L = t && t.laeden || [];
+            if (L.length) n++;
+            var tp = t && t.tp ? String(t.tp) : '', tz = (tp.match(/^\d{1,2}:\d{2}/) || [''])[0], to = tp.replace(tz, '').replace(/\b\d{5}\b/, '').trim();
+            h += '<div class="ptag' + (ds === hi ? ' heute' : '') + '" data-d="' + ds + '"><div class="pkopf"><b>' + ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][d.getDay()] + '</b><span>' + d.getDate() + '.' + (d.getMonth() + 1) + '.</span></div>' +
+              (tz ? '<div class="ptp"><i>' + esc(tz) + '</i><span>' + esc(to || 'Treffpunkt') + '</span></div>' : '') +
+              (L.length ? L.map(function (l, k) { return '<div class="pladen"><small>' + (k === 0 ? 'Vormittag' : k === 1 ? 'Mittag' : (k + 1) + '. Laden') + '</small><b>' + esc(l.ort || '') + '</b><span class="pnr">' + esc(l.fil || '') + (l.art ? ' · ' + esc(l.art) : '') + (l.nl ? ' · ' + esc(l.nl) + (l.nlnr != null ? ' ' + esc(l.nlnr) : '') : '') + '</span><span>' + esc(l.str || '') + (l.plz ? ', ' + esc(l.plz) : '') + '</span></div>'; }).join('') : '<div class="pfrei">' + (t && t.nurReise ? 'Anreise' : 'frei') + '</div>') + '</div>'; }
+          /* (00:10) Pro Arbeitstag unten die Leute mit Personalnummer (aus dem Einsatzplan); Reiseinfo mit Handynummern und Hotel erst auf Knopfdruck */
+          h = h.split('<div class="ptag').map(function (s, i) { if (i === 0 || s.indexOf('pfrei') >= 0) return i === 0 ? s : '<div class="ptag' + s;
+            var ds = (s.match(/data-d="([^"]+)"/) || [])[1], t = T.find(function (x) { return x.datum === ds; }), LL = t && t.leute || [];
+            var le = LL.length ? '<div class="pleute">' + LL.map(function (p) { return '<div><i>' + esc(p.nr || '') + '</i><span>' + esc(String(p.name || '').split(',')[0]) + '</span></div>'; }).join('') + '</div>' : '';
+            return '<div class="ptag' + s.replace(/<\/div>$/, le + '</div>'); }).join('');
+          var RI = daten.reiseinfo, P = RI && String(RI.kw) === String(+PW.kw) && RI.personen ? RI.personen : [], hot = (T.find(function (x) { return x.datum >= PW.von && x.datum <= PW.bis && x.hotel; }) || {}).hotel;
+          var team = (P.length || hot) ? '<div class="pteam"><button type="button" class="preise" aria-expanded="false"><span>Reiseinfo KW ' + esc(PW.kw) + '</span><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button><div class="pnum" hidden>' +
+            (hot ? '<div class="phot"><small>Hotel</small><b>' + esc(hot) + '</b></div>' : '') +
+            (P.length ? '<small class="pleut">Team</small><div class="pliste">' + P.map(function (p) { return '<div class="pzeile"><b>' + esc(p.name || '') + (p.ich ? ' (du)' : '') + '</b><span>' + esc(p.team || '') + '</span>' + (p.tel && !p.ich ? '<a href="tel:' + esc(String(p.tel).replace(/\s+/g, '')) + '">' + esc(p.tel) + '</a>' : '<a></a>') + '</div>'; }).join('') + '</div>' : '') + '</div></div>' : '';
+          return n ? '<div class="pgrid">' + h + '</div>' + team : ''; } catch (x) { return ''; } }
 function htZeichnen() {
   var F = htFolge(), hi = iso2(new Date()), eh = daten.eintraege.find(function (x) { return x.datum === hi; }), h = '';
   if (!daten.nachweis) h += '<p class="hinweis">Die Einsatzpläne sind noch nicht geladen. Einmal abgleichen.</p>';
@@ -3063,7 +3126,12 @@ function htZeichnen() {
   $('htKoerper').innerHTML = h;
   // (3.13) Einsatzplan der Woche im Heute-Fenster; der Knoten wird behalten (Zoom bleibt beim Aktualisieren jede Minute erhalten)
   try { var PW = planWoche(), hk = $('htKoerper'), hn = hk.querySelector('.hinweis:last-of-type');
-    if (!HTP.el || HTP.kw !== PW.kw) { HTP.kw = PW.kw; HTP.el = document.createElement('div'); HTP.el.className = 'htplan';
+    var tab_ = planTabelle(PW); if (tab_ && (!HTP.el || HTP.kw !== PW.kw || HTP.tab !== tab_)) { HTP.kw = PW.kw; HTP.tab = tab_; HTP.el = document.createElement('div'); HTP.el.className = 'htplan htplanD'; // (3.52) dunkle Wochenübersicht, Original-Bild auf Knopfdruck
+      HTP.el.innerHTML = '<div class="htplankopf"><b>Einsatzplan KW ' + esc(PW.kw) + '</b><button type="button" class="htplangross">Original ansehen ›</button></div>' + tab_;
+      HTP.el.querySelector('.htplangross').onclick = function () { planZeigen(); };
+      var pr_ = HTP.el.querySelector('.preise'); if (pr_) pr_.onclick = function () { var nn = HTP.el.querySelector('.pnum'), auf = nn.hidden; nn.hidden = !auf; pr_.setAttribute('aria-expanded', String(auf)); };
+      setTimeout(function () { try { var g = HTP.el.querySelector('.pgrid'), h_ = HTP.el.querySelector('.ptag.heute'); if (g && h_) g.scrollLeft = h_.offsetLeft - g.offsetLeft; } catch (x) {} }, 50); }
+    else if (!tab_ && (!HTP.el || HTP.kw !== PW.kw)) { HTP.kw = PW.kw; HTP.tab = ''; HTP.el = document.createElement('div'); HTP.el.className = 'htplan';
       HTP.el.innerHTML = '<div class="htplankopf"><b>Einsatzplan KW ' + esc(PW.kw) + '</b><button type="button" class="htplangross">Groß ansehen ›</button></div><div class="zbox htzbox"><p class="hinweis" style="margin:18px 0">Plan wird geladen …</p></div>';
       HTP.el.querySelector('.htplangross').onclick = function () { planZeigen(); };
       var box = HTP.el.querySelector('.htzbox');
