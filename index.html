@@ -689,7 +689,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.45';
+var VERSION = '3.46';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2793,7 +2793,9 @@ var DSORT = { wert: 'nach Wert', heute: 'nach heute', kauf: 'nach Gewinn seit Ka
 function depotRest(d) { var r = +d.fest || 0; (d.ex || []).forEach(function (x) { r -= +x.v || 0; }); return r; }
 function depotRenteHtml(d, zeile) {
   var E = (d.ex || []).filter(function (x) { return x.v > 0; }); if (!E.length) return '';
-  return '<div class="wltr" style="margin-top:6px">Rente</div>' + E.map(function (x) { var pc = x.p > 0 ? (x.v / x.p - 1) * 100 : null; return zeile(/allianz/i.test(x.n) ? 'Allianz-Rente' : depotKurz(x.n), x.p > 0 ? 'eingezahlt ' + euro(x.p) : 'Stand vom Mac', x.v, pc, /allianz/i.test(x.n) ? 'rente' : null, /allianz/i.test(x.n) ? posMini('rente', null) : ''); }).join(''); // (2.53) antippbar: Detail mit Einzahlungen // (2.51) Mini-Diagramm wie im Dashboard (vom Mac: positionen.json k.rente)
+  return '<div class="wltr" style="margin-top:6px">Rente</div>' + E.map(function (x) { var pg = x.p > 0 ? (x.v / x.p - 1) * 100 : null, pc = pg; // (3.46, Andi 25.11.: „damit Farben und Zahlen passen“) rechts wie bei allen Positionen das Prozent vom letzten Handelstag (passt zur Farbe der Mini-Kurve), links klein das Ergebnis seit Beginn
+    var t1 = /allianz/i.test(x.n) && daten.depotKurven && daten.depotKurven.k && daten.depotKurven.k.rente && daten.depotKurven.k.rente['1d']; if (t1 && t1.today && t1.today.length >= 2 && t1.base) pc = (t1.today[t1.today.length - 1] / t1.base - 1) * 100;
+    return zeile(/allianz/i.test(x.n) ? 'Allianz-Rente' : depotKurz(x.n), x.p > 0 ? (pc !== pg && pg != null ? 'eingez. ' + euro(x.p) + ' · ' + pzKurz(pg) : 'eingezahlt ' + euro(x.p)) : 'Stand vom Mac', x.v, pc, /allianz/i.test(x.n) ? 'rente' : null, /allianz/i.test(x.n) ? posMini('rente', null) : ''); }).join(''); // (2.53) antippbar: Detail mit Einzahlungen // (2.51) Mini-Diagramm wie im Dashboard (vom Mac: positionen.json k.rente)
 }
 function depotPosHtml(d) {
   if (!d.pos || !d.pos.length) return '';
