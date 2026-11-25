@@ -694,7 +694,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.48';
+var VERSION = '3.49';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -940,8 +940,14 @@ function sonderFahrten(x, fa) {
     var ev = (daten.fahrtEvents || []).filter(function (y) { return y.datum === x.datum; }).sort(function (a, b) { return a.min - b.min; });
     var offen = ev.length && ev[ev.length - 1].art === 'an', nach = fa.filter(function (f) { return f.von >= sp.von - 10; });
     var hinD = nach.length ? nach[0].bis - nach[0].von : 0, letzte = nach[nach.length - 1]; /* Rückweg ungefähr so lang wie der Hinweg – kurze Fahrten der Prüfer zählen nicht als Ende */
-    if (nach.length >= 2 && !offen && letzte.bis - letzte.von >= Math.max(5, hinD * 0.6)) { var ende = nach[nach.length - 1].bis; x.sonderZeit = mz(sp.von) + '–' + mz(ende); x.sonderMin = x.sonderHand ? sonderHandMin(x) : ende - sp.von; x.geaendert = Date.now(); sp.bis = ende; }
+    if (nach.length >= 2 && !offen && letzte.bis - letzte.von >= Math.max(5, hinD * 0.6)) { var ende = nach[nach.length - 1].bis; x.sonderZeit = mz(sp.von) + '–' + mz(ende); x.sonderMin = x.sonderHand ? sonderHandMin(x) : ende - sp.von; x.sonderAutoEnde = mz(ende); x.geaendert = Date.now(); sp.bis = ende; }
     else return fa.filter(function (f) { return f.von < sp.von - 10; });
+  }
+  else if (x.sonderAutoEnde && x.sonderAutoEnde === mz(sp.bis)) { // (3.49, Andi 25.11.: beim TÜV haben die Prüfer das Auto angemacht, das Handy hat sich verbunden) Ende automatisch gesetzt: kommt danach noch eine lange Fahrt (z. B. die echte Rückfahrt), wandert das Ende mit
+    var ev2 = (daten.fahrtEvents || []).filter(function (y) { return y.datum === x.datum; }).sort(function (a, b) { return a.min - b.min; }), offen2 = ev2.length && ev2[ev2.length - 1].art === 'an';
+    var hin2 = fa.filter(function (f) { return f.von >= sp.von - 10; })[0], hD2 = hin2 ? hin2.bis - hin2.von : 0, spaeter = fa.filter(function (f) { return f.von > sp.bis + 2 && f.von - sp.bis <= 240; }), l2 = spaeter[spaeter.length - 1];
+    if (l2 && !offen2 && l2.bis - l2.von >= Math.max(5, hD2 * 0.6)) { sp.bis = l2.bis; x.sonderZeit = mz(sp.von) + '–' + mz(l2.bis); x.sonderMin = x.sonderHand ? sonderHandMin(x) : l2.bis - sp.von; x.sonderAutoEnde = mz(l2.bis); x.geaendert = Date.now(); }
+    else if (offen2 && spaeter.length === 0 && ev2.length && ev2[ev2.length - 1].min > sp.bis) return fa.filter(function (f) { return f.von < sp.von - 10; }); // gerade wieder unterwegs: noch nichts als Fahrzeit zählen
   }
   return fa.filter(function (f) { return f.von < sp.von - 10 || f.von > sp.bis + 10; });
 }
