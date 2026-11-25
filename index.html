@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.53';
+var VERSION = '3.54';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2442,8 +2442,15 @@ function jvSprechen(text, audioB64) {
   }
   jvTts(text, fertig);
 }
+function jvSprechbar(t) { // (3.54, Andi 25.11.) Ortsnamen und Adressen so, wie ein Mensch sie sagt: „Zeil a. Main“ → „Zeil am Main“, „Str.“ → „Straße“, Postleitzahl Ziffer für Ziffer
+  var Z = ['null', 'eins', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben', 'acht', 'neun'];
+  return String(t || '').replace(/\ba\.\s?M\.(?=[\s,;)]|$)/g, 'am Main').replace(/\b([A-ZÄÖÜ][a-zäöüß-]+) a\.\s?(?=[A-ZÄÖÜ])/g, '$1 am ').replace(/\ba\.\s?d\.\s?(?=[A-ZÄÖÜ])/g, 'an der ').replace(/\bi\.\s?(?=[A-ZÄÖÜ][a-zäöü])/g, 'im ')
+    .replace(/\b([A-Za-zÄÖÜäöüß-]+?)(?:str\.|str(?=\s*\d))/gi, function (m, g) { return g + (/-$/.test(g) ? 'Straße' : 'straße'); })
+    .replace(/(^|[^\d.,])(0\d{4}|\d{5})(?![\d]|[.,]\d)(?=\s+[A-ZÄÖÜ][a-zäöü])/g, function (m, p, d) { return p + d.split('').map(function (c) { return Z[+c]; }).join(' '); });
+}
 function jvTts(text, fertig) {
   if (!window.speechSynthesis) return fertig();
+  text = jvSprechbar(text);
   var u = new SpeechSynthesisUtterance(text); u.lang = 'de-DE'; var st = speechSynthesis.getVoices().filter(function (v) { return /^de/i.test(v.lang); }); if (st.length) u.voice = st.find(function (v) { return /premium|enhanced|anna|markus/i.test(v.name); }) || st[0];
   u.onend = fertig; u.onerror = fertig; u.onboundary = function () { try { window.jarvisKick && jarvisKick(); } catch (x) {} }; jvZustand('spricht', ''); speechSynthesis.cancel(); speechSynthesis.speak(u);
 }
@@ -4537,7 +4544,10 @@ if ('serviceWorker' in navigator) {
     if (p.nurReise) return w + ' ist ein Reisetag' + (p.team ? ', Team ' + p.team : '') + (p.an ? ', Anreise' : '') + '.';
     if (/hotel|übernacht|uebernacht|schlaf/.test(q)) { var ho = p.hotel || hotelAb(iso); return ho ? w + ' übernachtest du im ' + ho + '.' : w + ' ist kein Hotel eingetragen' + (p.ab ? ', das ist der Abreisetag' : '') + '.'; }
     if (/(?:mit wem|wer (?:arbeitet|ist|kommt|fährt)|kollegen|team ?mitglieder|leute|personalnummer|nummer von|wer ist dabei|wer ist alles)/.test(q)) return leuteTxt(p, w, q);
-    if (/treffpunkt|treffen|wann (?:muss ich|geht es|gehts|geht's) los|losfahren|abfahrt|wann los/.test(q)) return p.tp ? w + ' ist Treffpunkt ' + p.tp + '.' : w + ' steht kein Treffpunkt im Plan.';
+    if (/treffpunkt|treffen|wann (?:(?:muss|soll|müssen|sollen) (?:ich|wir) |geht es |gehts |geht's )(?:\S+ ){0,3}los|losfahren|abfahrt|wann los/.test(q)) { // (3.54, Andi 25.11.: „Wann muss ich morgen los?“ → kurz: Uhrzeit und Ort, ohne Postleitzahl)
+      if (!p.tp) return w + ' steht kein Treffpunkt im Plan.';
+      var tz = (String(p.tp).match(/(\d{1,2})[:.](\d{2})/) || []), tort = String(p.tp).replace(/^\s*\d{1,2}[:.]\d{2}\s*(?:uhr)?\s*/i, '').replace(/\b\d{5}\b\s*/, '').trim();
+      return tz[1] ? w + ' um ' + (+tz[1]) + ':' + tz[2] + ' Uhr' + (tort ? ', Treffpunkt ' + tort : '') + '.' : w + ' ist Treffpunkt ' + p.tp + '.'; }
     var L = p.laeden || [];
     var vorbei = isoD(d) < isoD(heute0());
     var r = w + (vorbei ? ' warst du in ' : ' geht es nach ') + liste(L.map(function (l) { return l.ort + ' ' + l.fil; })) + (p.tp ? '. Treffpunkt ' + (vorbei ? 'war ' : '') + p.tp : '') + (p.team ? '. Team ' + p.team : '') + '.';
