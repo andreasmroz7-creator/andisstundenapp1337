@@ -689,7 +689,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.41';
+var VERSION = '3.42';
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -2586,7 +2586,9 @@ function depotLiveRechnen(stark) {
         if (S6[p.sym + 'USDT'] && S6.EURUSDT) pct = ((B[p.sym + 'USDT'] / B.EURUSDT) / (S6[p.sym + 'USDT'] / S6.EURUSDT) - 1) * 100; // seit 6 Uhr
         else if (BO[p.sym + 'USDT'] && BO.EURUSDT) pct = ((B[p.sym + 'USDT'] / B.EURUSDT) / (BO[p.sym + 'USDT'] / BO.EURUSDT) - 1) * 100; }
       else if (p.k === 'wp') { alleW++;
-        if (o && Date.now() - o.t < 15 * 60e3) { w = p.q * o.k; neuW++; tW = Math.max(tW, o.t / 1000); if (o.vt) pct = (o.k / o.vt - 1) * 100; } // (2.40) Aktien/ETFs: immer die letzte Tagesveränderung bis Börsenschluss (am Wochenende die vom Freitag)
+        var mac_ = p.sk > 0 && p.sp != null && jetzt - new Date(d.stand) < 20 * 60e3; // (3.42, Andi 25.11.) Scalable-Kurs + Tagesveränderung vom Mac (wie Dashboard und Scalable-App)
+        if (o && Date.now() - o.t < 15 * 60e3 && (!mac_ || Math.abs(o.k / p.sk - 1) < 0.012)) { w = p.q * o.k; neuW++; tW = Math.max(tW, o.t / 1000); if (o.vt) pct = (o.k / o.vt - 1) * 100; if (mac_) pct = p.sp + (o.k / p.sk - 1) * 100; } // (2.40) Aktien/ETFs: immer die letzte Tagesveränderung bis Börsenschluss (am Wochenende die vom Freitag); (3.42) mit Mac-Stand: Bezug = Scalable-Vortagesschluss
+        else if (mac_) { w = p.q * p.sk; pct = p.sp; neuW++; tW = Math.max(tW, new Date(d.stand).getTime() / 1000); } // (3.42) Tradegate weicht ab (wenig gehandelte Werte wie Ocugen: −1,36 % statt +2,4 %) → Scalable
         else if (macAlt && p.y && p.y_sym && K[p.y_sym] && K[p.y_sym][1] * 1000 > new Date(d.stand) - 15 * 60e3) { w = p.q * (p.p_y || p.p) * K[p.y_sym][0] / p.y; neuW++; tW = Math.max(tW, K[p.y_sym][1]); }
       }
       PL.push({ n: p.n, k: p.k, q: p.q, sym: p.sym, isin: p.isin, w: w, pct: pct, kurs: p.q ? w / p.q : null });
