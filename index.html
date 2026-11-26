@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.66';
+var VERSION = '3.67';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -3342,16 +3342,22 @@ function posNachbar(r) { var L = [].map.call(document.querySelectorAll((/^w:/.te
     if (t.clientX <= 30 || (e.target.closest && e.target.closest('#pChart'))) return; sx = t.clientX; sy = t.clientY; aus = true; }, { passive: true });
   inn.addEventListener('touchmove', function (e) { if (!aus) return; var t = e.touches[0], dy = t.clientY - sy; dx = t.clientX - sx;
     if (!an) { if (Math.abs(dy) > 12 && Math.abs(dy) >= Math.abs(dx)) { aus = false; return; } if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy) * 1.4) an = true; else return; }
-    e.preventDefault(); var k = $('pKoerper'), rand = !posNachbar(dx < 0 ? 1 : -1); k.style.transition = 'none'; k.style.transform = 'translateX(' + (dx * (rand ? 0.18 : 0.6)).toFixed(1) + 'px)'; k.style.opacity = rand ? '' : String(1 - Math.min(0.5, Math.abs(dx) / 600)); }, { passive: false });
+    e.preventDefault(); var k = $('pKoerper'), rand = !posNachbar(dx < 0 ? 1 : -1); k.style.animation = 'none'; /* (3.67) Einblend-Animation des Blatts hält sonst transform fest */ k.style.transition = 'none'; k.style.transform = 'translateX(' + (dx * (rand ? 0.18 : 1)).toFixed(1) + 'px)'; }, { passive: false }); // (3.67) folgt dem Finger 1:1
   var ende = function () { if (!aus) return; aus = false; if (!an) return; an = false; var k = $('pKoerper'), nach = Math.abs(dx) > 70 ? posNachbar(dx < 0 ? 1 : -1) : null;
     if (!nach) { k.style.transition = 'transform .25s cubic-bezier(.2,.8,.2,1), opacity .25s'; k.style.transform = ''; k.style.opacity = ''; return; }
-    var w = window.innerWidth, r = dx < 0 ? -1 : 1; k.style.transition = 'transform .16s ease-in, opacity .16s'; k.style.transform = 'translateX(' + (r * w * 0.5) + 'px)'; k.style.opacity = '0';
-    setTimeout(function () { posKey = nach; posAlt = null; posMorph.art = null; if (nach === 'rente') posZr = 'max'; else if (posZr === 'max') posZr = '1d'; posZeichnen(); k.scrollTop = 0;
-      k.style.transition = 'none'; k.style.transform = 'translateX(' + (-r * w * 0.4) + 'px)'; void k.offsetWidth; k.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s'; k.style.transform = ''; k.style.opacity = ''; }, 160); };
+    // (3.67, Andi 26.11. 14:41) wie ein Karussell: die alte Seite gleitet ganz hinaus, die neue kommt gleichzeitig von der anderen Seite herein
+    var w = k.offsetWidth || window.innerWidth, r = dx < 0 ? -1 : 1, kl = k.cloneNode(true), ein = 'transform .32s cubic-bezier(.25,.8,.25,1)';
+    [].forEach.call(kl.querySelectorAll('[id]'), function (x) { x.removeAttribute('id'); }); kl.removeAttribute('id');
+    kl.style.cssText = 'position:absolute;left:' + k.offsetLeft + 'px;top:' + k.offsetTop + 'px;width:' + k.offsetWidth + 'px;height:' + k.offsetHeight + 'px;margin:0;animation:none;pointer-events:none;z-index:2;transition:none;transform:translateX(' + dx.toFixed(1) + 'px)';
+    k.parentNode.appendChild(kl); kl.scrollTop = k.scrollTop;
+    posKey = nach; posAlt = null; posMorph.art = null; if (nach === 'rente') posZr = 'max'; else if (posZr === 'max') posZr = '1d'; posZeichnen(); k.scrollTop = 0;
+    k.style.transition = 'none'; k.style.opacity = ''; k.style.transform = 'translateX(' + (dx - r * w).toFixed(1) + 'px)'; void k.offsetWidth; void kl.offsetWidth;
+    k.style.transition = ein; kl.style.transition = ein; k.style.transform = ''; kl.style.transform = 'translateX(' + (r * w) + 'px)';
+    setTimeout(function () { kl.remove(); k.style.transition = ''; }, 360); };
   inn.addEventListener('touchend', ende); inn.addEventListener('touchcancel', ende);
 })();
 function nachKz() { if ($('blattP').classList.contains('offen')) posZeichnen(); }
-function posOeffnen(key) { posKey = key; posZr = key === 'rente' ? 'max' : '1d'; posAlt = null; posMorph.art = null; posZeichnen(); var b = $('blattP'); b.classList.add('offen'); querPruefen(); }
+function posOeffnen(key) { $('pKoerper').style.animation = ''; posKey = key; posZr = key === 'rente' ? 'max' : '1d'; posAlt = null; posMorph.art = null; posZeichnen(); var b = $('blattP'); b.classList.add('offen'); querPruefen(); }
 function posDaten() {
   var d = depotEff();
   if (/^w:/.test(posKey)) { var wk = posKey.slice(2), x = wlListe().filter(function (y) { return (y.isin || y.sym) === wk; })[0]; if (!x) return null; var v = wlWert(x);
