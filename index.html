@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.57';
+var VERSION = '3.58';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -2870,7 +2870,15 @@ function posMini(key, kurs) {
   var kv = daten.depotKurven && daten.depotKurven.k && daten.depotKurven.k[key], t = posMiniKrypto(key) || (kv && kv['1d']); if (!t || !t.today || !t.today.length) return '';
   var V = (t.prev || []).slice(-60), He = t.today.concat(kurs != null ? [kurs] : []), ref = t.base || (V.length ? V[V.length - 1] : null); if (He.length < 2) return '';
   var W = 96, H = 48, alle = V.concat(He).concat(ref != null ? [ref] : []), mn = Math.min.apply(null, alle), mx = Math.max.apply(null, alle), sp = (mx - mn) || 1, y = function (v) { return (H - 2 - (v - mn) / sp * (H - 4)).toFixed(1); };
-  var xb = V.length ? W / 6 : 0, pv = V.map(function (v, i) { return (i ? 'L' : 'M') + (V.length > 1 ? i / (V.length - 1) * xb : 0).toFixed(1) + ' ' + y(v); }).join(''), ph = He.map(function (v, i) { return (i ? 'L' : 'M') + (xb + i / (He.length - 1) * (W - xb)).toFixed(1) + ' ' + y(v); }).join('');
+  var xb = V.length ? W / 6 : 0, pv = V.map(function (v, i) { return (i ? 'L' : 'M') + (V.length > 1 ? i / (V.length - 1) * xb : 0).toFixed(1) + ' ' + y(v); }).join('');
+  // (3.58, Andi 26.11. 08:55) Aktien/ETFs wie im großen Diagramm (3.39): die heutige Linie geht nur so weit, wie der Handelstag (8 bis 23 Uhr) schon gelaufen ist – nicht mehr über die ganze Breite gezogen. Krypto unverändert.
+  var hx = function (i) { return xb + i / (He.length - 1) * (W - xb); }, h0_ = new Date(); h0_.setHours(0, 0, 0, 0);
+  if (!posMiniKrypto(key) && t.t0 && t.t1 && t.t1 * 1000 >= h0_.getTime() && He.length > 1) {
+    var d8_ = new Date(); d8_.setHours(8, 0, 0, 0); var a8_ = d8_.getTime() / 1000, e23_ = a8_ + 15 * 3600, n1_ = t.today.length - 1, jz_ = Date.now() / 1000;
+    var fr_ = function (z) { return Math.max(0, Math.min(1, (z - a8_) / (e23_ - a8_))); };
+    hx = function (i) { var z = i >= n1_ + 1 ? Math.max(jz_, t.t1) : t.t0 + (n1_ > 0 ? i / n1_ : 0) * (t.t1 - t.t0); return xb + fr_(z) * (W - xb); };
+  }
+  var ph = He.map(function (v, i) { return (i ? 'L' : 'M') + hx(i).toFixed(1) + ' ' + y(v); }).join('');
   var up = ref != null ? He[He.length - 1] >= ref : He[He.length - 1] >= He[0];
   return '<svg class="mini" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none">' + (ref != null ? '<path class="ref" d="M' + xb.toFixed(1) + ' ' + y(ref) + 'H' + W + '"/>' : '') + (pv ? '<path d="' + pv + 'L' + xb.toFixed(1) + ' ' + y(He[0]) + '" style="stroke:rgba(255,255,255,.35)"/>' : '') + '<path d="' + ph + '" style="stroke:' + (up ? 'var(--ok)' : 'var(--rot)') + '"/></svg>';
 }
