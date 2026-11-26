@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.79';
+var VERSION = '3.80';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -3891,11 +3891,24 @@ document.addEventListener('click', function (e) { var t = e.target.closest && e.
   var bl = t.closest('.blatt'), k = bl && [].filter.call(bl.querySelectorAll('.koerper'), function (x) { return x.id !== 'pKoerperAlt' && x.offsetParent !== null; }).pop(); if (!k || k.scrollTop < 2) return;
   try { k.scrollTo({ top: 0, behavior: 'smooth' }); } catch (x) { k.scrollTop = 0; } });
 // (3.79, Andi 19:09: beim Scrollen ist die Überschrift weg) wie in iPhone-Apps: Tipp ganz oben auf die Uhrzeit/Statusleiste = nach oben – im obersten offenen Fenster, sonst Startseite bzw. Stunden
-$('obenTipp').addEventListener('click', function () { var B = [].filter.call(document.querySelectorAll('.blatt.offen'), function (b) { return !b.classList.contains('zugeht'); }), z = function (b) { return +getComputedStyle(b).zIndex || 0; }, k = null;
-  if (B.length) { B.sort(function (a, b) { return z(a) - z(b) || (a.compareDocumentPosition(b) & 4 ? -1 : 1); }); var bl = B[B.length - 1]; k = [].filter.call(bl.querySelectorAll('.koerper'), function (x) { return x.id !== 'pKoerperAlt' && x.offsetParent !== null; }).pop(); }
+function obenScroll() { var B = [].filter.call(document.querySelectorAll('.blatt.offen'), function (b) { return !b.classList.contains('zugeht'); }), z = function (b) { return +getComputedStyle(b).zIndex || 0; }, k = null;
+  if (B.length) { // (3.80, Andi 19:15: „Laufende Kosten geht nicht“) das wirklich vorne liegende Fenster per Bildschirm-Punkt bestimmen (über einem anderen geöffnet, z. B. aus den Einstellungen)
+    var oben = null; try { (document.elementsFromPoint(window.innerWidth / 2, Math.min(window.innerHeight - 10, 220)) || []).some(function (el) { var bb = el.closest && el.closest('.blatt.offen'); if (bb) { oben = bb; return true; } return false; }); } catch (x) {}
+    B.sort(function (a, b) { return z(a) - z(b) || (a.compareDocumentPosition(b) & 4 ? -1 : 1); }); var bl = oben || B[B.length - 1]; k = [].filter.call(bl.querySelectorAll('.koerper'), function (x) { return x.id !== 'pKoerperAlt' && x.offsetParent !== null; }).pop(); }
   else if (!$('start').classList.contains('aus')) k = $('start');
   var weich = function (el) { try { el.scrollTo({ top: 0, behavior: 'smooth' }); } catch (x) { el.scrollTop = 0; } };
-  if (k) weich(k); else try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (x) { window.scrollTo(0, 0); } });
+  if (k) weich(k); else try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (x) { window.scrollTo(0, 0); } }
+$('obenTipp').addEventListener('click', obenScroll);
+// (3.80, Andi 19:16: „auf Watchlist tippen geht, aber nicht auf der Uhr“) Das iPhone gibt Tipps auf die Statusleiste nicht an die Seite weiter, sondern scrollt selbst
+// die Hauptseite nach oben. Trick: solange ein Fenster oder die Startseite vorne liegt, steht die (verdeckte) Hauptseite mindestens 1 Pixel tief. Springt sie auf 0,
+// war das der Tipp auf die Uhr → das vordere Fenster nach oben scrollen und die Hauptseite wieder dahin, wo sie war.
+(function () { var winY = window.scrollY || 0, an = false;
+  var vorne = function () { return !!document.querySelector('.blatt.offen:not(.zugeht)') || !$('start').classList.contains('aus'); };
+  window.addEventListener('scroll', function () { var y = window.scrollY || 0;
+    if (!an && vorne() && winY > 0 && y < winY && y <= 1) { an = true; var alt = winY; obenScroll(); setTimeout(function () { window.scrollTo(0, Math.max(1, alt)); winY = window.scrollY || 0; an = false; }, 500); return; }
+    if (!an) winY = y; }, { passive: true });
+  setInterval(function () { if (!an && vorne() && (window.scrollY || 0) < 1) { if (document.documentElement.scrollHeight <= window.innerHeight + 2) document.body.style.minHeight = 'calc(100vh + 4px)'; window.scrollTo(0, 1); winY = window.scrollY || 0; } }, 700);
+})();
 // (3.78, Andi 19:06: „bei Stunden fehlt es“) auch Stunden (Überschrift „STUNDEN“, die ganze Seite scrollt) und Startseite (Gruß oben)
 document.addEventListener('click', function (e) { if (!e.target.closest) return;
   if (e.target.closest('.kopf .mitte h1')) { if ((window.scrollY || document.documentElement.scrollTop) > 2) try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (x) { window.scrollTo(0, 0); } return; }
