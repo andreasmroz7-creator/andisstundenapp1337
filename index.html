@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.77';
+var VERSION = '3.78';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -3890,6 +3890,10 @@ $('wPlus').onclick = wlSuche;
 document.addEventListener('click', function (e) { var t = e.target.closest && e.target.closest('.blatt .titel'); if (!t || e.target.closest('button, input, a, .dart')) return;
   var bl = t.closest('.blatt'), k = bl && [].filter.call(bl.querySelectorAll('.koerper'), function (x) { return x.id !== 'pKoerperAlt' && x.offsetParent !== null; }).pop(); if (!k || k.scrollTop < 2) return;
   try { k.scrollTo({ top: 0, behavior: 'smooth' }); } catch (x) { k.scrollTop = 0; } });
+// (3.78, Andi 19:06: „bei Stunden fehlt es“) auch Stunden (Überschrift „STUNDEN“, die ganze Seite scrollt) und Startseite (Gruß oben)
+document.addEventListener('click', function (e) { if (!e.target.closest) return;
+  if (e.target.closest('.kopf .mitte h1')) { if ((window.scrollY || document.documentElement.scrollTop) > 2) try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (x) { window.scrollTo(0, 0); } return; }
+  if (e.target.closest('#start .sgruss, #start .sname > span:first-child')) { var st = $('start'); if (st.scrollTop > 2) try { st.scrollTo({ top: 0, behavior: 'smooth' }); } catch (x) { st.scrollTop = 0; } } });
 function augeAlle() { if ($('dAuge')) $('dAuge').innerHTML = depotSicht ? AUGE_AUF : AUGE_ZU; $('pAuge').innerHTML = depotSicht ? AUGE_AUF : AUGE_ZU;
   [].forEach.call(document.querySelectorAll('#dBox, .sgrid [data-ziel=depot] .dbox, #pKoerper .dbox'), function (x) { x.classList.toggle('verdeckt', !depotSicht); }); }
 $('pAuge').onclick = function () { depotSicht = !depotSicht; augeAlle(); };
