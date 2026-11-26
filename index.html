@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.83';
+var VERSION = '3.84';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -4797,6 +4797,16 @@ if ('serviceWorker' in navigator) {
     return r;
   }
   function hotelAb(iso) { var d = D(), n = d && d.nachweis; if (!n || !n.tage) return ''; var x = n.tage.filter(function (t) { return t.datum <= iso && t.hotel; }).pop(); return x ? x.hotel : ''; }
+  /* (3.84, Andi 26.11.) Team vorlesen: Herren zusammen, Frauen zusammen, nur Nachnamen. Anrede aus der Reiseinfo, sonst nach Vornamen */
+  var FRAU_VN = /^(?:elena|annabell|inna|silke|heike|ramona|verena|oksana|angelina|iryna|waltraud|alexandra|olha|amanda|liudmyla|vanessa|viktoriia|sandra|anna|maria|julia|lisa|laura|sarah|sara|nadine|nicole|petra|sabine|susanne|kerstin|katrin|kathrin|claudia|andrea|monika|ines|jana|janine|jasmin|jennifer|jessica|katharina|kristin|manuela|melanie|michelle|nina|olga|tatjana|svetlana|natalia|natalja|yulia|daria|tetiana|halyna|marina|irina|ludmila|galina|birgit|doris|gabriele|ute|uta|anja|antje|bianca|carmen|christina|christine|daniela|diana|franziska|heidi|ilona|jacqueline|karin|kim|lena|lea|marie|mandy|martina|nancy|ramona|rebecca|ricarda|simone|stefanie|stephanie|tanja|ulrike|yvonne|zoe|emma|mia|hannah|sophie|leonie|annett|anett|cindy|peggy|sindy|steffi|elke|gisela|helga|ingrid|renate|ursula)$/i;
+  function anredeVon(x) { var nn = String(x.name || '').split(',')[0].trim(), vn = String(x.name || '').split(',')[1] || '', d = D(), ri = d && d.reiseinfo, P = (ri && ri.personen) || [];
+    for (var i = 0; i < P.length; i++) { var m = /^(Herr|Frau)\s+(.+)$/.exec(P[i].name || ''); if (m && m[2].trim().toLowerCase() === nn.toLowerCase()) return m[1]; }
+    var v1 = vn.trim().split(/\s+/)[0] || ''; if (FRAU_VN.test(v1)) return 'Frau'; return 'Herr'; }
+  function teamSatz(A) { var H = [], F = [], seen = {}; A.forEach(function (x) { var nn = String(x.name || '').split(',')[0].trim(), k = nn.toLowerCase().slice(0, 5); if (!nn || seen[k]) return; seen[k] = 1; (anredeVon(x) === 'Frau' ? F : H).push(nn); });
+    var t = []; if (H.length) t.push('Herrn ' + liste(H)); if (F.length) t.push('Frau ' + liste(F)); return t.join(' und '); }
+  function teamWoche(Z) { var a = isoD(Z.von), b = isoD(Z.bis), d = D(), n = d && d.nachweis, A = [];
+    (n && n.tage ? n.tage : []).forEach(function (t) { if (t.datum < a || t.datum > b) return; (t.leute || []).forEach(function (x) { if (x.nr !== '4048' && !/mroz/i.test(x.name)) A.push(x); }); });
+    return A; }
   function leuteTxt(p, w, q) {
     var L = p.leute || [];
     if (/personalnummer|nummer von/.test(q)) { var su = q.replace(/.*(?:personalnummer|nummer) (?:von |vom |der |des |für |fuer )?(?:herr |frau |herrn )?/, '').replace(/\s+(?:morgen|heute)$/, '').trim(), dd = D(), all = {}; ((dd && dd.nachweis && dd.nachweis.tage) || []).forEach(function (t) { (t.leute || []).forEach(function (x) { if (x.nr) all[x.name] = x.nr; }); });
@@ -4807,7 +4817,8 @@ if ('serviceWorker' in navigator) {
       if (hit) return hit.name.split(',').reverse().join(' ').trim() + ' hat die Personalnummer ' + hit.nr.split('').join(' ') + '.'; }
     var A = L.filter(function (x) { return x.nr !== '4048' && !/mroz/i.test(x.name); });
     if (/personalnummer|nummern/.test(q)) return w + ' im Team: ' + liste(A.map(function (x) { return x.name.split(',')[0] + ' ' + (x.nr ? x.nr.split('').join(' ') : 'ohne Nummer'); })) + '. Deine ist 4 0 4 8.';
-    return w + ' arbeitest du mit ' + liste(A.map(function (x) { var n = x.name.split(','); return (n[1] ? n[1].trim().split(' ')[0] + ' ' : '') + n[0]; })) + '.';
+    if (!A.length) return w + ' stehen im Plan keine Kollegen außer dir.';
+    return w + (p.datum && p.datum < isoD(heute0()) ? ' hattest du ' : ' hast du ') + teamSatz(A) + ' dabei.';
   }
   function naechsterEinsatz() { var d = D(), n = d && d.nachweis, hi = isoD(heute0()); var x = n && n.tage ? n.tage.filter(function (t) { return t.datum > hi && (t.laeden || []).length; })[0] : null; return x; }
   var planLetzt = null;
@@ -4825,12 +4836,20 @@ if ('serviceWorker' in navigator) {
   function terminTxt(e) { var d = new Date(e.t); return wannTxt(d) + (e.g ? '' : ' um ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr') + ': ' + e.ti; }
   function terminNeu(t) {
     var q = norm(t), m = /^(?:trag (?:mir )?(?:bitte )?(?:einen |nen |ein )?termin (?:ein|an)|neuer termin|neuen termin|termin eintragen|termin anlegen|leg (?:mir )?(?:einen |nen )?termin an|erstell (?:mir )?(?:einen |nen )?termin|erstelle (?:einen )?termin|merk dir (?:einen )?termin|termin)\s*(?:für |fuer )?(.*)$/.exec(q);
-    if (!m || !m[1]) return null; var rest = m[1];
+    var rest = m && m[1] ? m[1] : '';
+    if (!rest && /\btermin\b/.test(q)) { /* (3.84, Andi 26.11.) freie Sätze: „Yo, trag mal am Freitag einen Termin ein mit dem Namen Zahnarzt um 15 Uhr“ */
+      rest = q.replace(/^(?:yo|hey|ey|ok|okay|also|jarvis)[\s,]+/, '').replace(/\b(?:kannst|könntest|koenntest) du\b/g, ' ').replace(/\b(?:trag(?:e)?|eintragen|erstell(?:e|en)?|anlegen|merk dir|neue[nr]?)\b/g, ' ').replace(/\bleg\b([^]*?)\ban\b/, ' $1 ')
+        .replace(/\b(?:mir|mal|bitte|einen|nen|ein|eine|noch)\b/g, ' ').replace(/\btermin\b/, ' ').replace(/\s+/g, ' ').trim(); }
+    rest = rest.replace(/[,]?\s*\b(?:mit dem (?:namen|titel)|mit (?:namen|titel)|namens|der titel ist|titel|der name ist|der heißt|der heisst|heißt|heisst|thema)\b[:,]?/g, ' ').replace(/\s+/g, ' ').trim();
+    rest = rest.replace(/\bhalb (\d{1,2})\b/g, function (m_, h_) { return 'um ' + ((+h_ + 23) % 24) + ':30'; }).replace(/\bviertel nach (\d{1,2})\b/g, 'um $1:15').replace(/\bviertel vor (\d{1,2})\b/g, function (m_, h_) { return 'um ' + ((+h_ + 23) % 24) + ':45'; }).replace(/\bum um\b/g, 'um');
+    if (!rest) return null;
     var Z = zeit(rest, true); if (!Z || Z.art !== 'tag') return 'Für welchen Tag soll ich den Termin eintragen, Meister? Sag zum Beispiel: Termin morgen um 9 Uhr Besprechung.';
     var u = /\b(?:um )?(\d{1,2})(?:[:.](\d{2}))? ?uhr(?: (\d{1,2}))?\b|\bum (\d{1,2})[:.](\d{2})\b|\bum (\d{1,2})\b/.exec(rest), hh = null, mm = 0;
     if (u) { hh = +(u[1] || u[4] || u[6]); mm = +(u[2] || u[3] || u[5] || 0); if (hh > 23) hh = null; }
+    if (hh != null && hh < 12 && /abend|nachmittag|nachts?\b/.test(rest) && !/morgens|vormittag/.test(rest) && (hh >= 1 && hh <= 11)) hh += 12;
     var titel = rest.replace(/übermorgen|uebermorgen/g, ' ').replace(/\b(?:heute|morgen|am|um|den|fuer)\b|(?:^|\s)für(?=\s|$)/g, ' ').replace(/\b\d{1,2}(?:[:.]\d{2})? ?uhr(?: \d{1,2})?\b|\b\d{1,2}[:.]\d{2}\b|\bum \d{1,2}\b/g, ' ').replace(/(?:^|\s)\d{1,2}\.(?=\s|$)/g, ' ').replace(/\b\d{1,2}\.\d{1,2}\.?(?:\d{2,4})?\b|\b\d{1,2}\.? (?:januar|februar|märz|april|mai|juni|juli|august|september|oktober|november|dezember)\b/g, ' ')
       .replace(/\b(?:nächsten|naechsten|diesen|kommenden)?\s?(?:montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)\b/g, ' ').replace(/^\s*(?:ein|eintragen|und|mit dem titel|titel|thema|wegen|:)\s+/, '').replace(/\s+/g, ' ').trim();
+    titel = titel.replace(/^[\s.,:;\-]+|[\s.,:;\-]+$/g, '').replace(/\b(?:nachmittags?|abends?|morgens|vormittags?)$/, '').trim();
     if (!titel) titel = 'Termin'; else { var io = String(t).toLowerCase().indexOf(titel); if (io >= 0) titel = String(t).substr(io, titel.length); }
     titel = titel.charAt(0).toUpperCase() + titel.slice(1);
     var d = D(); if (!d) return null; var j = Date.now();
@@ -4860,6 +4879,22 @@ if ('serviceWorker' in navigator) {
       .replace(/\b(\d{1,2}) uhr (\d{1,2})\b/g, function (m, h, mi) { return h + ':' + ('0' + mi).slice(-2); }).replace(/\b(\d{1,2})\s?uhr\b/g, '$1')
       .replace(/\bbis um\b/g, 'bis').replace(/\bum (\d)/g, '$1').replace(/\bvon (\d)/g, '$1').replace(/(\d)\s*-\s*(\d)/g, '$1 bis $2');
   }
+  /* (3.84, Andi 26.11.) Rolle ohne Zeiten nachtragen: „Ich war heute Teamleiter“, „Gestern war ich nicht Teamleiter“, „Ich bin gefahren“, „Ich war auswärts aushelfen“, „Ich hab übernachtet“ */
+  function rolleAendern(q) {
+    if (/\?|(?:^|\s)(?:wie|was|wann|welche|wieviel|wo|warum|war ich (?:da|dort)?$)/.test(q) && !/(?:trag|vermerk|setz|markier)/.test(q)) return null;
+    var tlJ = /\b(?:teamleiter|teamleitung|tl)\b/.test(q), fa = /\bfahrer\b|(?:bin|hab|habe) (?:ich )?(?:selbst )?gefahren|ich (?:bin )?(?:selbst )?gefahren/.test(q), au = /auswärts|auswaerts|aushelfen|ausgeholfen|anderes team|anderen team|unterstützt|unterstuetzt/.test(q), ue = /übernachtet|uebernachtet|übernachtung|uebernachtung|im hotel/.test(q);
+    if (!tlJ && !fa && !au && !ue) return null;
+    if (!/(?:\bich\b|\bwar\b|\bbin\b|trag|vermerk|setz|markier)/.test(q)) return null;
+    var Z = zeit(q, false), d = Z && Z.art === 'tag' ? Z.d : heute0(), iso = isoD(d), alt = eintrag(iso);
+    if (!alt) return 'Für ' + klein1(wannTxt(d)) + ' steht noch nichts drin, Meister. Sag mir erst die Stunden, zum Beispiel: 7 bis 15 Uhr, ich war Teamleiter.';
+    var x = JSON.parse(JSON.stringify(alt)), R_ = [], nein = function (w) { return new RegExp('(?:nicht|kein|keine|ohne) (?:der |als |mal |selbst )?(?:' + w + ')').test(q); };
+    if (tlJ) { x.tl = !nein('teamleiter|teamleitung|tl'); R_.push(x.tl ? 'Teamleiter' : 'nicht Teamleiter'); }
+    if (fa) { x.fahrer = !nein('fahrer|gefahren'); R_.push(x.fahrer ? 'Fahrer' : 'nicht Fahrer'); }
+    if (au) { x.auswaerts = !nein('auswärts|auswaerts'); if (x.auswaerts && !/Aushilfe anderes Team/.test(x.notiz || '')) x.notiz = (x.notiz ? x.notiz + ' · ' : '') + 'Aushilfe anderes Team'; R_.push(x.auswaerts ? 'auswärts ausgeholfen' : 'nicht auswärts'); }
+    if (ue) { x.uebernachtung = !nein('übernachtet|uebernachtet|übernachtung|uebernachtung|hotel'); R_.push(x.uebernachtung ? 'mit Übernachtung' : 'ohne Übernachtung'); }
+    speichern(x); var g = 0; try { g = ber(x).gesamt || 0; } catch (e) {}
+    return 'Geändert, Meister. ' + wannTxt(d) + ': ' + liste(R_) + (g ? '. Zusammen jetzt ' + std(g) : '') + '.';
+  }
   var ZEITSPANNE = /(?<![\d.:,])(\d{1,2}(?:[.:,]\d{2})?)\s*(?:bis|–)\s*(\d{1,2}(?:[.:,]\d{2})?)(?![\d]|[.:,]\d)/g;
   var STD_OFFEN = null, STD_ZU = 0; /* STD_ZU: wann die letzte Rückfrage beantwortet wurde */ /* (3.26, Andi 23.11.: „Er hat das direkt eingetragen ohne zu fragen“) wartende Rückfrage vor dem Überschreiben */
   function zeitenEintragen(t, q, bestaetigt) {
@@ -4869,7 +4904,7 @@ if ('serviceWorker' in navigator) {
     var st = []; if (!sp.length && /(?:trag|eintragen|gearbeitet|geschafft|hatte|hab|habe|waren es|war ich)/.test(q) && /stunden?|std\b/.test(q)) { try { st = R.leseStunden(u); } catch (e) {} }
     if (!sp.length && !st.length) return null;
     /* nur echte Stunden-Ansagen: außer Zeiten, Datum und Füllwörtern darf höchstens ein fremdes Wort im Satz stehen („Das Meeting geht 9 bis 10“ ist kein Eintrag) */
-    var fremd = u.replace(ZEITSPANNE, ' ').replace(/\d{1,2}\.\d{1,2}\.?(?:\d{2,4})?|\d+[.,]?\d*/g, ' ').split(/[^a-zäöüß]+/).filter(function (w) { return w && !/^(?:und|von|bis|uhr|jarvis|trag|trage|tragen|ein|eintragen|bitte|mal|heute|gestern|vorgestern|am|den|ich|habe|hab|hatte|gearbeitet|arbeit|gearbeitet|stunden|stunde|std|laden|läden|erster|ersten|zweiter|zweiten|der|die|das|im|in|zeiten|zeit|meine|mein|mir|aushilfe|anderes|anderen|team|pause|dann|danach|plus|erst|zuerst|mit|schicht|inventur|war|waren|es|so|für|fuer|montag|dienstag|mittwoch|donnerstag|freitag|samstag|letzten|letzter|hey|yo|ok|okay|also|januar|februar|märz|april|mai|juni|juli|august|september|oktober|november|dezember|ten|te|geschafft|noch|halb|viertel|nach|vor|hier|sind|wir|bin|genau|eingetragen|machen|mach|notier|notiere|bei|um)$/.test(w); });
+    var fremd = u.replace(ZEITSPANNE, ' ').replace(/\d{1,2}\.\d{1,2}\.?(?:\d{2,4})?|\d+[.,]?\d*/g, ' ').split(/[^a-zäöüß]+/).filter(function (w) { return w && !/^(?:und|von|bis|uhr|jarvis|trag|trage|tragen|ein|eintragen|bitte|mal|heute|gestern|vorgestern|am|den|ich|habe|hab|hatte|gearbeitet|arbeit|gearbeitet|stunden|stunde|std|laden|läden|erster|ersten|zweiter|zweiten|der|die|das|im|in|zeiten|zeit|meine|mein|mir|aushilfe|anderes|anderen|team|pause|dann|danach|plus|erst|zuerst|mit|schicht|inventur|war|waren|es|so|für|fuer|montag|dienstag|mittwoch|donnerstag|freitag|samstag|letzten|letzter|hey|yo|ok|okay|also|januar|februar|märz|april|mai|juni|juli|august|september|oktober|november|dezember|ten|te|geschafft|noch|halb|viertel|nach|vor|hier|sind|wir|bin|genau|eingetragen|machen|mach|notier|notiere|bei|um|teamleiter|teamleitung|tl|nicht|kein|keine|ohne|fahrer|gefahren|selbst|auswärts|auswaerts|aushelfen|ausgeholfen|ausgeholfen|helfen|unterstützt|unterstuetzt|unterstützen|übernachtet|uebernachtet|übernachtung|uebernachtung|hotel|gewesen|als|sein|einen|yo|du|kannst|trage|eintrag|bisschen|anderen|andere|anderes|teams|aus|geholfen|dort|da|auch|heute)$/.test(w); });
     if (fremd.length > 1) return null;
     var rest = u.replace(ZEITSPANNE, ' '), Z = zeit(norm(rest), false), d = Z && Z.art === 'tag' ? Z.d : heute0();
     if (isoD(d) > isoD(heute0())) return 'Stunden für die Zukunft trage ich nicht ein, Meister. Sag sie mir am Tag selbst oder danach.';
@@ -4884,7 +4919,14 @@ if ('serviceWorker' in navigator) {
     STD_OFFEN = null;
     if (alt) { x = JSON.parse(JSON.stringify(alt)); x.urlaub = false; x.krank = false; }
     else { var alt_e = window.e; try { window.e = neuerEintrag(iso); var pr = profile().filter(function (p) { return p.id === D().letztesProfil; })[0] || profile()[0]; profilAnwenden(pr); if (istFeiertagSN(iso)) window.e.feiertag = true; planFuellen(window.e); x = window.e; } finally { window.e = alt_e; } }
-    if (/aushilfe|anderes team|anderen team/.test(q)) { x.auswaerts = true; x.notiz = (x.notiz ? x.notiz + ' · ' : '') + 'Aushilfe anderes Team'; }
+    var rollTxt = []; /* (3.84, Andi 26.11.) Rollen per Sprache: Teamleiter ja/nein, Fahrer, auswärts aushelfen, übernachtet */
+    if (/(?:nicht|kein|keine|ohne) (?:der |als |mal )?(?:teamleiter|teamleitung|tl)\b|(?:teamleiter|tl) (?:war ich )?nicht\b/.test(q)) { x.tl = false; rollTxt.push('nicht Teamleiter'); }
+    else if (/\b(?:teamleiter|teamleitung|tl)\b/.test(q)) { x.tl = true; rollTxt.push('Teamleiter'); }
+    if (/(?:nicht|kein) (?:der |als )?(?:fahrer|gefahren)|nicht selbst gefahren/.test(q)) { x.fahrer = false; rollTxt.push('nicht Fahrer'); }
+    else if (/\bfahrer\b|(?:bin|hab|habe) (?:ich )?(?:selbst )?gefahren|ich (?:bin )?(?:selbst )?gefahren/.test(q)) { x.fahrer = true; rollTxt.push('Fahrer'); }
+    if (/aushilfe|anderes team|anderen team|andere[sn]? teams?|auswärts|auswaerts|aushelfen|ausgeholfen|ausgeholfen|unterstützt|unterstuetzt/.test(q) && !/nicht (?:auswärts|auswaerts)/.test(q)) { x.auswaerts = true; if (!/Aushilfe anderes Team/.test(x.notiz || '')) x.notiz = (x.notiz ? x.notiz + ' · ' : '') + 'Aushilfe anderes Team'; rollTxt.push('auswärts ausgeholfen'); }
+    if (/(?:nicht|kein) (?:übernachtet|uebernachtet|übernachtung|uebernachtung|hotel)|ohne (?:übernachtung|uebernachtung|hotel)/.test(q)) { x.uebernachtung = false; rollTxt.push('ohne Übernachtung'); }
+    else if (/übernachtet|uebernachtet|übernachtung|uebernachtung|im hotel|hotel geschlafen/.test(q)) { x.uebernachtung = true; rollTxt.push('mit Übernachtung'); }
     var L = x.laeden = (x.laeden || []).filter(function (l) { return l; });
     var leer = function () { return { art: L[0] ? L[0].art : 'NMD', zeiten: [{ von: '', bis: '' }], std: '' }; };
     L.forEach(function (l) { delete l.ausfall; });
@@ -4904,7 +4946,7 @@ if ('serviceWorker' in navigator) {
     var b = ber(x), g = b.gesamt || 0, teile = [];
     if (b.arbeit) teile.push(zs(b.arbeit) + ' Arbeit'); if (b.sonder) teile.push(zs(b.sonder) + ' Sonderzeit'); if (b.tl) teile.push(zs(b.tl) + ' Teamleiter'); if (b.zwischen) teile.push(zs(b.zwischen) + ' Zwischenfahrt'); if (b.fahrt) teile.push(zs(b.fahrt) + ' Fahrt'); if (b.anreise) teile.push(zs(b.anreise) + (x.abreise && !x.anreise ? ' Abreise' : ' Anreise')); if (b.feiertag) teile.push(zs(b.feiertag) + ' Feiertag');
     var LL = x.laeden.filter(function (l) { return !l.ausfall && (l.ort || l.fil); }), ab = x.laeden.filter(function (l) { return l.ausfall; });
-    return (alt ? 'Geändert, Meister. ' : 'Eingetragen, Meister. ') + wannTxt(d) + ': ' + std(g) + ' für dein Protokoll.' + (LL.length ? ' ' + liste(LL.map(ladenTxt)) + '.' : '') + (teile.length > 1 ? ' Davon ' + liste(teile) + '.' : '') + (ab.length ? ' ' + liste(ab.map(function (l) { return (l.ort || 'Zweiter Laden') + (l.fil ? ' ' + l.fil : ''); })) + ' steht als abgesagt.' : '');
+    return (alt ? 'Geändert, Meister. ' : 'Eingetragen, Meister. ') + wannTxt(d) + ': ' + std(g) + ' für dein Protokoll.' + (LL.length ? ' ' + liste(LL.map(ladenTxt)) + '.' : '') + (teile.length > 1 ? ' Davon ' + liste(teile) + '.' : '') + (rollTxt.length ? ' Vermerkt: ' + liste(rollTxt) + '.' : '') + (ab.length ? ' ' + liste(ab.map(function (l) { return (l.ort || 'Zweiter Laden') + (l.fil ? ' ' + l.fil : ''); })) + ' steht als abgesagt.' : '');
   }
   function bereich(q, zukunft) { /* „vom 21. bis 23. Dezember“, „21.12. bis 31.12.“, „vom 21 bis 23“ */
     var m = /(?:vom |von )?(\d{1,2})\.?(?:\s?(\d{1,2})\.)?(?:\s(januar|februar|märz|april|mai|juni|juli|august|september|oktober|november|dezember))?\s*(?:bis(?: zum)?|–|-)\s*(\d{1,2})\.?(?:\s?(\d{1,2})\.?)?(?:\s(januar|februar|märz|april|mai|juni|juli|august|september|oktober|november|dezember))?/.exec(q);
@@ -5033,7 +5075,7 @@ if ('serviceWorker' in navigator) {
     var f = null; try { f = folge(t); } catch (e) { f = null; } if (f) { try { var zr = zeit(q0, LETZTE.zuk); if (zr) LETZTE.Z = zr; LETZTE.t = Date.now(); } catch (e) {} return f; }
     var r = null, d0 = D(); if (!d0) return null;
     var art_ = 'frage';
-    try { r = zeitenEintragen(t, q0); if (r) art_ = 'std'; else { r = abwesenheit(t, q0) || terminWeg(q0) || notizAendern(q0); if (r) art_ = 'akt'; else r = lohnFrage(q0); } } catch (e) { r = null; }
+    try { r = zeitenEintragen(t, q0); if (r) art_ = 'std'; else { r = abwesenheit(t, q0) || terminWeg(q0) || rolleAendern(q0) || notizAendern(q0); if (r) art_ = 'akt'; else r = lohnFrage(q0); } } catch (e) { r = null; }
     if (!r) r = haupt(t);
     if (r && art_ === 'akt') { LETZTE = null; return r; }
     if (r && art_ === 'std') { var Zs = zeit(norm(uhrText(t).replace(ZEITSPANNE, ' ')), false) || { art: 'tag', d: heute0() }; LETZTE = { q: 'wie viele stunden hatte ich', t: Date.now(), zuk: false, Z: Zs }; return r; }
@@ -5047,7 +5089,7 @@ if ('serviceWorker' in navigator) {
     var h = heute0(), Z, x;
 
     /* Termin eintragen */
-    if (/^(?:trag|neuer termin|neuen termin|termin (?:eintragen|anlegen)|leg (?:mir )?(?:einen |nen )?termin|erstell|merk dir (?:einen )?termin|termin (?:am|für|fuer|morgen|heute|übermorgen|nächsten|naechsten|\d))/.test(q) && /termin/.test(q)) { x = terminNeu(t); if (x) return x; }
+    if ((/^(?:trag|neuer termin|neuen termin|termin (?:eintragen|anlegen)|leg (?:mir )?(?:einen |nen )?termin|erstell|merk dir (?:einen )?termin|termin (?:am|für|fuer|morgen|heute|übermorgen|nächsten|naechsten|\d))/.test(q) || /\b(?:trag\w*|eintragen|anlegen|erstell\w*|merk dir|leg)\b/.test(q) && !/(?:lösch|loesch|verschieb|absag|streich)/.test(q)) && /\btermin\b/.test(q)) { x = terminNeu(t); if (x) return x; }
     /* Termine abfragen */
     if ((/\btermin|\btermine\b|\bverabredung|\bkalender\b|was steht an\b|was (?:hab|habe) ich vor(?:\s|$)/.test(q)) && !/stunde|eingetragen|gearbeitet/.test(q)) return termineTxt(q);
 
@@ -5143,11 +5185,15 @@ if ('serviceWorker' in navigator) {
     }
 
     /* Einsatzplan */
-    var planWort = /welche stra(?:ß|ss)e|was steht .*an|wo war ich|wo waren wir|wo hab ich gearbeitet|wo habe ich gearbeitet|wann geht(?:s| es|'s)? .*los|adresse|anschrift|was ist .*los|was liegt an|einsatz|einsatzplan|\bplan\b|arbeite ich|arbeiten wir|muss ich arbeiten|arbeiten muss|arbeiten soll|wie arbeite ich|(?:muss|soll) ich (?:\S+ ){0,4}arbeiten|wie (?:arbeite|arbeiten) (?:ich|wir) (?:\S+ ){0,3}|wann muss ich (?:morgen |heute )?(?:los|anfangen|da sein)|wo bin ich|wo sind wir|wohin|wo geht|wo gehts|wo geht's|wo muss ich|welcher laden|welche läden|welche laeden|welche filiale|filiale|treffpunkt|wann geht es los|wann gehts los|wann geht's los|losfahren|abfahrt|hotel|übernacht|uebernacht|mit wem|kollegen|wer arbeitet|wer ist (?:dabei|alles|im team)|personalnummer|team|anreise|abreise|wann fahr|inventur/;
+    var planWort = /welche stra(?:ß|ss)e|was steht .*an|wo war ich|wo waren wir|wo hab ich gearbeitet|wo habe ich gearbeitet|wann geht(?:s| es|'s)? .*los|adresse|anschrift|was ist .*los|was liegt an|einsatz|einsatzplan|\bplan\b|arbeite ich|arbeiten wir|muss ich arbeiten|arbeiten muss|arbeiten soll|wie arbeite ich|(?:muss|soll) ich (?:\S+ ){0,4}arbeiten|wie (?:arbeite|arbeiten) (?:ich|wir) (?:\S+ ){0,3}|wann muss ich (?:morgen |heute )?(?:los|anfangen|da sein)|wo bin ich|wo sind wir|wohin|wo geht|wo gehts|wo geht's|wo muss ich|welcher laden|welche läden|welche laeden|welche filiale|filiale|treffpunkt|wann geht es los|wann gehts los|wann geht's los|losfahren|abfahrt|hotel|übernacht|uebernacht|mit wem|kollegen|wer arbeitet|wer ist (?:dabei|alles|im team)|wer (?:ist|sind|kommt|kommen) (?:\S+ ){0,3}dabei|wen (?:hab|habe) ich|personalnummer|team|anreise|abreise|wann fahr|inventur/;
     if (planWort.test(q)) {
       if (/personalnummer/.test(q) && /meine|ich/.test(q) && !/von|vom|der|des/.test(q)) return 'Deine Personalnummer ist 4 0 4 8.';
       Z = zeit(q, !/\b(?:war|warst|hatte|hattest|gearbeitet|gewesen)\b/.test(q));
       if (/anreise|abreise/.test(q) && !(Z && Z.art === 'tag')) { var ri = d.reiseinfo; if (ri && (ri.anreise || ri.abreise)) return 'Laut Reiseinfo KW ' + (ri.kw || '') + ': Anreise ' + (ri.anreise ? datTxt(new Date(ri.anreise + 'T12:00')) : 'offen') + ', Abreise ' + (ri.abreise ? datTxt(new Date(ri.abreise + 'T12:00')) : 'offen') + (ri.team ? ', Team ' + ri.team : '') + '.'; }
+      if (Z && Z.art === 'woche' && /(?:mit wem|wer arbeitet|kollegen|wer ist|wer sind|wer kommt|wen (?:hab|habe)|team|dabei)/.test(q) && !/personalnummer/.test(q)) { var TW = teamWoche(Z), wW = /nächst|naechst|kommend/.test(q) ? 'Nächste Woche' : /letzt|vorig/.test(q) ? 'Letzte Woche' : 'Diese Woche';
+        if (TW.length) return wW + (wW === 'Letzte Woche' ? ' hattest du ' : ' hast du ') + teamSatz(TW) + ' dabei.';
+        var riW = d.reiseinfo, PW = riW && riW.personen ? riW.personen.filter(function (x) { return !x.ich; }) : []; if (PW.length) { var Hh = [], Ff = []; PW.forEach(function (x) { var m = /^(Herr|Frau)\s+(.+)$/.exec(x.name || ''); if (m) (m[1] === 'Frau' ? Ff : Hh).push(m[2]); }); var tt = []; if (Hh.length) tt.push('Herrn ' + liste(Hh)); if (Ff.length) tt.push('Frau ' + liste(Ff)); return 'Laut Reiseinfo KW ' + (riW.kw || '') + ' hast du ' + tt.join(' und ') + ' dabei.'; }
+        return wW + ' stehen noch keine Kollegen im Plan.'; }
       if (Z && Z.art === 'woche') return wochePlan(Z, q);
       if (Z && Z.art === 'tag' && planLetzt && planLetzt.w && Date.now() - planLetzt.t < 5 * 60e3 && !/nächst|naechst|kommend|übernächst/.test(q)) { var wt_ = ['sonntag', 'montag', 'dienstag', 'mittwoch', 'donnerstag', 'freitag', 'samstag'].filter(function (x) { return q.indexOf(x) >= 0; })[0]; // (3.55) nach „Wie muss ich die Woche arbeiten?“ meint „Dienstag“ den Dienstag DIESER Woche
         if (wt_) { var v_ = new Date(planLetzt.w.von); v_.setHours(12, 0, 0, 0); for (var k_ = 0; k_ < 7; k_++) { var d_ = new Date(v_); d_.setDate(v_.getDate() + k_); if (d_.getDay() === ['sonntag', 'montag', 'dienstag', 'mittwoch', 'donnerstag', 'freitag', 'samstag'].indexOf(wt_)) { Z = { art: 'tag', d: d_ }; break; } } } }
