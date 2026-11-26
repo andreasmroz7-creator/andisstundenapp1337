@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.85';
+var VERSION = '3.86';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -5087,6 +5087,25 @@ if ('serviceWorker' in navigator) {
     var d = D(), hi = isoD(heute0()), E = eintr(), n = d && d.nachweis, T = (n && n.tage) || [];
     function bereich(Z) { if (!Z) return null; if (Z.art === 'tag') return [isoD(Z.d), isoD(Z.d)]; if (Z.art === 'woche') return [isoD(Z.von), isoD(Z.bis)]; if (Z.art === 'monat') return [Z.j + '-' + p2(Z.m + 1) + '-01', Z.j + '-' + p2(Z.m + 1) + '-31']; if (Z.art === 'jahr') return [Z.j + '-01-01', Z.j + '-12-31']; return null; }
     function datK(iso) { return klein1(wannTxt(new Date(iso + 'T12:00'))); }
+    /* Monats-Check: „Fehlt was bei meinen Stunden?“, „Hab ich alles eingetragen?“, „Prüf meine Stunden“ – Einträge gegen Einsatzpläne */
+    if (/(?:fehlt (?:da |noch |mir )?(?:was|etwas|noch was|ein tag)|hab(?:e)? ich (?:alles|alle tage|überall|ueberall) eingetragen|ist alles eingetragen|prüf\w* (?:mal )?(?:meine |die )?(?:stunden|einträge|eintraege)|sind (?:meine |die )?(?:stunden|einträge|eintraege) (?:vollständig|vollstaendig|komplett|richtig|ok)|stimmt (?:mein|der) (?:monat|stundennachweis|nachweis)|monats ?check)/.test(q)) {
+      var Zc = zeit(q, false); var Bc = Zc && Zc.art !== 'tag' ? bereich(Zc) : bereich(zeit('diesen monat', false)); if (!Bc) return null; var bisC = Bc[1] < hi ? Bc[1] : hi, P = [];
+      T.forEach(function (t) { if (t.datum < Bc[0] || t.datum > bisC) return; var e = E.filter(function (x) { return x.datum === t.datum; })[0], w = datK(t.datum);
+        if (e && (e.urlaub || e.krank)) return;
+        var PL = (t.laeden || []).filter(function (l) { return l.fil || l.ort; });
+        if (t.nurReise && !PL.length) { if (!e && t.datum >= '2026-11-01') P.push(w + ' fehlt die Anreise'); return; } /* vor November kam die Anreise aus der alten App mit dem Montag */
+        if (!PL.length) return;
+        var gs = 0; try { gs = e ? (ber(e).gesamt || 0) : 0; } catch (x_) {} var fest = !!(e && +e.festGesamt > 0);
+        if (!e || (!hatArbeit(e) && !fest && !gs)) { P.push(w + ' fehlt ganz' + (PL.length ? ' (' + liste(PL.map(function (l) { return l.ort || l.fil; })) + ')' : '')); return; }
+        var EL = (e.laeden || []), ef = EL.map(function (l) { return String(l.fil || ''); });
+        if (!fest && ef.some(function (f) { return f; })) PL.forEach(function (l) { if (l.fil && ef.indexOf(String(l.fil)) < 0) P.push(w + ' fehlt ' + (l.ort || 'Filiale ' + l.fil) + ', und er ist nicht als abgesagt eingetragen'); });
+        if (!fest) EL.forEach(function (l) { if (l.ausfall) return; var z = l.zeiten || [], halb = z.some(function (y) { return (y.von && !y.bis) || (!y.von && y.bis); }); if (halb) P.push(w + ' ist bei ' + (l.ort || 'einem Laden') + ' nur eine Uhrzeit eingetragen'); if (!String(l.std || '').trim() && !z.some(function (y) { return y.von && y.bis; })) P.push(w + ' hat ' + (l.ort || 'ein Laden') + ' keine Zeiten'); });
+      });
+      E.forEach(function (e) { if (e.datum < Bc[0] || e.datum > bisC || !(hatArbeit(e) || +e.festGesamt > 0) || e.auswaerts || e.feiertag || e.urlaub || e.krank) return; if (!T.some(function (t) { return t.datum === e.datum; }) && T.some(function (t) { return t.datum < e.datum; }) && T.some(function (t) { return t.datum > e.datum; })) P.push(datK(e.datum) + ' hast du Stunden, aber laut Plan keinen Einsatz'); });
+      P = P.filter(function (x, i) { return P.indexOf(x) === i; });
+      if (!P.length) return 'Alles sauber, Meister. Bis ' + datK(bisC).replace(/^am /, '') + ' passt jeder Tag zum Einsatzplan.';
+      return (P.length === 1 ? 'Mir ist eine Sache aufgefallen: ' : 'Mir sind ' + P.length + ' Sachen aufgefallen: ') + P.slice(0, 5).map(function (x, i) { return i ? x : x.charAt(0).toUpperCase() + x.slice(1); }).join('. ').replace(/\. am /g, '. Am ') + (P.length > 5 ? '. Und noch ' + (P.length - 5) + ' weitere' : '') + '.';
+    }
     /* Läden zählen: „Wie viele Läden hatte ich diesen Monat?“ */
     if (/wie ?viele? (?:läden|laeden|filialen|märkte|maerkte)/.test(q)) {
       var Z = zeit(q, false) || zeit('diesen monat', false), B = bereich(Z); if (!B) return null; var k = 0, tage = 0, orte = {};
