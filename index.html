@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.67';
+var VERSION = '3.68';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -3346,14 +3346,17 @@ function posNachbar(r) { var L = [].map.call(document.querySelectorAll((/^w:/.te
   var ende = function () { if (!aus) return; aus = false; if (!an) return; an = false; var k = $('pKoerper'), nach = Math.abs(dx) > 70 ? posNachbar(dx < 0 ? 1 : -1) : null;
     if (!nach) { k.style.transition = 'transform .25s cubic-bezier(.2,.8,.2,1), opacity .25s'; k.style.transform = ''; k.style.opacity = ''; return; }
     // (3.67, Andi 26.11. 14:41) wie ein Karussell: die alte Seite gleitet ganz hinaus, die neue kommt gleichzeitig von der anderen Seite herein
-    var w = k.offsetWidth || window.innerWidth, r = dx < 0 ? -1 : 1, kl = k.cloneNode(true), ein = 'transform .32s cubic-bezier(.25,.8,.25,1)';
-    [].forEach.call(kl.querySelectorAll('[id]'), function (x) { x.removeAttribute('id'); }); kl.removeAttribute('id');
-    kl.style.cssText = 'position:absolute;left:' + k.offsetLeft + 'px;top:' + k.offsetTop + 'px;width:' + k.offsetWidth + 'px;height:' + k.offsetHeight + 'px;margin:0;animation:none;pointer-events:none;z-index:2;transition:none;transform:translateX(' + dx.toFixed(1) + 'px)';
-    k.parentNode.appendChild(kl); kl.scrollTop = k.scrollTop;
-    posKey = nach; posAlt = null; posMorph.art = null; if (nach === 'rente') posZr = 'max'; else if (posZr === 'max') posZr = '1d'; posZeichnen(); k.scrollTop = 0;
-    k.style.transition = 'none'; k.style.opacity = ''; k.style.transform = 'translateX(' + (dx - r * w).toFixed(1) + 'px)'; void k.offsetWidth; void kl.offsetWidth;
-    k.style.transition = ein; kl.style.transition = ein; k.style.transform = ''; kl.style.transform = 'translateX(' + (r * w) + 'px)';
-    setTimeout(function () { kl.remove(); k.style.transition = ''; }, 360); };
+    // (3.68, Andi 14:44: „die neue sehe ich nicht“) iPhone malt einen verschobenen Scroll-Bereich außerhalb des Bildschirms nicht → beide Seiten als einfache Bilder-Kopien (ohne Scrollen) bewegen, das echte Fenster erst am Ende zeigen
+    var w = k.offsetWidth || window.innerWidth, r = dx < 0 ? -1 : 1, ein = 'transform .34s cubic-bezier(.25,.8,.25,1)', par = k.parentNode;
+    var kopie = function (x0) { var c = k.cloneNode(true); [].forEach.call(c.querySelectorAll('[id]'), function (x) { x.removeAttribute('id'); }); c.removeAttribute('id'); var st = k.scrollTop;
+      c.style.cssText = 'position:absolute;left:' + k.offsetLeft + 'px;top:' + k.offsetTop + 'px;width:' + k.offsetWidth + 'px;height:' + k.offsetHeight + 'px;margin:0;animation:none;pointer-events:none;z-index:2;transition:none;overflow:hidden;will-change:transform;-webkit-transform:translate3d(' + x0.toFixed(1) + 'px,0,0);transform:translate3d(' + x0.toFixed(1) + 'px,0,0)';
+      par.appendChild(c); c.scrollTop = st; if (st && c.firstElementChild && c.scrollTop !== st) c.firstElementChild.style.marginTop = (-st) + 'px'; return c; };
+    var alt = kopie(dx);
+    posKey = nach; posAlt = null; posMorph.art = null; if (nach === 'rente') posZr = 'max'; else if (posZr === 'max') posZr = '1d'; posZeichnen(); k.scrollTop = 0; k.style.transition = 'none'; k.style.transform = ''; k.style.opacity = '';
+    var neu_ = kopie(dx - r * w); k.style.visibility = 'hidden';
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      alt.style.transition = ein; neu_.style.transition = ein; alt.style.transform = 'translate3d(' + (r * w) + 'px,0,0)'; neu_.style.transform = 'translate3d(0,0,0)';
+      setTimeout(function () { k.style.visibility = ''; alt.remove(); neu_.remove(); k.style.transition = ''; }, 380); }); }); };
   inn.addEventListener('touchend', ende); inn.addEventListener('touchcancel', ende);
 })();
 function nachKz() { if ($('blattP').classList.contains('offen')) posZeichnen(); }
