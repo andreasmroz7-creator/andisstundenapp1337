@@ -739,7 +739,9 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.56';
+var VERSION = '3.57';
+// (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
+function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
 var KEY = 'stunden_v1';
 var daten = laden();
@@ -1449,7 +1451,7 @@ $('pdfknopf').onclick = function () {
       if (zur) neu.push('Rückfahrt Laden–Treffp. ' + (x.zurZeit ? x.zurZeit + ' ' : '') + '(' + dauer(zur).replace(' Std.', '') + ')');
       ld = neu;
     }
-    var w = [d.toLocaleDateString('de-DE'), TAGE[d.getDay()], ld[0].slice(0, 46), z(r.arbeit + (r.sonder || 0)), r.zwischen ? z(r.zwischen) : '', r.tl ? z(r.tl) : '', r.fahrt ? z(r.fahrt) : '', r.anreise ? z(r.anreise) : '', z(r.gesamt), r.verpflegung ? r.verpflegung + ' €' : '', [teamNotiz, x.notiz || ''].filter(Boolean).join(', ').slice(0, 22)];
+    var w = [d.toLocaleDateString('de-DE'), TAGE[d.getDay()], ld[0].slice(0, 46), z(r.arbeit + (r.sonder || 0)), r.zwischen ? z(r.zwischen) : '', r.tl ? z(r.tl) : '', r.fahrt ? z(r.fahrt) : '', r.anreise ? z(r.anreise) : '', z(r.gesamt), r.verpflegung ? r.verpflegung + ' €' : '', [teamNotiz, notizNachweis(x)].filter(Boolean).join(', ').slice(0, 22)];
     sp.forEach(function (s, i) { doc.text(s.x, y, w[i], 9, i === 8, s.r ? 'r' : ''); });
     for (var li = 1; li < ld.length; li++) { y += 12; doc.text(sp[2].x, y, ld[li].slice(0, 46), 9); }
     doc.line(36, y + 5, 806, y + 5, 0.3, 0.8); y += 17;
