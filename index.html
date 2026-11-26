@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.69';
+var VERSION = '3.70';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -3343,10 +3343,10 @@ var posFertig = null;
   var b = $('blattP'), inn = b && b.querySelector('.innen'), sx = 0, sy = 0, dx = 0, an = false, aus = false, alt = null, x0 = 0, laeuft = false; if (!inn) return;
   var k_ = function () { return $('pKoerper'); };
   var kopie = function () { var k = k_(), c = k.cloneNode(true), st = k.scrollTop; [].forEach.call(c.querySelectorAll('[id]'), function (x) { x.removeAttribute('id'); }); c.removeAttribute('id');
-    c.style.cssText = 'position:absolute;left:' + k.offsetLeft + 'px;top:' + k.offsetTop + 'px;width:' + k.offsetWidth + 'px;height:' + k.offsetHeight + 'px;margin:0;animation:none;pointer-events:none;z-index:2;transition:none;overflow:hidden';
+    c.style.cssText = 'position:absolute;left:' + k.offsetLeft + 'px;top:' + k.offsetTop + 'px;width:' + k.offsetWidth + 'px;height:' + k.offsetHeight + 'px;margin:0;animation:none;pointer-events:none;z-index:2;transition:none;overflow:hidden;-webkit-overflow-scrolling:auto';
     inn.appendChild(c); c.scrollTop = st; return c; };
-  var lauf = function (els, von, bis, ms, fertig) { var t0 = performance.now(), ease = function (q) { return 1 - Math.pow(1 - q, 3); };
-    var f = function (t) { var q = Math.min(1, (t - t0) / ms), e = ease(q); els.forEach(function (el, i) { el.style.left = (x0 + von[i] + (bis[i] - von[i]) * e).toFixed(1) + 'px'; }); if (q < 1) requestAnimationFrame(f); else fertig(); };
+  var lauf = function (els, von, bis, ms, fertig, basis) { var t0 = performance.now(), ease = function (q) { return 1 - Math.pow(1 - q, 3); };
+    var f = function (t) { var q = Math.min(1, (t - t0) / ms), e = ease(q); els.forEach(function (el, i) { el.style.left = ((basis ? basis[i] : x0) + von[i] + (bis[i] - von[i]) * e).toFixed(1) + 'px'; }); if (q < 1) requestAnimationFrame(f); else fertig(); };
     requestAnimationFrame(f); };
   var zeigK = function () { var k = k_(); k.style.visibility = ''; };
   inn.addEventListener('touchstart', function (e) { aus = an = false; dx = 0; if (laeuft || e.touches.length !== 1 || querAn) return; var t = e.touches[0];
@@ -3357,8 +3357,9 @@ var posFertig = null;
   var ende = function () { if (!aus) return; aus = false; if (!an) return; an = false; var nach = Math.abs(dx) > 70 ? posNachbar(dx < 0 ? 1 : -1) : null, a = alt; alt = null;
     if (!nach) { var v0 = parseFloat(a.style.left) - x0; laeuft = true; lauf([a], [v0], [0], 220, function () { zeigK(); a.remove(); laeuft = false; }); return; }
     var k = k_(), w = k.offsetWidth || window.innerWidth, r = dx < 0 ? -1 : 1, los = false; laeuft = true;
-    var start = function () { if (los) return; los = true; posFertig = null; k.scrollTop = 0; var n = kopie(); n.style.left = (x0 + dx - r * w).toFixed(1) + 'px';
-      lauf([a, n], [dx, dx - r * w], [r * w, 0], 300, function () { zeigK(); a.remove(); n.remove(); laeuft = false; }); };
+    // (3.70, Andi 17:34: rechts kommt am iPhone immer noch nichts) die neue Seite ist jetzt das echte Fenster selbst (keine Kopie), verschoben über position:relative + left
+    var start = function () { if (los) return; los = true; posFertig = null; k.scrollTop = 0; k.style.overflow = 'hidden'; k.style.webkitOverflowScrolling = 'auto'; /* iPhone: eigene Scroll-Ebene wird außerhalb des Bildschirms nicht gemalt */ k.style.position = 'relative'; k.style.left = (dx - r * w).toFixed(1) + 'px'; k.style.visibility = '';
+      lauf([a, k], [dx, dx - r * w], [r * w, 0], 300, function () { k.style.left = ''; k.style.position = ''; k.style.overflow = ''; k.style.webkitOverflowScrolling = ''; a.remove(); laeuft = false; }, [x0, 0]); };
     posFertig = start; posKey = nach; posAlt = null; posMorph.art = null; if (nach === 'rente') posZr = 'max'; else if (posZr === 'max') posZr = '1d'; posZeichnen(); k.scrollTop = 0;
     setTimeout(start, 700); }; // spätestens nach 0,7 s, auch wenn das Diagramm noch lädt
   inn.addEventListener('touchend', ende); inn.addEventListener('touchcancel', ende);
