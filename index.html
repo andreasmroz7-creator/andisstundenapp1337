@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.82';
+var VERSION = '3.83';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -1285,6 +1285,7 @@ $('plus').onclick = function () {
 };
 function monatSchritt(n) { ansicht.m += n; if (ansicht.m < 0) { ansicht.m = 11; ansicht.j--; } if (ansicht.m > 11) { ansicht.m = 0; ansicht.j++; } zeichne(); }
 function blattZu(bl) {
+  if (bl && bl.id === 'blattHt') HTP.warOffen = false; // (3.83) Reiseinfos beim nächsten Öffnen wieder zu
   if (bl && bl.id === 'blattJv') { jvSchliessen(); return; }
   if (!bl || !bl.classList.contains('offen') || bl.classList.contains('zugeht')) return;
   var vs = bl.dataset.vonstart; delete bl.dataset.vonstart;
@@ -3165,7 +3166,8 @@ function htTagName(datum) {
   var d = new Date(datum + 'T12:00:00'), h = new Date(); h.setHours(12, 0, 0, 0); var t = Math.round((d - h) / 864e5);
   return t === 0 ? 'Heute' : t === 1 ? 'Morgen' : t === 2 ? 'Übermorgen' : ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'][d.getDay()] + ', ' + d.getDate() + '.' + (d.getMonth() + 1) + '.';
 }
-var HTP = { el: null, kw: null };
+var HTP = { el: null, kw: null }, HTP2 = { el: null, kw: null };
+function planWocheNach(PW) { try { var mo = new Date(PW.von + 'T12:00:00'); mo.setDate(mo.getDate() + 7); var sa = new Date(mo); sa.setDate(mo.getDate() + 5), a = iso2(mo); return { kw: kwVon(a).split('-')[1], jahr: a.slice(0, 4), von: a, bis: iso2(sa) }; } catch (x) { return null; } }
 function planTabelle(PW) { // (3.52, Andi 25.11.: auf dem Handy auch der dunkle Einsatzplan wie im Dashboard-Cockpit) aus cockpit_mac.js übernommen
         try { var T = ((daten.nachweis && daten.nachweis.tage) || []), d0 = new Date(PW.von + 'T12:00:00'), hi = iso2(new Date()), h = '', n = 0;
           for (var i = 0; i < 6; i++) { var d = new Date(d0); d.setDate(d0.getDate() + i); var ds = iso2(d), t = T.find(function (x) { return x.datum === ds; }), L = t && t.laeden || [];
@@ -3206,19 +3208,24 @@ function htZeichnen() {
   h += '<p class="hinweis" style="margin-top:14px">Oben stehen alle Läden von heute mit dem Team und der 1. Laden vom nächsten Tag (ändert sich das Team, steht dort nur, wer neu dabei ist oder fehlt). Um 0 Uhr rückt alles einen Tag weiter. Markt- oder Personalnummer antippen kopiert sie.</p>';
   $('htKoerper').innerHTML = h;
   // (3.13) Einsatzplan der Woche im Heute-Fenster; der Knoten wird behalten (Zoom bleibt beim Aktualisieren jede Minute erhalten)
-  try { var PW = planWoche(), hk = $('htKoerper'), hn = hk.querySelector('.hinweis:last-of-type');
-    var tab_ = planTabelle(PW); if (tab_ && (!HTP.el || HTP.kw !== PW.kw || HTP.tab !== tab_)) { HTP.kw = PW.kw; HTP.tab = tab_; HTP.el = document.createElement('div'); HTP.el.className = 'htplan htplanD'; // (3.52) dunkle Wochenübersicht, Original-Bild auf Knopfdruck
-      HTP.el.innerHTML = '<div class="htplankopf"><b>Einsatzplan KW ' + esc(PW.kw) + '</b><button type="button" class="htplangross">Original ansehen ›</button></div>' + tab_;
-      HTP.el.querySelector('.htplangross').onclick = function () { planZeigen(); };
-      var pr_ = HTP.el.querySelector('.preise'); if (pr_) pr_.onclick = function () { var nn = HTP.el.querySelector('.pnum'), auf = nn.hidden; nn.hidden = !auf; pr_.setAttribute('aria-expanded', String(auf)); };
-      setTimeout(function () { try { var g = HTP.el.querySelector('.pgrid'), h_ = HTP.el.querySelector('.ptag.heute'); if (g && h_) g.scrollLeft = h_.offsetLeft - g.offsetLeft; } catch (x) {} }, 50); }
-    else if (!tab_ && (!HTP.el || HTP.kw !== PW.kw)) { HTP.kw = PW.kw; HTP.tab = ''; HTP.el = document.createElement('div'); HTP.el.className = 'htplan';
-      HTP.el.innerHTML = '<div class="htplankopf"><b>Einsatzplan KW ' + esc(PW.kw) + '</b><button type="button" class="htplangross">Groß ansehen ›</button></div><div class="zbox htzbox"><p class="hinweis" style="margin:18px 0">Plan wird geladen …</p></div>';
-      HTP.el.querySelector('.htplangross').onclick = function () { planZeigen(); };
-      var box = HTP.el.querySelector('.htzbox');
-      planLaden(PW, function (url) { box.innerHTML = '<img alt="Einsatzplan KW ' + esc(PW.kw) + '" src="' + url + '">'; zoomBild(box, box.querySelector('img')); },
-        function () { box.innerHTML = '<p class="hinweis" style="margin:18px 0">Der Plan für KW ' + esc(PW.kw) + ' ist noch nicht da.</p>'; }); }
-    hk.insertBefore(HTP.el, $('htStunden')); } catch (x) {}
+  // (3.83, Andi 26.11. 22:01) darunter der Plan der nächsten Woche (falls schon da), gleiches Design, mit eigener Reiseinfo; Reiseinfos sind beim Öffnen immer zu
+  try { var PW = planWoche(), hk = $('htKoerper'), PW2 = planWocheNach(PW);
+    [[HTP, PW], [HTP2, PW2]].forEach(function (z) { var H = z[0], W = z[1]; if (!W) { H.el = null; H.kw = null; return; }
+      var tab_ = planTabelle(W); if (!tab_ && H === HTP2) { H.el = null; H.kw = null; return; } // nächste Woche nur, wenn ihr Plan schon da ist
+      if (tab_ && (!H.el || H.kw !== W.kw || H.tab !== tab_)) { H.kw = W.kw; H.tab = tab_; H.el = document.createElement('div'); H.el.className = 'htplan htplanD'; // (3.52) dunkle Wochenübersicht, Original-Bild auf Knopfdruck
+        H.el.innerHTML = '<div class="htplankopf"><b>Einsatzplan KW ' + esc(W.kw) + '</b><button type="button" class="htplangross">Original ansehen ›</button></div>' + tab_;
+        H.el.querySelector('.htplangross').onclick = function () { planZeigen(W); };
+        var pr_ = H.el.querySelector('.preise'), el_ = H.el; if (pr_) pr_.onclick = function () { var nn = el_.querySelector('.pnum'), auf = nn.hidden; nn.hidden = !auf; pr_.setAttribute('aria-expanded', String(auf)); };
+        if (H === HTP) setTimeout(function () { try { var g = el_.querySelector('.pgrid'), h_ = el_.querySelector('.ptag.heute'); if (g && h_) g.scrollLeft = h_.offsetLeft - g.offsetLeft; } catch (x) {} }, 50); }
+      else if (!tab_ && (!H.el || H.kw !== W.kw)) { H.kw = W.kw; H.tab = ''; H.el = document.createElement('div'); H.el.className = 'htplan';
+        H.el.innerHTML = '<div class="htplankopf"><b>Einsatzplan KW ' + esc(W.kw) + '</b><button type="button" class="htplangross">Groß ansehen ›</button></div><div class="zbox htzbox"><p class="hinweis" style="margin:18px 0">Plan wird geladen …</p></div>';
+        H.el.querySelector('.htplangross').onclick = function () { planZeigen(W); };
+        var box = H.el.querySelector('.htzbox');
+        planLaden(W, function (url) { box.innerHTML = '<img alt="Einsatzplan KW ' + esc(W.kw) + '" src="' + url + '">'; zoomBild(box, box.querySelector('img')); },
+          function () { box.innerHTML = '<p class="hinweis" style="margin:18px 0">Der Plan für KW ' + esc(W.kw) + ' ist noch nicht da.</p>'; }); }
+      if (H.el) hk.insertBefore(H.el, $('htStunden')); });
+    if (!HTP.warOffen) [HTP, HTP2].forEach(function (H) { if (!H.el) return; var nn = H.el.querySelector('.pnum'), pr = H.el.querySelector('.preise'); if (nn) nn.hidden = true; if (pr) pr.setAttribute('aria-expanded', 'false'); });
+    HTP.warOffen = true; } catch (x) {}
   [].forEach.call(document.querySelectorAll('#htKoerper .htp[data-nr]'), function (b) { b.onclick = function () { var nr = b.dataset.nr;
     var ok = function () { b.classList.add('kopiert'); setTimeout(function () { b.classList.remove('kopiert'); }, 1500); };
     try { navigator.clipboard.writeText(nr).then(ok, function () { toast('Personalnummer ' + nr); }); } catch (x) { toast('Personalnummer ' + nr); } }; });
@@ -3973,8 +3980,8 @@ function planLaden(PW, fertig, fehl) {
   fetch(GH.replace('daten.json', pfad), { headers: { Authorization: 'Bearer ' + daten.einst.token, Accept: 'application/vnd.github.raw' }, cache: 'no-store' })
     .then(function (r) { if (!r.ok) throw 0; return r.blob(); }).then(function (b) { planBilder[pfad] = URL.createObjectURL(b); fertig(planBilder[pfad]); }).catch(fehl);
 }
-function planZeigen() {
-  var PW = planWoche(), titel = 'Einsatzplan KW ' + PW.kw;
+function planZeigen(PWx) {
+  var PW = PWx && PWx.kw ? PWx : planWoche(), titel = 'Einsatzplan KW ' + PW.kw;
   $('lbTitel').textContent = titel; var K = $('lbKoerper'); $('blattLb').classList.add('offen');
   K.ontouchstart = K.ontouchmove = K.ontouchend = null; K.scrollTop = 0; K.scrollLeft = 0;
   K.innerHTML = '<p class="hinweis" style="margin-top:40px">Plan wird geladen …</p>';
