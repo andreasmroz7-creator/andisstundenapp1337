@@ -166,8 +166,9 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
   <div class="titel"><button class="kugel zuknopf" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Einstellungen</b></div>
   <div class="koerper">
     <label>Dein Name (steht im PDF)</label><input type="text" id="sName" placeholder="Vorname Nachname" autocomplete="off">
-    <label>Stundenlohn brutto (€)</label><input type="text" id="sLohn" inputmode="decimal" placeholder="z. B. 13,90" autocomplete="off">
+    <label>Stundenlohn brutto (€) – von Anfang an</label><input type="text" id="sLohn" inputmode="decimal" placeholder="z. B. 13,90" autocomplete="off">
     <div class="hinweis">Leer lassen, wenn nur die Stunden gezählt werden sollen.</div>
+    <div id="lohnBox"></div>
     <div class="schalter" id="sKist"><div>Kirchensteuer<small>nur wenn du in der Kirche bist (für den Netto-Schätzer)</small></div><div class="knopf"></div></div>
     <div class="schalter" id="sKinder"><div>Ich habe Kinder<small>sonst etwas höherer Pflegebeitrag (für den Netto-Schätzer)</small></div><div class="knopf"></div></div>
     <div class="schalter" id="sNurStd"><div>Nur Stunden eintragen<small>statt Beginn und Ende einfach die Stunden, z. B. 7:30</small></div><div class="knopf"></div></div>
@@ -200,7 +201,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.21';
+var VERSION = '3.22';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -215,7 +216,13 @@ function minuten(t) { if (!t) return null; var p = t.split(':'); return +p[0] * 
 function urlaubMin() { var u = daten.einst.urlaubStd; return u != null && u !== '' ? +u || 0 : 0; }
 function dauer(e) { if (istUrlaub(e)) return urlaubMin(); if (e.std != null) return +e.std || 0; var b = minuten(e.b), z = minuten(e.e); if (b == null || z == null) return 0; var m = z - b; if (m <= 0) m += 1440; return Math.max(0, m - (+e.p || 0)); }
 function hm(min) { var h = Math.floor(min / 60), m = Math.round(min % 60); if (m === 60) { h++; m = 0; } return h + ':' + ('0' + m).slice(-2); }
-function lohn() { var l = parseFloat(String(daten.einst.lohn || '').replace(',', '.')); return isFinite(l) && l > 0 ? l : 0; }
+function zahl_(x) { var l = parseFloat(String(x || '').replace(',', '.')); return isFinite(l) && l > 0 ? l : 0; }
+// (3.22, 26.11.) Stundenlohn mit „gültig ab“: einst.lohn = Lohn von Anfang an, einst.loehne = [{ab, l}] spätere Erhöhungen; jeder Tag zählt mit dem Lohn, der an dem Tag galt
+function loehne() { return (Array.isArray(daten.einst.loehne) ? daten.einst.loehne : []).filter(function (x) { return x && x.ab && zahl_(x.l); }).sort(function (a, b) { return a.ab < b.ab ? -1 : 1; }); }
+function lohnAm(ds) { var l = zahl_(daten.einst.lohn); loehne().forEach(function (x) { if (x.ab <= ds) l = zahl_(x.l); }); return l; }
+function lohn() { return lohnAm(iso(new Date())); } // heute gültiger Lohn
+function mitLohn() { return !!(zahl_(daten.einst.lohn) || loehne().length); }
+function geld(L) { var g = 0; L.forEach(function (e) { g += dauer(e) / 60 * lohnAm(e.d); }); return Math.round(g * 100) / 100; }
 function vertrag() { var v = parseFloat(String(daten.einst.vertrag || '').replace(',', '.')); return isFinite(v) && v > 0 ? v * 60 : 0; } // Minuten pro Woche
 function wocheIst(mo) { var so = new Date(mo); so.setDate(mo.getDate() + 6); var a0 = iso(mo), a1 = iso(so), m = 0; daten.eintraege.forEach(function (e) { if (e.d >= a0 && e.d <= a1) m += dauer(e); }); return m; }
 // Wochen eines Monats = alle Wochen, deren Montag im Monat liegt (bis zur laufenden Woche)
@@ -223,6 +230,13 @@ function ersteWoche() { var m = null; daten.eintraege.forEach(function (e) { if 
 // (3.16) Soll je Tag: Mo–Fr = Wochenstunden ÷ 5, ab ihrem ersten Eintrag; Samstag/Sonntag kein Soll (eingetragene Stunden zählen trotzdem).
 // Eine Woche über den Monatswechsel wird geteilt: jeder Monat bekommt nur seine Tage (Soll und Ist), so wie Andi es will.
 // (3.21, 26.11.) Saisonpausen: { ende: letzter Arbeitstag der Saison, beginn: erster Arbeitstag der neuen Saison (leer = Pause läuft) }; dazwischen kein Soll
+function lohnZeichnen() { var B = $('lohnBox'); if (!B) return; var L = loehne(), jahr = new Date().getFullYear(), vor = (jahr + 1) + '-01-01';
+  B.innerHTML = L.map(function (x) { return '<button class="btn lohnweg" data-ab="' + x.ab + '" style="margin-top:6px;width:100%;text-align:left">ab ' + datumKurz(x.ab) + ': ' + euro(zahl_(x.l)) + ' <span style="float:right;opacity:.6">×</span></button>'; }).join('') +
+    '<div class="lohnneu" style="display:flex;gap:8px;margin-top:8px"><input type="text" id="lohnNeu" inputmode="decimal" placeholder="neuer Lohn" style="flex:1"><input type="date" id="lohnAb" value="' + vor + '" style="flex:1"></div><div class="knopfreihe" style="margin-top:8px"><button class="btn" id="lohnOk">Neuen Stundenlohn ab Datum speichern</button></div>' +
+    '<div class="hinweis">Bekommst du mehr Geld, trag hier den neuen Lohn mit Datum ein. Alles davor bleibt mit dem alten Lohn gerechnet.</div>';
+  $('lohnOk').onclick = function () { var l = zahl_($('lohnNeu').value), ab = $('lohnAb').value; if (!l || !ab) { toast('Bitte Lohn und Datum eintragen'); return; }
+    var A = (Array.isArray(daten.einst.loehne) ? daten.einst.loehne : []).filter(function (x) { return x.ab !== ab; }); A.push({ ab: ab, l: String(l).replace('.', ',') }); daten.einst.loehne = A; sichern(); lohnZeichnen(); zeichne(); toast('Ab ' + datumKurz(ab) + ': ' + euro(l)); };
+  [].forEach.call(B.querySelectorAll('.lohnweg'), function (b) { b.onclick = function () { if (!confirm('Diesen Lohn löschen?')) return; daten.einst.loehne = loehne().filter(function (x) { return x.ab !== b.dataset.ab; }); sichern(); lohnZeichnen(); zeichne(); }; }); }
 function saisons() { return Array.isArray(daten.einst.saison) ? daten.einst.saison : []; }
 function inPause(ds) { return saisons().some(function (p) { return p.ende && ds > p.ende && (!p.beginn || ds < p.beginn); }); }
 function sollTage(von, bis) { var n = 0, ers = erstesDatum(); for (var d = new Date(von); d <= bis; d.setDate(d.getDate() + 1)) { var wt = d.getDay(), ds = iso(d); if (wt >= 1 && wt <= 5 && !inPause(ds) && (!ers || ds >= ers)) n++; } return n; }
@@ -275,16 +289,16 @@ function zeichneEcht() {
   var L = monatsEintraege(), sum = 0, tage = {};
   L.forEach(function (e) { sum += dauer(e); tage[e.d] = 1; });
   $('sStd').textContent = hm(sum); 
-  var br = Math.round(sum / 60 * lohn() * 100) / 100;
-  $('sGeldBox').style.display = lohn() ? '' : 'none'; $('sGeld').textContent = euro(br); $('sNetto').textContent = euro(netto(br));
+  var br = geld(L);
+  $('sGeldBox').style.display = mitLohn() ? '' : 'none'; $('sGeld').textContent = euro(br); $('sNetto').textContent = euro(netto(br));
   var V = vertrag();
   // (3.5) Sollstunden im Monat: Vertragsstunden pro Woche ÷ 5 je Arbeitstag (Mo–Fr), nur die Tage, die in diesem Monat liegen
   // (eine angebrochene Woche am Monatsanfang oder -ende zählt also nur mit ihren Tagen im Monat)
   if (V) {
     var nT = new Date(ansicht.j, ansicht.m + 1, 0).getDate(), at = 0; for (var q = 1; q <= nT; q++) { var dq = new Date(ansicht.j, ansicht.m, q), wq = dq.getDay(); if (wq >= 1 && wq <= 5 && !inPause(iso(dq))) at++; }
-    var soll = Math.round(V / 5 * at), sbr = Math.round(soll / 60 * lohn() * 100) / 100, rest = soll - sum;
+    var soll = Math.round(V / 5 * at), sbr = Math.round(soll / 60 * lohnAm(iso(new Date(ansicht.j, ansicht.m, 15))) * 100) / 100, rest = soll - sum;
     $('sollBox').style.display = ''; $('sollStd').textContent = hm(soll);
-    $('sollGeldBox').style.display = lohn() ? '' : 'none'; $('sollGeld').textContent = euro(sbr); $('sollNetto').textContent = euro(netto(sbr));
+    $('sollGeldBox').style.display = mitLohn() ? '' : 'none'; $('sollGeld').textContent = euro(sbr); $('sollNetto').textContent = euro(netto(sbr));
   } else $('sollBox').style.display = 'none';
   var aw = anzeigeWoche(); // (3.7) gewählte Woche (in der Kachel wischbar), im Kalender umrandet
   if (V) {
@@ -485,7 +499,7 @@ function wocheSchritt(n) {
     if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) { wocheGewischt = Date.now(); wocheSchritt(dx < 0 ? 1 : -1); } }, { passive: true });
 })();
 // Einstellungen
-$('einstKnopf').onclick = function () { saisonZeichnen(); $('sName').value = daten.einst.name || ''; $('sLohn').value = daten.einst.lohn || ''; $('sPause').value = daten.einst.pause || ''; $('sUrlaub').value = daten.einst.urlaubStd != null && daten.einst.urlaubStd !== '' ? hm(+daten.einst.urlaubStd) : ''; $('sVertrag').value = daten.einst.vertrag || ''; nurStdZeigen(); $('sLetzte').textContent = daten.einst.gesichert ? 'Letzte Sicherung: ' + new Date(daten.einst.gesichert).toLocaleString('de-DE', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr' : 'Noch keine Sicherung gemacht.'; oeffne('blattS'); };
+$('einstKnopf').onclick = function () { saisonZeichnen(); lohnZeichnen(); $('sName').value = daten.einst.name || ''; $('sLohn').value = daten.einst.lohn || ''; $('sPause').value = daten.einst.pause || ''; $('sUrlaub').value = daten.einst.urlaubStd != null && daten.einst.urlaubStd !== '' ? hm(+daten.einst.urlaubStd) : ''; $('sVertrag').value = daten.einst.vertrag || ''; nurStdZeigen(); $('sLetzte').textContent = daten.einst.gesichert ? 'Letzte Sicherung: ' + new Date(daten.einst.gesichert).toLocaleString('de-DE', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr' : 'Noch keine Sicherung gemacht.'; oeffne('blattS'); };
 $('sName').onchange = function () { daten.einst.name = this.value.trim(); sichern(); zeichne(); };
 $('sLohn').onchange = function () { daten.einst.lohn = this.value.trim(); sichern(); zeichne(); };
 $('sPause').onchange = function () { daten.einst.pause = this.value.trim(); sichern(); };
@@ -535,7 +549,7 @@ function zurueckZumJahr() { if (!vonJahr) return; vonJahr = false; $('zurJahr').
 $('zurJahr').onclick = zurueckZumJahr;
 $('summe').onclick = function () { if (Date.now() - wocheGewischt < 600) return; jahrAnsicht = ansicht.j; jahrZeichnen(); oeffne('blattJ'); };
 function jahrZeichnen() {
-  var J = jahrAnsicht, V = vertrag(), l = lohn(), jahre = {}, hj = new Date().getFullYear();
+  var J = jahrAnsicht, V = vertrag(), l = mitLohn(), jahre = {}, hj = new Date().getFullYear();
   daten.eintraege.forEach(function (e) { jahre[e.d.slice(0, 4)] = 1; }); jahre[hj] = 1; jahre[J] = 1;
   var JL = Object.keys(jahre).map(Number).sort();
   var sum = 0, tage = {}, urlaub = 0, br = 0, nt = 0, M = [];
@@ -543,7 +557,7 @@ function jahrZeichnen() {
     var pre = J + '-' + ('0' + (m + 1)).slice(-2), L = daten.eintraege.filter(function (e) { return e.d.slice(0, 7) === pre; }), ms = 0, mt = {};
     L.forEach(function (e) { var d = dauer(e); if (istUrlaub(e)) { urlaub++; ms += d; } else if (e.std === 0) { } else { ms += d; mt[e.d] = 1; tage[e.d] = 1; } });
     var WO = V ? monatsWochen(J, m) : [], ist = WO.reduce(function (a, w) { return a + w.ist; }, 0), soll = WO.reduce(function (a, w) { return a + w.soll; }, 0), diff = V && WO.length ? ist - soll : null;
-    var mb = Math.round(ms / 60 * l * 100) / 100; sum += ms; if (l) { br += mb; nt += netto(mb); }
+    var mb = geld(L); sum += ms; if (l) { br += mb; nt += netto(mb); }
     if (L.length || (diff != null && WO.length)) M.push({ m: m, std: ms, tage: Object.keys(mt).length, diff: diff, br: mb });
   }
   var ueber = M.reduce(function (a, x) { return a + (x.diff || 0); }, 0), wochen = V ? M.reduce(function (a, x) { return a + monatsWochen(J, x.m).reduce(function (b, w) { return b + w.soll; }, 0); }, 0) / V : 0; // in ganzen Soll-Wochen
@@ -583,7 +597,7 @@ $('pKal').onclick = function () { schliesse($('blattP')); pdfKalender(); };
 function pdfListe() {
   var L = monatsEintraege(); if (!L.length) { toast('In diesem Monat ist nichts eingetragen'); return; }
   var doc = new MiniPDF(); doc.W = 595; doc.H = 842; doc.addPage();
-  var x0 = 40, y = 54, nm = (daten.einst.name || '').trim(), l = lohn(), sum = 0;
+  var x0 = 40, y = 54, nm = (daten.einst.name || '').trim(), l = mitLohn(), sum = 0;
   doc.text(x0, y, 'Stundennachweis ' + MONATE[ansicht.m] + ' ' + ansicht.j, 18, true); y += 20;
   if (nm) { doc.text(x0, y, nm, 11); y += 16; }
   y += 14;
@@ -604,7 +618,7 @@ function pdfListe() {
   y += 10; if (y > 760) { doc.addPage(); y = 54; }
   doc.text(sp[0], y, 'Summe', 11, true); doc.text(515, y, hm(sum) + ' Std.', 11, true, 'r'); y += 18;
   doc.text(sp[0], y, 'Arbeitstage', 10); doc.text(515, y, String(Object.keys(L.reduce(function (a, e) { a[e.d] = 1; return a; }, {})).length), 10, false, 'r'); y += 16;
-  if (l) { doc.text(sp[0], y, 'Stundenlohn', 10); doc.text(515, y, euro(l), 10, false, 'r'); y += 16; doc.text(sp[0], y, 'Brutto (Stunden x Stundenlohn)', 10, true); doc.text(515, y, euro(sum / 60 * l), 10, true, 'r'); y += 16; }
+  if (l) { var LS_ = []; L.forEach(function (e) { var w = lohnAm(e.d); if (LS_.indexOf(w) < 0) LS_.push(w); }); if (!LS_.length) LS_.push(lohnAm(iso(new Date(ansicht.j, ansicht.m, 15)))); doc.text(sp[0], y, 'Stundenlohn', 10); doc.text(515, y, LS_.map(euro).join(' / '), 10, false, 'r'); y += 16; doc.text(sp[0], y, 'Brutto (Stunden x Stundenlohn)', 10, true); doc.text(515, y, euro(geld(L)), 10, true, 'r'); y += 16; }
   var V = vertrag();
   if (V) { // Wochen des Monats: jede Woche zählt ganz (Mo–So) mit den Vertragsstunden, auch über den Monatswechsel; sie gehört zu dem Monat, in dem ihr Montag liegt
     var WO = monatsWochen(ansicht.j, ansicht.m), ist = 0;
