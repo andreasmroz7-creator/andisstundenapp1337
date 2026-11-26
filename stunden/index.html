@@ -68,7 +68,7 @@ button{font:inherit;color:inherit}
 .geistseite .kugel{visibility:hidden}
 .woche small{display:block;color:var(--grau);font-size:13px}.woche b{font-size:22px;font-weight:700}
 .woche .diff{font-size:17px;font-weight:700;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.08);white-space:nowrap}
-.plusw{color:var(--ok)}.minusw{color:#ff5fa8}
+.saisonz{border:1px solid var(--rand);border-radius:14px;padding:12px 14px}.saisonz b{display:block}.saisonz small{color:var(--grau)}.plusw{color:var(--ok)}.minusw{color:#ff5fa8}
 .soll{font-size:13px;color:var(--grau);margin-top:4px}
 .schalter{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid var(--rand);cursor:pointer}
 .schalter small{display:block;color:var(--grau);font-size:13px}
@@ -173,6 +173,9 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
     <div class="schalter" id="sNurStd"><div>Nur Stunden eintragen<small>statt Beginn und Ende einfach die Stunden, z. B. 7:30</small></div><div class="knopf"></div></div>
     <label>Vertragsstunden pro Woche</label><input type="text" id="sVertrag" inputmode="decimal" placeholder="z. B. 32" autocomplete="off">
     <div class="hinweis">Oben siehst du dann, wie viele Stunden du diese Woche hast und ob du im Plus oder Minus bist. Jede Woche zählt ganz von Montag bis Sonntag, auch über den Monatswechsel.</div>
+    <label>Saison</label>
+    <div id="saisonBox"></div>
+    <div class="hinweis">Zwischen Saisonende und Saisonbeginn (z. B. im Winter) zählen keine Sollstunden, also auch keine Minusstunden. Das Datum trägst du jedes Mal selbst ein.</div>
     <label>Stunden pro Urlaubstag</label><input type="text" id="sUrlaub" inputmode="decimal" placeholder="z. B. 6:24 oder 8" autocomplete="off">
     <div class="hinweis">So viele Stunden zählt ein Urlaubstag, ohne Pause. Leer = 0 Stunden.</div>
     <label>Standard-Pause (Minuten)</label><input type="number" id="sPause" inputmode="numeric" min="0" step="5" placeholder="0">
@@ -197,7 +200,7 @@ input[type=date],input[type=time]{display:block;text-align:left}input::-webkit-d
 <div id="toast"></div>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.20';
+var VERSION = '3.21';
 var $ = function (id) { return document.getElementById(id); };
 var KEY = 'stunden_einfach_daten';
 var MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -219,9 +222,25 @@ function wocheIst(mo) { var so = new Date(mo); so.setDate(mo.getDate() + 6); var
 function ersteWoche() { var m = null; daten.eintraege.forEach(function (e) { if (!m || e.d < m) m = e.d; }); return m ? iso(wocheVon(new Date(m + 'T12:00:00'))) : null; } // vor ihrem ersten Eintrag zählt kein Soll
 // (3.16) Soll je Tag: Mo–Fr = Wochenstunden ÷ 5, ab ihrem ersten Eintrag; Samstag/Sonntag kein Soll (eingetragene Stunden zählen trotzdem).
 // Eine Woche über den Monatswechsel wird geteilt: jeder Monat bekommt nur seine Tage (Soll und Ist), so wie Andi es will.
+// (3.21, 26.11.) Saisonpausen: { ende: letzter Arbeitstag der Saison, beginn: erster Arbeitstag der neuen Saison (leer = Pause läuft) }; dazwischen kein Soll
+function saisons() { return Array.isArray(daten.einst.saison) ? daten.einst.saison : []; }
+function inPause(ds) { return saisons().some(function (p) { return p.ende && ds > p.ende && (!p.beginn || ds < p.beginn); }); }
+function sollTage(von, bis) { var n = 0, ers = erstesDatum(); for (var d = new Date(von); d <= bis; d.setDate(d.getDate() + 1)) { var wt = d.getDay(), ds = iso(d); if (wt >= 1 && wt <= 5 && !inPause(ds) && (!ers || ds >= ers)) n++; } return n; }
+function datumKurz(ds) { var d = new Date(ds + 'T12:00:00'); return d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear(); }
+function saisonZeichnen() { var B = $('saisonBox'); if (!B) return; var S = saisons().slice().sort(function (a, b) { return a.ende < b.ende ? 1 : -1; }), offen = S.find(function (p) { return !p.beginn; }), hi = iso(new Date());
+  var h = offen ? '<div class="saisonz an"><div><b>Saisonpause läuft</b><small>seit Saisonende ' + datumKurz(offen.ende) + ' – keine Minusstunden</small></div></div><label style="margin-top:10px">Saisonbeginn (erster Arbeitstag)</label><input type="date" id="saisonDatum" value="' + hi + '"><div class="knopfreihe" style="margin-top:8px"><button class="btn haupt" id="saisonOk">Saisonbeginn eintragen</button></div>'
+    : '<label style="margin-top:4px">Saisonende (letzter Arbeitstag)</label><input type="date" id="saisonDatum" value="' + hi + '"><div class="knopfreihe" style="margin-top:8px"><button class="btn haupt" id="saisonOk">Saisonende eintragen</button></div>';
+  var alt = S.filter(function (p) { return p.beginn; }); if (alt.length) h += '<div class="hinweis" style="margin-top:10px">Frühere Pausen (antippen zum Löschen):</div>' + alt.map(function (p) { return '<button class="btn saisonweg" data-e="' + p.ende + '" style="margin-top:6px;width:100%;text-align:left">' + datumKurz(p.ende) + ' bis ' + datumKurz(p.beginn) + ' <span style="float:right;opacity:.6">×</span></button>'; }).join('');
+  if (offen) h += '<button class="btn saisonweg" data-e="' + offen.ende + '" style="margin-top:6px;width:100%">Saisonende ' + datumKurz(offen.ende) + ' löschen</button>';
+  B.innerHTML = h;
+  $('saisonOk').onclick = function () { var v = $('saisonDatum').value; if (!v) return; var L = saisons().slice();
+    if (offen) { if (v <= offen.ende) { toast('Saisonbeginn muss nach dem Saisonende liegen'); return; } offen.beginn = v; toast('Saisonbeginn ' + datumKurz(v) + ' eingetragen'); }
+    else { L.push({ ende: v, beginn: null }); daten.einst.saison = L; toast('Saisonende ' + datumKurz(v) + ' eingetragen'); }
+    daten.einst.saison = daten.einst.saison || L; sichern(); saisonZeichnen(); zeichne(); };
+  [].forEach.call(B.querySelectorAll('.saisonweg'), function (b) { b.onclick = function () { if (!confirm('Diese Saisonpause löschen?')) return; daten.einst.saison = saisons().filter(function (p) { return p.ende !== b.dataset.e; }); sichern(); saisonZeichnen(); zeichne(); }; }); }
 function erstesDatum() { var m = null; daten.eintraege.forEach(function (e) { if (!m || e.d < m) m = e.d; }); return m; }
 function teilWerte(von, bis) { var V = vertrag(), ers = erstesDatum(), a = iso(von), b = iso(bis), soll = 0, ist = 0;
-  for (var d = new Date(von); d <= bis; d.setDate(d.getDate() + 1)) { var wt = d.getDay(); if (wt >= 1 && wt <= 5 && ers && iso(d) >= ers) soll += V / 5; }
+  for (var d = new Date(von); d <= bis; d.setDate(d.getDate() + 1)) { var wt = d.getDay(); if (wt >= 1 && wt <= 5 && ers && iso(d) >= ers && !inPause(iso(d))) soll += V / 5; }
   daten.eintraege.forEach(function (e) { if (e.d >= a && e.d <= b) ist += dauer(e); }); return { soll: Math.round(soll), ist: ist }; }
 function monatsWochen(j, m, alle) { var L = [], hm0 = wocheVon(new Date()), ers = erstesDatum(), erster = new Date(j, m, 1), letzter = new Date(j, m + 1, 0); if (!ers) return L;
   for (var d = wocheVon(erster); d <= letzter && (alle || d <= hm0); d.setDate(d.getDate() + 7)) {
@@ -262,7 +281,7 @@ function zeichneEcht() {
   // (3.5) Sollstunden im Monat: Vertragsstunden pro Woche ÷ 5 je Arbeitstag (Mo–Fr), nur die Tage, die in diesem Monat liegen
   // (eine angebrochene Woche am Monatsanfang oder -ende zählt also nur mit ihren Tagen im Monat)
   if (V) {
-    var nT = new Date(ansicht.j, ansicht.m + 1, 0).getDate(), at = 0; for (var q = 1; q <= nT; q++) { var wq = new Date(ansicht.j, ansicht.m, q).getDay(); if (wq >= 1 && wq <= 5) at++; }
+    var nT = new Date(ansicht.j, ansicht.m + 1, 0).getDate(), at = 0; for (var q = 1; q <= nT; q++) { var dq = new Date(ansicht.j, ansicht.m, q), wq = dq.getDay(); if (wq >= 1 && wq <= 5 && !inPause(iso(dq))) at++; }
     var soll = Math.round(V / 5 * at), sbr = Math.round(soll / 60 * lohn() * 100) / 100, rest = soll - sum;
     $('sollBox').style.display = ''; $('sollStd').textContent = hm(soll);
     $('sollGeldBox').style.display = lohn() ? '' : 'none'; $('sollGeld').textContent = euro(sbr); $('sollNetto').textContent = euro(netto(sbr));
@@ -270,11 +289,11 @@ function zeichneEcht() {
   var aw = anzeigeWoche(); // (3.7) gewählte Woche (in der Kachel wischbar), im Kalender umrandet
   if (V) {
     var mo = aw, so = new Date(mo); so.setDate(mo.getDate() + 6); var jetzt = iso(mo) === iso(wocheVon(heute));
-    var wi = wocheIst(mo), ws = V; // (3.17) KW immer ganz Mo–So (auch über den Monatswechsel) mit den vollen Wochenstunden
+    var wi = wocheIst(mo), pt_ = 0; for (var qd = new Date(mo); qd <= so; qd.setDate(qd.getDate() + 1)) { var wq2 = qd.getDay(); if (wq2 >= 1 && wq2 <= 5 && inPause(iso(qd))) pt_++; } var ws = Math.round(V / 5 * (5 - pt_)); // (3.21) Saisonpause-Tage ohne Soll; (3.17) KW immer ganz Mo–So (auch über den Monatswechsel) mit den vollen Wochenstunden
     $('woche').style.display = ''; $('wTitel').textContent = (jetzt ? 'Diese Woche' : 'KW ' + kwNr(mo)) + ' (' + mo.getDate() + '.' + (mo.getMonth() + 1) + '. – ' + so.getDate() + '.' + (so.getMonth() + 1) + '.)';
     $('wIst').textContent = hm(wi) + ' von ' + hm(ws);
-    $('wSoll').style.display = ''; $('wSoll').className = 'soll ' + (wi >= ws ? 'plusw' : ''); $('wSoll').textContent = wi >= ws ? '✓ ' + hm(ws) + ' Std. erreicht' : (jetzt || mo > wocheVon(heute) ? 'Noch ' + hm(ws - wi) + ' Std. bis ' + hm(ws) : hm(ws) + ' Std. nicht erreicht');
-    $('wDiff').textContent = pm(wi - ws); $('wDiff').className = 'diff ' + (wi - ws >= 0 ? 'plusw' : 'minusw');
+    $('wSoll').style.display = ''; if (pt_ === 5 && !wi) { $('wIst').textContent = 'Saisonpause'; $('wSoll').className = 'soll'; $('wSoll').textContent = 'Keine Sollstunden in dieser Woche'; $('wDiff').textContent = ''; } else { $('wSoll').className = 'soll ' + (wi >= ws ? 'plusw' : ''); $('wSoll').textContent = wi >= ws ? '✓ ' + hm(ws) + ' Std. erreicht' : (jetzt || mo > wocheVon(heute) ? 'Noch ' + hm(ws - wi) + ' Std. bis ' + hm(ws) : hm(ws) + ' Std. nicht erreicht');
+    $('wDiff').textContent = pm(wi - ws); $('wDiff').className = 'diff ' + (wi - ws >= 0 ? 'plusw' : 'minusw'); }
   } else $('woche').style.display = 'none';
   [].forEach.call(document.querySelectorAll('#ansichtWahl button'), function (k) { k.classList.toggle('an', k.dataset.a === modus); });
   if (modus === 'kal') {
@@ -466,7 +485,7 @@ function wocheSchritt(n) {
     if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) { wocheGewischt = Date.now(); wocheSchritt(dx < 0 ? 1 : -1); } }, { passive: true });
 })();
 // Einstellungen
-$('einstKnopf').onclick = function () { $('sName').value = daten.einst.name || ''; $('sLohn').value = daten.einst.lohn || ''; $('sPause').value = daten.einst.pause || ''; $('sUrlaub').value = daten.einst.urlaubStd != null && daten.einst.urlaubStd !== '' ? hm(+daten.einst.urlaubStd) : ''; $('sVertrag').value = daten.einst.vertrag || ''; nurStdZeigen(); $('sLetzte').textContent = daten.einst.gesichert ? 'Letzte Sicherung: ' + new Date(daten.einst.gesichert).toLocaleString('de-DE', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr' : 'Noch keine Sicherung gemacht.'; oeffne('blattS'); };
+$('einstKnopf').onclick = function () { saisonZeichnen(); $('sName').value = daten.einst.name || ''; $('sLohn').value = daten.einst.lohn || ''; $('sPause').value = daten.einst.pause || ''; $('sUrlaub').value = daten.einst.urlaubStd != null && daten.einst.urlaubStd !== '' ? hm(+daten.einst.urlaubStd) : ''; $('sVertrag').value = daten.einst.vertrag || ''; nurStdZeigen(); $('sLetzte').textContent = daten.einst.gesichert ? 'Letzte Sicherung: ' + new Date(daten.einst.gesichert).toLocaleString('de-DE', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr' : 'Noch keine Sicherung gemacht.'; oeffne('blattS'); };
 $('sName').onchange = function () { daten.einst.name = this.value.trim(); sichern(); zeichne(); };
 $('sLohn').onchange = function () { daten.einst.lohn = this.value.trim(); sichern(); zeichne(); };
 $('sPause').onchange = function () { daten.einst.pause = this.value.trim(); sichern(); };
