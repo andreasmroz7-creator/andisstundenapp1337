@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.76';
+var VERSION = '3.77';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -3886,6 +3886,10 @@ function posTeilen(G, r) {
 }
 $('pTeilen').onclick = posTeilenMenue;
 $('wPlus').onclick = wlSuche;
+// (3.77, Andi 26.11. 19:04) Tipp auf die Überschrift eines Fensters (z. B. „Watchlist“, „Depot“) = weich ganz nach oben (wie Tipp auf die Uhrzeit in iPhone-Apps)
+document.addEventListener('click', function (e) { var t = e.target.closest && e.target.closest('.blatt .titel'); if (!t || e.target.closest('button, input, a, .dart')) return;
+  var bl = t.closest('.blatt'), k = bl && [].filter.call(bl.querySelectorAll('.koerper'), function (x) { return x.id !== 'pKoerperAlt' && x.offsetParent !== null; }).pop(); if (!k || k.scrollTop < 2) return;
+  try { k.scrollTo({ top: 0, behavior: 'smooth' }); } catch (x) { k.scrollTop = 0; } });
 function augeAlle() { if ($('dAuge')) $('dAuge').innerHTML = depotSicht ? AUGE_AUF : AUGE_ZU; $('pAuge').innerHTML = depotSicht ? AUGE_AUF : AUGE_ZU;
   [].forEach.call(document.querySelectorAll('#dBox, .sgrid [data-ziel=depot] .dbox, #pKoerper .dbox'), function (x) { x.classList.toggle('verdeckt', !depotSicht); }); }
 $('pAuge').onclick = function () { depotSicht = !depotSicht; augeAlle(); };
