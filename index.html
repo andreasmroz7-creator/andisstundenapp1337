@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.62';
+var VERSION = '3.63';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -3308,7 +3308,7 @@ function posReihe(P, cb) { // → {vor:[werte grau], heute:[werte], ref}
   if (posZr === '1d') { var t = kv['1d']; if (!t || !t.today || t.today.length < 1) return cb(null);
     // (3.33) morgens (gettex handelt schon, die US-Kurse für heute fehlen noch): grau der komplette gestrige Tag, grün heute ab Vortagesschluss bis jetzt – passend zur Zahl darüber
     var h0 = new Date(); h0.setHours(0, 0, 0, 0);
-    if (t.t1 && t.t1 * 1000 < h0.getTime() && !P.rente && P.kurs != null && P.pct != null && boerseOffen()) { var rf = P.kurs / (1 + P.pct / 100); return cb({ vor: t.today.slice(), heute: [rf, P.kurs], ref: rf }); }
+    if (t.t1 && t.t1 * 1000 < h0.getTime() && !P.rente && P.kurs != null && P.pct != null && boerseOffen()) { var rf = P.kurs / (1 + P.pct / 100), a8_ = new Date(); a8_.setHours(8, 0, 0, 0); a8_ = a8_.getTime() / 1000; return cb({ vor: t.today.slice(), heute: [rf, P.kurs], ref: rf, tt: [a8_, Math.max(a8_ + 60, Date.now() / 1000)], ht: [a8_, null], vt: t.t0 && t.t1 && t.today.length > 1 ? t.today.map(function (_, i) { return Math.round(t.t0 + i / (t.today.length - 1) * (t.t1 - t.t0)); }) : null }); } // (3.63, Andi 26.11.: Watchlist-Linie ging bis ganz rechts) Linie nur von 8 Uhr bis jetzt
     var tt_ = (!P.rente && t.t0 && t.t1 && t.t1 * 1000 >= h0.getTime()) ? [t.t0, t.t1] : null, lin = function (n, a, z) { return Array.apply(null, Array(n)).map(function (_, i) { return Math.round(a + (n > 1 ? i / (n - 1) : 0) * (z - a)); }); }; // (3.40, Andi 25.11.) Uhrzeit beim Darüberfahren wie bei Krypto
     return cb({ vor: t.prev || [], heute: P.rente ? t.today.slice() : t.today.concat([P.kurs]), ref: (!P.rente && P.kurs != null && P.pct != null && isFinite(P.pct) && P.pct > -100) ? P.kurs / (1 + P.pct / 100) : (t.base || (t.prev && t.prev.length ? t.prev[t.prev.length - 1] : null)), tt: tt_, // (3.41, Andi 25.11.) Bezugslinie und Farbe = Vortagesschluss von Scalable, passend zur Prozentzahl oben (Ocugen: −1,36 % aber grüne Linie)
       ht: tt_ ? lin(t.today.length, tt_[0], tt_[1]).concat([null]) : null, vt: (tt_ && t.v0 && t.v1 && (t.prev || []).length) ? lin(t.prev.length, t.v0, t.v1) : null }); } // (3.39) tt: erster/letzter Kurs von heute → Linie nach Uhrzeit
