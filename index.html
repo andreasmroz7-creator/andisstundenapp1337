@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.86';
+var VERSION = '3.87';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -4895,6 +4895,48 @@ if ('serviceWorker' in navigator) {
     speichern(x); var g = 0; try { g = ber(x).gesamt || 0; } catch (e) {}
     return 'Geändert, Meister. ' + wannTxt(d) + ': ' + liste(R_) + (g ? '. Zusammen jetzt ' + std(g) : '') + '.';
   }
+  /* (3.87, Andi 26.11.) Stempeluhr per Sprache: „Ich fang jetzt an“, „Laden fertig“ / „Wir wechseln zum nächsten Laden“, „Feierabend“, „Wie lange arbeite ich heute schon?“ */
+  function stempel(q) {
+    if (/\?/.test(q)) { if (!/wie lange (?:arbeite|bin) ich (?:heute )?(?:schon|jetzt)|seit wann arbeite ich/.test(q)) return null; }
+    var START = /^(?:so,? |okay,? |ok,? |yo,? )?(?:ich )?(?:fang(?:e)?|beginn(?:e)?) (?:jetzt |gerade |heute )?(?:an|mit der arbeit)\b|^(?:arbeits)?beginn\b|^ich bin (?:jetzt )?(?:im laden|im markt|in der filiale|angekommen)|^los geht'?s|^stempel (?:mich )?ein/,
+      LF = /^(?:so,? |okay,? |ok,? )?(?:der )?(?:erste |zweite )?laden (?:ist )?fertig|^fertig (?:im|mit dem) (?:ersten )?laden|^(?:wir )?(?:wechseln|fahren) (?:jetzt )?(?:zum|in den|zu dem) (?:nächsten|naechsten|zweiten|anderen) (?:laden|markt)/,
+      ENDE = /^(?:so,? |okay,? |ok,? |yo,? )?(?:feierabend|ich (?:mach|mache|hab|habe) (?:jetzt )?feierabend|schluss für heute|schluss fuer heute|ich hör(?:e)? (?:jetzt )?auf|stempel (?:mich )?aus)\b/,
+      LAUF = /wie lange (?:arbeite|bin) ich (?:heute )?(?:schon|jetzt)|seit wann arbeite ich/;
+    var art = START.test(q) ? 'start' : LF.test(q) ? 'lf' : ENDE.test(q) ? 'ende' : LAUF.test(q) ? 'lauf' : null; if (!art) return null;
+    var jetzt = new Date(), hm = jetzt.getHours() + ':' + p2(jetzt.getMinutes()), iso = isoD(heute0()), alt = eintrag(iso), x;
+    function offen(L) { for (var i = 0; i < L.length; i++) { var z = L[i].zeiten || []; for (var k = 0; k < z.length; k++) if (z[k].von && !z[k].bis) return { l: L[i], z: z[k], i: i }; } return null; }
+    function minVon(a) { var m = /^(\d{1,2})[:.](\d{2})$/.exec(String(a || '')); return m ? +m[1] * 60 + +m[2] : null; }
+    if (art === 'lauf') { if (!alt) return 'Heute hast du noch nicht angefangen, Meister.'; var L0 = alt.laeden || [], o0 = offen(L0), g0 = 0; try { g0 = ber(alt).arbeit || 0; } catch (e) {} if (o0) { var m0 = minVon(o0.z.von); if (m0 != null) g0 += Math.max(0, (jetzt.getHours() * 60 + jetzt.getMinutes() - m0)) / 60; }
+      var hh = Math.floor(g0), mm = Math.round((g0 - hh) * 60); return o0 ? 'Du arbeitest seit ' + o0.z.von + ' Uhr, heute zusammen ' + (hh ? hh + (hh === 1 ? ' Stunde' : ' Stunden') + (mm ? ' und ' : '') : '') + (mm ? mm + ' Minuten' : '') + '.' : 'Gerade läuft keine Schicht. Heute hast du ' + std(g0) + ' eingetragen.'; }
+    if (alt) { x = JSON.parse(JSON.stringify(alt)); x.urlaub = false; x.krank = false; }
+    else { if (art !== 'start') return 'Heute hast du noch gar nicht angefangen, Meister. Sag „Ich fang jetzt an“, wenn es losgeht.'; var alt_e = window.e; try { window.e = neuerEintrag(iso); var pr = profile().filter(function (p_) { return p_.id === D().letztesProfil; })[0] || profile()[0]; profilAnwenden(pr); if (istFeiertagSN(iso)) window.e.feiertag = true; planFuellen(window.e); x = window.e; } finally { window.e = alt_e; } }
+    x.modus = 'zeit'; var L = x.laeden = (x.laeden || []).filter(function (l) { return l; }); if (!L.length) L.push({ art: 'NMD', zeiten: [], std: '' });
+    L.forEach(function (l) { l.zeiten = (l.zeiten || []).filter(function (z) { return z.von || z.bis; }); });
+    var o = offen(L), name = function (l) { return (l.ort || 'Laden') + (l.fil ? ' ' + l.fil : ''); };
+    if (art === 'start') {
+      if (o) return 'Du arbeitest schon seit ' + o.z.von + ' Uhr in ' + name(o.l) + ', Meister.';
+      var frei = L.filter(function (l) { return !l.ausfall && !(l.zeiten || []).length; })[0];
+      if (!frei) { frei = L.filter(function (l) { return !l.ausfall; }).pop() || L[0]; }
+      delete frei.ausfall; frei.zeiten.push({ von: hm, bis: '' }); speichern(x);
+      return 'Gestartet um ' + hm + ' Uhr in ' + name(frei) + '. Sag „Feierabend“' + (L.filter(function (l) { return !l.ausfall && !(l.zeiten || []).length; }).length ? ' oder „Laden fertig“' : '') + ', wenn du fertig bist.';
+    }
+    if (!o) return 'Gerade läuft keine Schicht, Meister. Sag „Ich fang jetzt an“, wenn es losgeht.';
+    o.z.bis = hm; speichern(x); var g = 0; try { g = ber(x).gesamt || 0; } catch (e) {}
+    var rest = L.filter(function (l) { return !l.ausfall && !(l.zeiten || []).length; });
+    if (art === 'lf') return name(o.l) + ' bis ' + hm + ' Uhr eingetragen.' + (rest.length ? ' Als Nächstes ' + name(rest[0]) + '. Sag „Ich fang an“, wenn du dort bist.' : '');
+    return 'Feierabend um ' + hm + ' Uhr eingetragen. Heute ' + std(g) + ' für dein Protokoll.' + (rest.length ? ' ' + liste(rest.map(name)) + ' hat keine Zeiten. Falls der Laden ausgefallen ist, sag „' + (rest[0].ort || 'der Laden') + ' ist ausgefallen“.' : '');
+  }
+  /* (3.87) „Der zweite Laden ist ausgefallen“, „Knetzgau ist ausgefallen“, „Laden abgesagt“ – heute (oder genannter Tag) */
+  function ladenAusfall(q) {
+    var m = /^(?:der |die |das )?(.{2,40}?) (?:ist |wurde |war )?(?:heute |gestern |morgen )?(?:ausgefallen|abgesagt|gestrichen|fällt aus|faellt aus)\b/.exec(q); if (!m || /\?/.test(q) || /termin|urlaub|krank|zug|bahn|flug|training/.test(q)) return null;
+    var Z = zeit(q, false), d = Z && Z.art === 'tag' ? Z.d : heute0(), iso = isoD(d), alt = eintrag(iso); if (!alt) return null;
+    var x = JSON.parse(JSON.stringify(alt)), L = x.laeden || [], su = m[1].replace(/\b(?:heute|gestern|der|die|das|laden|markt|filiale)\b/g, ' ').trim(), hit = null;
+    if (/zweite/.test(m[1])) hit = L[1]; else if (/erste/.test(m[1])) hit = L[0];
+    else if (su) hit = L.filter(function (l) { return String(l.ort || '').toLowerCase().indexOf(su) === 0 || String(l.fil || '') === su; })[0];
+    if (!hit && /^(?:der )?laden$|^(?:der )?andere laden$/.test(m[1].trim())) hit = L.filter(function (l) { return !(l.zeiten || []).some(function (z) { return z.von || z.bis; }); })[0];
+    if (!hit) return null; hit.ausfall = true; speichern(x); var g = 0; try { g = ber(x).gesamt || 0; } catch (e) {}
+    return 'Alles klar, ' + (hit.ort || 'der Laden') + (hit.fil ? ' ' + hit.fil : '') + ' steht ' + klein1(wannTxt(d)) + ' als abgesagt. Zusammen ' + std(g) + '.';
+  }
   var ZEITSPANNE = /(?<![\d.:,])(\d{1,2}(?:[.:,]\d{2})?)\s*(?:bis|–)\s*(\d{1,2}(?:[.:,]\d{2})?)(?![\d]|[.:,]\d)/g;
   var STD_OFFEN = null, STD_ZU = 0; /* STD_ZU: wann die letzte Rückfrage beantwortet wurde */ /* (3.26, Andi 23.11.: „Er hat das direkt eingetragen ohne zu fragen“) wartende Rückfrage vor dem Überschreiben */
   function zeitenEintragen(t, q, bestaetigt) {
@@ -5075,7 +5117,7 @@ if ('serviceWorker' in navigator) {
     var f = null; try { f = folge(t); } catch (e) { f = null; } if (f) { try { var zr = zeit(q0, LETZTE.zuk); if (zr) LETZTE.Z = zr; LETZTE.t = Date.now(); } catch (e) {} return f; }
     var r = null, d0 = D(); if (!d0) return null;
     var art_ = 'frage';
-    try { r = zeitenEintragen(t, q0); if (r) art_ = 'std'; else { r = abwesenheit(t, q0) || terminWeg(q0) || rolleAendern(q0) || notizAendern(q0); if (r) art_ = 'akt'; else r = lohnFrage(q0); } } catch (e) { r = null; }
+    try { r = zeitenEintragen(t, q0); if (r) art_ = 'std'; else { r = stempel(q0) || ladenAusfall(q0) || abwesenheit(t, q0) || terminWeg(q0) || rolleAendern(q0) || notizAendern(q0); if (r) art_ = 'akt'; else r = lohnFrage(q0); } } catch (e) { r = null; }
     if (!r) r = haupt(t);
     if (r && art_ === 'akt') { LETZTE = null; return r; }
     if (r && art_ === 'std') { var Zs = zeit(norm(uhrText(t).replace(ZEITSPANNE, ' ')), false) || { art: 'tag', d: heute0() }; LETZTE = { q: 'wie viele stunden hatte ich', t: Date.now(), zuk: false, Z: Zs }; return r; }
