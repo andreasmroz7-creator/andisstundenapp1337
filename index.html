@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.60';
+var VERSION = '3.61';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -2866,19 +2866,24 @@ function posMiniKrypto(key) { // (2.78) Krypto: Minutenkurse von Binance (wie gr
   var duenn = function (a, n) { if (a.length <= n) return a; var o = []; for (var i = 0; i < n - 1; i++) o.push(a[Math.floor(i * a.length / (n - 1))]); o.push(a[a.length - 1]); return o; };
   return { prev: duenn(pv, 60), today: duenn(hv, 160), base: pv.length ? pv[pv.length - 1] : hv[0] };
 }
-function posMini(key, kurs) {
-  var kv = daten.depotKurven && daten.depotKurven.k && daten.depotKurven.k[key], t = posMiniKrypto(key) || (kv && kv['1d']); if (!t || !t.today || !t.today.length) return '';
+function posMini(key, kurs, pct) {
+  var kr_ = posMiniKrypto(key), kv = daten.depotKurven && daten.depotKurven.k && daten.depotKurven.k[key], t = kr_ || (kv && kv['1d']); if (!t || !t.today || !t.today.length) return '';
   // (3.60, Andi 26.11. 11:29: graue Vortageslinie „zusammengequetscht“) Vortag ruhiger: Durchschnitt je Bildpunkt (höchstens 24 Punkte) statt bis zu 60 einzelner Kurse auf wenigen Pixeln
   var glatt_ = function (a, n) { if (a.length <= n) return a; var o = []; for (var k = 0; k < n; k++) { var i0 = Math.floor(k * a.length / n), i1 = Math.max(i0 + 1, Math.floor((k + 1) * a.length / n)), su = 0; for (var q = i0; q < i1; q++) su += a[q]; o.push(su / (i1 - i0)); } o[o.length - 1] = a[a.length - 1]; return o; };
-  var V = glatt_((t.prev || []).slice(-60), 24), He = t.today.concat(kurs != null ? [kurs] : []), ref = t.base || (t.prev && t.prev.length ? t.prev[t.prev.length - 1] : null); if (He.length < 2) return '';
+  // (3.61, Andi 26.11. 11:33: Ocugen −1,39 %, Mini aber grün) Aktien/ETFs: Bezug = Vortagesschluss von Scalable (aus der Prozentzahl) wie das große Diagramm (3.41) – nicht der letzte Punkt der gemerkten Vortageslinie (andere Quelle)
+  var rfS_ = (!kr_ && key !== 'rente' && kurs != null && pct != null && isFinite(pct) && pct > -100) ? kurs / (1 + pct / 100) : null;
+  var h0_ = new Date(); h0_.setHours(0, 0, 0, 0);
+  var morgen_ = !kr_ && rfS_ != null && t.t1 && t.t1 * 1000 < h0_.getTime() && boerseOffen(); // (3.61) wie 3.33 im großen Diagramm: heute noch keine Kurse → grau der ganze gestrige Tag, heute vom Vortagesschluss bis jetzt
+  var V = glatt_(morgen_ ? t.today.slice(-60) : (t.prev || []).slice(-60), 24), He = morgen_ ? [rfS_, kurs] : t.today.concat(kurs != null ? [kurs] : []), ref = rfS_ != null ? rfS_ : (t.base || (t.prev && t.prev.length ? t.prev[t.prev.length - 1] : null)); if (He.length < 2) return '';
   var W = 96, H = 48, alle = V.concat(He).concat(ref != null ? [ref] : []), mn = Math.min.apply(null, alle), mx = Math.max.apply(null, alle), sp = (mx - mn) || 1, y = function (v) { return (H - 2 - (v - mn) / sp * (H - 4)).toFixed(1); };
   var xb = V.length ? W / 4 : 0, pv =  /* (3.60) Vortag ein Viertel statt ein Sechstel der Breite */ V.map(function (v, i) { return (i ? 'L' : 'M') + (V.length > 1 ? i / (V.length - 1) * xb : 0).toFixed(1) + ' ' + y(v); }).join('');
   // (3.58, Andi 26.11. 08:55) Aktien/ETFs wie im großen Diagramm (3.39): die heutige Linie geht nur so weit, wie der Handelstag (8 bis 23 Uhr) schon gelaufen ist – nicht mehr über die ganze Breite gezogen. Krypto unverändert.
-  var hx = function (i) { return xb + i / (He.length - 1) * (W - xb); }, h0_ = new Date(), zeit_ = false; h0_.setHours(0, 0, 0, 0);
-  if (!posMiniKrypto(key) && t.t0 && t.t1 && t.t1 * 1000 >= h0_.getTime() && He.length > 1) {
+  var hx = function (i) { return xb + i / (He.length - 1) * (W - xb); }, zeit_ = false;
+  var d8_ = new Date(); d8_.setHours(8, 0, 0, 0); var a8_ = d8_.getTime() / 1000, e23_ = a8_ + 15 * 3600, jz_ = Date.now() / 1000, fr_ = function (z) { return Math.max(0, Math.min(1, (z - a8_) / (e23_ - a8_))); };
+  if (morgen_) { zeit_ = true; hx = function (i) { return xb + (i ? fr_(jz_) : 0) * (W - xb); }; }
+  else if (!kr_ && t.t0 && t.t1 && t.t1 * 1000 >= h0_.getTime() && He.length > 1) {
     zeit_ = true; /* (3.59, Andi 10:05) Aktien/ETFs: Lücke zwischen grauem Vortag und heute, keine senkrechte Verbindung */
-    var d8_ = new Date(); d8_.setHours(8, 0, 0, 0); var a8_ = d8_.getTime() / 1000, e23_ = a8_ + 15 * 3600, n1_ = t.today.length - 1, jz_ = Date.now() / 1000;
-    var fr_ = function (z) { return Math.max(0, Math.min(1, (z - a8_) / (e23_ - a8_))); };
+    var n1_ = t.today.length - 1;
     hx = function (i) { var z = i >= n1_ + 1 ? Math.max(jz_, t.t1) : t.t0 + (n1_ > 0 ? i / n1_ : 0) * (t.t1 - t.t0); return xb + fr_(z) * (W - xb); };
   }
   var ph = He.map(function (v, i) { return (i ? 'L' : 'M') + hx(i).toFixed(1) + ' ' + y(v); }).join('');
@@ -2907,7 +2912,7 @@ function depotPosHtml(d) {
     return '<div class="dprow' + (key ? '' : ' fest') + '"' + (key ? ' data-key="' + esc(key) + '"' : '') + '><div><div class="n">' + esc(n) + '</div>' + (s ? '<div class="s">' + s + '</div>' : '') + '</div>' + (mini || '') + '<div class="r"><span class="dpkt">•••</span><span class="dw"><b>' + euroH(w) + '</b>' +
       (pct != null ? '<small class="' + (pct >= 0 ? 'dplus' : 'dminus') + '">' + (pct >= 0 ? '+' : '') + (Math.round(pct * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %</small>' : '') + '</span></div></div>';
   };
-  var zz = function (p) { return zeile(depotKurz(p.n), depotMenge(p), p.w, depotSort === 'kauf' ? p.kp : p.pct, p.isin || p.sym, posMini(p.isin || p.sym, p.kurs || (p.q ? p.w / p.q : null))); };
+  var zz = function (p) { return zeile(depotKurz(p.n), depotMenge(p), p.w, depotSort === 'kauf' ? p.kp : p.pct, p.isin || p.sym, posMini(p.isin || p.sym, p.kurs || (p.q ? p.w / p.q : null), p.pct)); };
   var LK = L.filter(function (p) { return p.k === 'krypto'; }), LW = L.filter(function (p) { return p.k !== 'krypto'; }); // (2.47) wie im Dashboard: zuerst Krypto, dann der Rest (je Gruppe sortiert)
   return '<div class="dpos"><div class="dpt sort" id="dSort">Positionen<span>' + DSORT[depotSort] + ' ⇅</span></div>' + depotRenteHtml(d, zeile) + (LK.length ? '<div class="wltr"' + ((d.ex || []).length ? '' : ' style="margin-top:6px"') + '>Krypto</div>' + LK.map(zz).join('') : '') + (LW.length ? '<div class="wltr">Aktien &amp; ETFs</div>' + LW.map(zz).join('') : '') + /* (2.50) Allianz ganz oben */
     (depotRest(d) > 0.5 ? zeile((d.ex && d.ex.length ? 'Tagesgeld & eigene Werte' : 'Rente, Tagesgeld & eigene Werte'), 'Stand vom Mac', depotRest(d), null) : '') + '</div>';
@@ -2970,7 +2975,7 @@ function wlKurs(k) { return k == null ? '–' : k < 1 ? k.toLocaleString('de-DE'
 function wlZeichnen() {
   var L = wlListe(); if (!L.length) { $('wKoerper').innerHTML = '<p class="hinweis">Die Watchlist kommt vom Mac, sobald er an ist.</p>'; return; }
   var zeile = function (x) { var v = wlWert(x), key = 'w:' + (x.isin || x.sym);
-    return '<div class="dprow" data-key="' + esc(key) + '"><div><div class="n">' + esc(depotKurz(x.n)) + '</div><div class="s">' + esc(x.k === 'krypto' ? x.sym : (x.ty || 'Wertpapier')) + '</div></div>' + posMini(x.isin || x.sym, v.kurs) + '<div class="r"><b>' + wlKurs(v.kurs) + '</b>' +
+    return '<div class="dprow" data-key="' + esc(key) + '"><div><div class="n">' + esc(depotKurz(x.n)) + '</div><div class="s">' + esc(x.k === 'krypto' ? x.sym : (x.ty || 'Wertpapier')) + '</div></div>' + posMini(x.isin || x.sym, v.kurs, v.pct) + '<div class="r"><b>' + wlKurs(v.kurs) + '</b>' +
       (v.pct != null ? '<small class="' + (v.pct >= 0 ? 'dplus' : 'dminus') + '">' + (v.pct >= 0 ? '+' : '') + (Math.round(v.pct * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %</small>' : '') + '</div></div>'; };
   var kr = L.filter(function (x) { return x.k === 'krypto'; }), wp = L.filter(function (x) { return x.k !== 'krypto'; });
   var h = (kr.length ? '<div class="wltr">Krypto</div>' + kr.map(zeile).join('') : '') + (wp.length ? '<div class="wltr">Aktien &amp; ETFs</div>' + wp.map(zeile).join('') : '');
