@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.84';
+var VERSION = '3.85';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -5082,11 +5082,59 @@ if ('serviceWorker' in navigator) {
     if (r) { var zk = !/\b(?:war|hatte|hattest|gearbeitet)\b/.test(q0), Zl = null; try { Zl = zeit(q0, zk); } catch (e) {} if (f && LETZTE) { if (Zl) LETZTE.Z = Zl; LETZTE.t = Date.now(); } else LETZTE = { q: q0, t: Date.now(), zuk: zk, Z: Zl }; }
     return r;
   }
+  /* (3.85, Andi 26.11. „mehr Jarvis-Fragen zur Arbeit“) Laden-Verlauf, Kollegen-Verlauf, freie Tage, Läden zählen */
+  function arbeitExtra(q) {
+    var d = D(), hi = isoD(heute0()), E = eintr(), n = d && d.nachweis, T = (n && n.tage) || [];
+    function bereich(Z) { if (!Z) return null; if (Z.art === 'tag') return [isoD(Z.d), isoD(Z.d)]; if (Z.art === 'woche') return [isoD(Z.von), isoD(Z.bis)]; if (Z.art === 'monat') return [Z.j + '-' + p2(Z.m + 1) + '-01', Z.j + '-' + p2(Z.m + 1) + '-31']; if (Z.art === 'jahr') return [Z.j + '-01-01', Z.j + '-12-31']; return null; }
+    function datK(iso) { return klein1(wannTxt(new Date(iso + 'T12:00'))); }
+    /* Läden zählen: „Wie viele Läden hatte ich diesen Monat?“ */
+    if (/wie ?viele? (?:läden|laeden|filialen|märkte|maerkte)/.test(q)) {
+      var Z = zeit(q, false) || zeit('diesen monat', false), B = bereich(Z); if (!B) return null; var k = 0, tage = 0, orte = {};
+      E.forEach(function (x) { if (x.datum < B[0] || x.datum > B[1] || x.datum > hi) return; var L = (x.laeden || []).filter(function (l) { return !l.ausfall && (l.ort || l.fil); }); if (L.length) tage++; k += L.length; L.forEach(function (l) { orte[l.ort || l.fil] = 1; }); });
+      if (!k) return 'Da hattest du keine Läden eingetragen, Meister.';
+      return 'Du hattest ' + k + (k === 1 ? ' Laden' : ' Läden') + ' an ' + tage + (tage === 1 ? ' Tag' : ' Tagen') + ', in ' + Object.keys(orte).length + ' verschiedenen Orten.';
+    }
+    /* Frei: „Hab ich am Samstag frei?“, „Wann hab ich das nächste Mal frei?“ */
+    if (/\bfrei\b/.test(q) && /(?:hab|habe|bin|hast|wann|ist)/.test(q) && !/freitag|freund|frei(?:e|en)? (?:stelle|platz)/.test(q)) {
+      var letzt = T.length ? T[T.length - 1].datum : hi;
+      function arbeitet(iso) { var t = T.filter(function (x) { return x.datum === iso; })[0]; if (t && ((t.laeden || []).length || t.nurReise)) return true; var e = E.filter(function (x) { return x.datum === iso; })[0]; return !!(e && hatArbeit(e)); }
+      function urlaubAm(iso) { var e = E.filter(function (x) { return x.datum === iso; })[0]; return !!(e && (e.urlaub || e.krank)); }
+      if (/wann/.test(q)) { var x = plus(heute0(), 1); for (var i = 0; i < 60; i++, x = plus(x, 1)) { var iso = isoD(x); if (iso > letzt) return 'Bis ' + datK(letzt) + ' steht alles im Plan, danach weiß ich es noch nicht.'; if (!arbeitet(iso)) { var bis = x, j = plus(x, 1); while (isoD(j) <= letzt && !arbeitet(isoD(j))) { bis = j; j = plus(j, 1); } return 'Frei hast du ' + datK(iso) + (isoD(bis) !== iso ? ' bis ' + datK(isoD(bis)) : '') + '.'; } } return null; }
+      var Zf = zeit(q, true); if (!Zf || Zf.art !== 'tag') return null; var isf = isoD(Zf.d);
+      if (urlaubAm(isf)) return wannTxt(Zf.d) + ' hast du Urlaub eingetragen. Also ja, frei.';
+      if (arbeitet(isf)) { var tt = T.filter(function (x) { return x.datum === isf; })[0]; return 'Nein, ' + klein1(wannTxt(Zf.d)) + ' arbeitest du' + (tt && (tt.laeden || []).length ? ' in ' + liste(tt.laeden.map(function (l) { return l.ort; })) : '') + '.'; }
+      if (isf > letzt) return 'Für ' + klein1(wannTxt(Zf.d)) + ' gibt es noch keinen Plan, Meister.';
+      return 'Ja, ' + klein1(wannTxt(Zf.d)) + ' hast du frei.';
+    }
+    /* Kollegen-Verlauf: „Wann war ich zuletzt mit Kurzhals unterwegs?“, „Wie oft war ich mit Hlebov?“ */
+    var mk = /(?:wann|wie oft|wie viele (?:tage|male?))\b.*\bmit (?:der |dem |frau |herrn? )?([a-zäöüß\-]{3,})/.exec(q);
+    if (mk && !/\b(?:mit wem|mit dem auto|mit der bahn|mit dem zug)\b/.test(q)) {
+      var su = mk[1], W = [];
+      T.forEach(function (t) { if ((t.leute || []).some(function (x) { return String(x.name).toLowerCase().split(/[ ,]+/).some(function (w) { return w.indexOf(su) === 0 || su.indexOf(w) === 0 && w.length > 3; }); })) W.push(t.datum); });
+      if (!W.length) return null;
+      var V = W.filter(function (x) { return x <= hi; }), N = W.filter(function (x) { return x > hi; }), nm = su.charAt(0).toUpperCase() + su.slice(1);
+      if (/wie oft|wie viele/.test(q)) return 'Laut Einsatzplänen warst du an ' + V.length + (V.length === 1 ? ' Tag' : ' Tagen') + ' mit ' + nm + ' unterwegs' + (N.length ? ', und ' + N.length + ' weitere ' + (N.length === 1 ? 'Tag steht' : 'Tage stehen') + ' schon im Plan' : '') + '.';
+      return (V.length ? 'Zuletzt warst du ' + datK(V[V.length - 1]) + ' mit ' + nm + ' unterwegs' : 'Bisher warst du noch nicht mit ' + nm + ' unterwegs') + (N.length ? '. Das nächste Mal ' + datK(N[0]) : '') + '.';
+    }
+    /* Laden-Verlauf: „Wann war ich das letzte Mal in Zeil?“, „Wie oft war ich in Filiale 3240?“ */
+    var ml = /(?:wann|wie oft|wie viele (?:tage|male?))\b.*\b(?:in|im|bei) (?:der |dem )?(?:filiale |laden |markt )?([a-zäöüß0-9\-]{3,}(?: [a-zäöüß]{2,})?)/.exec(q);
+    if (ml && /\b(?:war|gewesen|gearbeitet|hatte|bin|arbeite|wieder)\b/.test(q) && !/\b(?:urlaub|krank|hotel|monat|woche|jahr|oktober|november|dezember|januar|februar|märz|april|mai|juni|juli|august|september)\b/.test(ml[1])) {
+      var su2 = ml[1].replace(/\s+(?:gewesen|gearbeitet|war|bin)$/, '').trim(), H = [], kn = {};
+      E.forEach(function (x) { (x.laeden || []).forEach(function (l) { if (l.ausfall) return; var o = String(l.ort || '').toLowerCase(), f = String(l.fil || ''); if ((o && (o.indexOf(su2) === 0 || o.indexOf(' ' + su2) >= 0)) || f === su2) { H.push(x.datum); kn[x.datum] = l; } }); });
+      T.forEach(function (t) { if (t.datum <= hi) return; (t.laeden || []).forEach(function (l) { var o = String(l.ort || '').toLowerCase(), f = String(l.fil || ''); if ((o && o.indexOf(su2) === 0) || f === su2) H.push(t.datum); }); });
+      if (!H.length) return null; H = H.filter(function (x, i) { return H.indexOf(x) === i; }).sort();
+      var V2 = H.filter(function (x) { return x <= hi; }), N2 = H.filter(function (x) { return x > hi; }), l0 = V2.length ? kn[V2[V2.length - 1]] : null, nm2 = l0 ? (l0.ort || su2) + (l0.fil ? ' ' + l0.fil : '') : su2;
+      if (/wie oft|wie viele/.test(q)) return 'In ' + nm2 + ' warst du an ' + V2.length + (V2.length === 1 ? ' Tag' : ' Tagen') + (N2.length ? ', und ' + N2.length + ' weitere ' + (N2.length === 1 ? 'Tag steht' : 'Tage stehen') + ' im Plan' : '') + '.';
+      return (V2.length ? 'Zuletzt warst du ' + datK(V2[V2.length - 1]) + ' in ' + nm2 : 'Da warst du noch nicht') + (N2.length ? '. Das nächste Mal ' + datK(N2[0]) : '') + '.';
+    }
+    return null;
+  }
   function haupt(t) {
     var q = norm(t); if (!q || q.length > 220) return null;
     var d = D(); if (!d) return null;
     if (/\b(?:aktie|aktien|depot|kurs|kurse|krypto|bitcoin|ethereum|etf|watchlist|börse|boerse|portfolio|vermögen|vermoegen|dividende|nvidia|silber|gold)\b/.test(q) && !/sparplan|sparpläne|sparplaene/.test(q)) return null; /* Depot-Fragen beantwortet jvDepot bzw. der Mac */
     var h = heute0(), Z, x;
+    { var ax = null; try { ax = arbeitExtra(q); } catch (e) { ax = null; } if (ax) return ax; }
 
     /* Termin eintragen */
     if ((/^(?:trag|neuer termin|neuen termin|termin (?:eintragen|anlegen)|leg (?:mir )?(?:einen |nen )?termin|erstell|merk dir (?:einen )?termin|termin (?:am|für|fuer|morgen|heute|übermorgen|nächsten|naechsten|\d))/.test(q) || /\b(?:trag\w*|eintragen|anlegen|erstell\w*|merk dir|leg)\b/.test(q) && !/(?:lösch|loesch|verschieb|absag|streich)/.test(q)) && /\btermin\b/.test(q)) { x = terminNeu(t); if (x) return x; }
