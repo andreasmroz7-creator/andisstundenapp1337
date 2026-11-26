@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.72';
+var VERSION = '3.73';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -2676,7 +2676,7 @@ function depotLiveRechnen(stark) {
         else if (BO[p.sym + 'USDT'] && BO.EURUSDT) pct = ((B[p.sym + 'USDT'] / B.EURUSDT) / (BO[p.sym + 'USDT'] / BO.EURUSDT) - 1) * 100; }
       else if (p.k === 'wp') { alleW++;
         var mac_ = p.sk > 0 && p.sp != null && jetzt - new Date(d.stand) < 20 * 60e3; // (3.42, Andi 25.11.) Scalable-Kurs + Tagesveränderung vom Mac (wie Dashboard und Scalable-App)
-        if (o && Date.now() - o.t < 15 * 60e3 && (!mac_ || Math.abs(o.k / p.sk - 1) < 0.012)) { w = p.q * o.k; neuW++; tW = Math.max(tW, o.t / 1000); if (o.vt) pct = (o.k / o.vt - 1) * 100; if (mac_) pct = p.sp + (o.k / p.sk - 1) * 100; } // (2.40) Aktien/ETFs: immer die letzte Tagesveränderung bis Börsenschluss (am Wochenende die vom Freitag); (3.42) mit Mac-Stand: Bezug = Scalable-Vortagesschluss
+        if (o && Date.now() - o.t < 15 * 60e3 && (!mac_ || Math.abs(o.k / p.sk - 1) < 0.004)) { /* (3.73, Andi 18:33: Ocugen 0,7840 € +0,07 % statt Scalable 0,7766 € −0,88 %) Tradegate nur noch, wenn höchstens 0,4 % vom Scalable-Kurs entfernt, sonst gilt Scalable */ w = p.q * o.k; neuW++; tW = Math.max(tW, o.t / 1000); if (o.vt) pct = (o.k / o.vt - 1) * 100; if (mac_) pct = p.sp + (o.k / p.sk - 1) * 100; } // (2.40) Aktien/ETFs: immer die letzte Tagesveränderung bis Börsenschluss (am Wochenende die vom Freitag); (3.42) mit Mac-Stand: Bezug = Scalable-Vortagesschluss
         else if (mac_) { w = p.q * p.sk; pct = p.sp; neuW++; tW = Math.max(tW, new Date(d.stand).getTime() / 1000); } // (3.42) Tradegate weicht ab (wenig gehandelte Werte wie Ocugen: −1,36 % statt +2,4 %) → Scalable
         else if (macAlt && p.y && p.y_sym && K[p.y_sym] && K[p.y_sym][1] * 1000 > new Date(d.stand) - 15 * 60e3) { w = p.q * (p.p_y || p.p) * K[p.y_sym][0] / p.y; neuW++; tW = Math.max(tW, K[p.y_sym][1]); }
       }
