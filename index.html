@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.90';
+var VERSION = '3.91';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -5164,6 +5164,28 @@ if ('serviceWorker' in navigator) {
       mi = hin + zw + zu; if (!mi) return 'Da sind keine Fahrzeiten eingetragen, Meister.';
       var hm2 = function (m) { var h_ = Math.floor(m / 60), r_ = m % 60; return (h_ ? h_ + (h_ === 1 ? ' Stunde' : ' Stunden') + (r_ ? ' und ' : '') : '') + (r_ ? r_ + ' Minuten' : ''); };
       return (Zf2.art === 'tag' ? wannTxt(Zf2.d) + ' bist du ' : 'An ' + tg + (tg === 1 ? ' Tag' : ' Tagen') + ' bist du ') + hm2(mi) + ' gefahren' + (Zf2.art === 'tag' ? ': hin ' + hm2(hin) + (zw ? ', zwischen den Läden ' + hm2(zw) : '') + (zu ? ', zurück ' + hm2(zu) : '') : '') + '.';
+    }
+    /* Hotel/Schlafen: „Wo schlafe ich morgen?“, „Welches Hotel habe ich nächste Woche?“ */
+    if (/wo (?:schlafe|übernachte|uebernachte|penne|pennen|schlafen) (?:ich|wir)|welches hotel|wie hei(?:ß|ss)t (?:das|unser|mein) hotel|wo ist (?:das|unser|mein) hotel/.test(q)) {
+      var Zh = zeit(q, true) || { art: 'tag', d: heute0() }, Bh = bereich(Zh); if (!Bh) return null;
+      var H2 = []; T.forEach(function (t) { if (t.datum >= Bh[0] && t.datum <= Bh[1] && t.hotel && H2.indexOf(t.hotel) < 0) H2.push(t.hotel); });
+      var kurzH = function (h) { return /adresse|wo ist|straße|strasse/.test(q) ? h : h.split(',')[0]; };
+      if (!H2.length) return Zh.art === 'tag' ? wannTxt(Zh.d) + ' steht kein Hotel im Plan, da schläfst du wohl zu Hause.' : 'Da steht kein Hotel im Plan.';
+      return (Zh.art === 'tag' ? wannTxt(Zh.d) + ' schläfst du im ' : 'Hotel: ') + liste(H2.map(kurzH)) + '.';
+    }
+    /* Heimfahrt: „Wann fahre ich wieder nach Hause?“ */
+    if (/(?:wann|welchen tag) (?:fahre|fahren|geht'?s|gehts|geht es|bin) (?:ich |wir )?(?:wieder |endlich )?(?:nach hause|heim|zurück|zurueck)|wann ist (?:die |meine )?abreise|wann komme? ich (?:wieder )?(?:nach hause|heim)/.test(q)) {
+      var ab = T.filter(function (t) { return t.datum >= hi && t.reise && !t.hotel && !t.nurReise; })[0];
+      if (!ab) return 'Ich sehe im Plan gerade keine Abreise, Meister.';
+      return (ab.datum === hi ? 'Heute' : datK(ab.datum).charAt(0).toUpperCase() + datK(ab.datum).slice(1)) + ' geht es nach der Arbeit wieder nach Hause.';
+    }
+    /* Urlaub-Countdown: „Wie viele Tage muss ich noch arbeiten bis zum Urlaub?“ */
+    if (/(?:wie ?viele?|wie lange) (?:tage )?(?:muss ich )?(?:noch )?(?:arbeiten|arbeitstage)? ?(?:noch )?bis (?:zum|zu meinem|in den) urlaub|wann (?:ist|hab|habe|beginnt|fängt|faengt) (?:mein )?(?:nächster|naechster|richtiger)? ?urlaub (?:an|los)?$/.test(q)) {
+      var u0 = null, x0 = plus(heute0(), 1); for (var i0 = 0; i0 < 400 && !u0; i0++, x0 = plus(x0, 1)) { var wd = x0.getDay(); if (wd === 0 || wd === 6) continue; var e0 = E.filter(function (y) { return y.datum === isoD(x0); })[0]; if (e0 && e0.urlaub) u0 = new Date(x0); }
+      if (!u0) return 'Ich sehe noch keinen eingetragenen Urlaub an einem Werktag, Meister.';
+      var at = 0, y0 = plus(heute0(), 1); while (isoD(y0) < isoD(u0)) { var w0 = y0.getDay(), t0 = T.filter(function (t) { return t.datum === isoD(y0); })[0]; if ((t0 && (t0.laeden || []).length) || (!t0 && w0 >= 1 && w0 <= 5 && !istFeiertagSN(isoD(y0)))) at++; y0 = plus(y0, 1); }
+      var ub = u0, z0 = plus(u0, 1); while (true) { var e1 = E.filter(function (y) { return y.datum === isoD(z0); })[0], w1 = z0.getDay(); if ((e1 && e1.urlaub) || w1 === 0 || w1 === 6 || istFeiertagSN(isoD(z0))) { if (e1 && e1.urlaub) ub = new Date(z0); z0 = plus(z0, 1); } else break; }
+      return 'Noch ' + at + (at === 1 ? ' Arbeitstag' : ' Arbeitstage') + ', dann hast du Urlaub: ' + klein1(wannTxt(u0)) + (isoD(ub) !== isoD(u0) ? ' bis ' + klein1(wannTxt(ub)).replace(/^am /, '') : '') + '.';
     }
     /* Läden zählen: „Wie viele Läden hatte ich diesen Monat?“ */
     if (/wie ?viele? (?:läden|laeden|filialen|märkte|maerkte)/.test(q)) {
