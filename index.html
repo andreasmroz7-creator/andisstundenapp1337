@@ -682,7 +682,7 @@ body.istoffline .sstand{color:#ff6b61}
   <div class="koerper lbild" id="lbKoerper"></div>
 </div></div>
 <div class="blatt" id="blattP" style="z-index:11"><div class="innen">
-  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattP" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b id="pTitel">Position</b></div></div>
+  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattP" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b id="pTitel">Position</b></div><div class="trechts"><button class="kugel" id="pTeilen" aria-label="Als Bild teilen"><svg viewBox="0 0 24 24"><path d="M12 15V3M8 7l4-4 4 4"/><path d="M6 11H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-1"/></svg></button><button class="kugel" id="pAuge" aria-label="Beträge zeigen"></button></div></div>
   <div class="koerper" id="pKoerper"></div>
 </div></div>
 <div class="blatt" id="blattN"><div class="innen">
@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.73';
+var VERSION = '3.74';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -3532,7 +3532,7 @@ function posZeichnen() {
       posAendC[posKey + '|' + posZr] = hA; if ($('pAend')) $('pAend').innerHTML = hA;
     }
     S = posVgDazu(S); if ($('pVgTxt')) $('pVgTxt').textContent = S.cmp ? '┄ ' + S.cmp.txt : posVg ? 'Vergleich wird geladen …' : '';
-    $('pChartBox').innerHTML = posGrafik(S, up); posMorph(); posFinger(P, S);
+    $('pChartBox').innerHTML = posGrafik(S, up); posMorph(); posFinger(P, S); posStand = { S: S, key: posKey, zr: posZr, pct: posZr === '1d' ? P.pct : pc, name: depotKurz(m.n), kurs: kk }; // (3.74) fürs Teilen-Bild
     var PZ = posGrafik.ziel, pv = (S.vor || []).concat(S.heute), pt = (S.vt || (S.vor || []).map(function () { return null; })).concat(S.ht || S.heute.map(function () { return null; }));
     spanneAn($('pChart'), PZ, pv, pv, pt, posZr, true); if (posFertig) { var pf_ = posFertig; posFertig = null; pf_(); } // (3.69) Wischen wartet, bis die neue Seite ihr Diagramm hat
     grafStand = { art: 'pos', S: S, P: P, up: up, titel: depotKurz(m.n) }; querPruefen();
@@ -3615,11 +3615,10 @@ function depotFinger(d, R) {
   c.addEventListener('pointerup', ende); c.addEventListener('pointercancel', ende); c.addEventListener('lostpointercapture', ende);
 }
 $('start').addEventListener('click', function (e) { if (e.target.closest && e.target.closest('#startEinst')) { e.stopPropagation(); $('einstknopf').click(); } if (e.target.closest && e.target.closest('#startSuche')) { e.stopPropagation(); startZiel('suche'); } }, true); // (2.19) Zahnrad oben auf der Startseite
-function depotAugeSetzen() { var an = !!daten.einst.depotAuge; depotSicht = !an; $('dAuge').hidden = !an; $('dAuge').innerHTML = depotSicht ? AUGE_AUF : AUGE_ZU; depotNeuZeigen(); }
+function depotAugeSetzen() { var an = !!daten.einst.depotAuge; depotSicht = !an; $('dAuge').hidden = !an; $('dAuge').innerHTML = depotSicht ? AUGE_AUF : AUGE_ZU; if ($('pAuge')) $('pAuge').innerHTML = depotSicht ? AUGE_AUF : AUGE_ZU; depotNeuZeigen(); }
 try { depotSicht = !daten.einst.depotAuge; $('dAuge').hidden = !daten.einst.depotAuge; } catch (x) {}
 $('dAuge').onclick = function () {
-  depotSicht = !depotSicht; var html = depotSicht ? AUGE_AUF : AUGE_ZU; this.innerHTML = html;
-  [].forEach.call(document.querySelectorAll('#dBox, .sgrid [data-ziel=depot] .dbox'), function (x) { x.classList.toggle('verdeckt', !depotSicht); });
+  depotSicht = !depotSicht; augeAlle(); // (3.74) auch das Auge im Detail
 };
 
 // ================= (2.81) Neue Funktionen =================
@@ -3802,6 +3801,39 @@ function depotTeilen() {
   }, 'image/png');
 }
 $('dTeilen').onclick = depotTeilen;
+// (3.74, Andi 26.11. 18:39) Teilen und Auge auch im Detail einer Position (Depot und Watchlist)
+var posStand = null;
+function posTeilen() {
+  var G = posStand && posStand.key === posKey && posStand.zr === posZr ? posStand : null; if (!G) { toast('Diagramm wird noch geladen'); return; }
+  var S = G.S, W = 1080, H = 1350, cv = document.createElement('canvas'); cv.width = W; cv.height = H; var c = cv.getContext('2d');
+  var bg = c.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#202022'); bg.addColorStop(1, '#050505'); c.fillStyle = bg; c.fillRect(0, 0, W, H);
+  var fnt = '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif';
+  var zt = { '1d': 'Heute', '1w': 'Letzte Woche', '1m': 'Letzter Monat', '1y': 'Letztes Jahr', max: 'Seit Beginn' }[G.zr] || '';
+  var pct = G.pct || 0, gr = pct >= 0 ? '#34c759' : '#ff453a';
+  c.fillStyle = '#8e8e93'; c.font = '600 42px ' + fnt; var nm = String(G.name || '').toUpperCase(); while (c.measureText(nm).width > W - 180 && nm.length > 4) nm = nm.slice(0, -2) + '…'; c.fillText(nm, 90, 170);
+  c.fillStyle = '#ffffff'; c.font = '700 58px ' + fnt; c.fillText(zt + (G.kurs != null ? ' · ' + (G.kurs < 1 ? G.kurs.toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) : G.kurs.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) + ' €' : ''), 90, 250);
+  c.fillStyle = gr; c.font = '800 190px ' + fnt; c.fillText(pzKurz(pct), 80, 470);
+  var vo = (S.vor || []).slice(), L = S.heute.slice(), base = S.ref != null ? S.ref : L[0], vs = vo.concat(L);
+  var x0 = 90, x1 = W - 90, y0 = 600, y1 = 1120, mn = Math.min.apply(null, vs.concat([base])), mx = Math.max.apply(null, vs.concat([base])), sp = (mx - mn) || 1, xb = vo.length ? x0 + (x1 - x0) / 6 : x0;
+  var X = function (i) { return i < vo.length ? x0 + (vo.length > 1 ? i / (vo.length - 1) : 0) * (xb - x0 - 4) : xb + (L.length > 1 ? (i - vo.length) / (L.length - 1) : 0) * (x1 - xb); }, Y = function (v) { return y1 - (v - mn) / sp * (y1 - y0); };
+  c.setLineDash([10, 12]); c.strokeStyle = 'rgba(255,255,255,.25)'; c.lineWidth = 3; c.beginPath(); c.moveTo(xb, Y(base)); c.lineTo(x1, Y(base)); c.stroke(); c.setLineDash([]);
+  c.lineJoin = 'round'; c.lineWidth = 7;
+  if (vo.length > 1) { c.strokeStyle = 'rgba(255,255,255,.4)'; c.beginPath(); vo.forEach(function (v, i) { i ? c.lineTo(X(i), Y(v)) : c.moveTo(X(i), Y(v)); }); c.stroke(); }
+  c.strokeStyle = gr; c.beginPath(); L.forEach(function (v, i) { var k = vo.length + i; i ? c.lineTo(X(k), Y(v)) : c.moveTo(X(k), Y(v)); }); c.stroke();
+  var jetzt = new Date(); c.fillStyle = '#8e8e93'; c.font = '500 36px ' + fnt;
+  c.fillText('Stand ' + jetzt.toLocaleDateString('de-DE') + ', ' + jetzt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr', 90, 1230);
+  c.fillStyle = '#5a5a5e'; c.font = '600 34px ' + fnt; c.textAlign = 'right'; c.fillText('Cockpit', W - 90, 1230);
+  var dn = String(G.name || 'Position').replace(/[^\wäöüÄÖÜß -]/g, '').trim() || 'Position';
+  cv.toBlob(function (b) { if (!b) return; var f = null; try { f = new File([b], dn + '.png', { type: 'image/png' }); } catch (x) {}
+    if (f && navigator.canShare && navigator.canShare({ files: [f] })) navigator.share({ files: [f], title: G.name }).catch(function () {});
+    else { var u = URL.createObjectURL(b), a = document.createElement('a'); a.href = u; a.download = dn + '.png'; document.body.appendChild(a); a.click(); a.remove(); }
+  }, 'image/png');
+}
+$('pTeilen').onclick = posTeilen;
+function augeAlle() { if ($('dAuge')) $('dAuge').innerHTML = depotSicht ? AUGE_AUF : AUGE_ZU; $('pAuge').innerHTML = depotSicht ? AUGE_AUF : AUGE_ZU;
+  [].forEach.call(document.querySelectorAll('#dBox, .sgrid [data-ziel=depot] .dbox, #pKoerper .dbox'), function (x) { x.classList.toggle('verdeckt', !depotSicht); }); }
+$('pAuge').onclick = function () { depotSicht = !depotSicht; augeAlle(); };
+augeAlle();
 // --- Einsatzplan der Woche (ab Samstag die nächste Woche) ---
 function planWoche() {
   var d = new Date(); d.setHours(12, 0, 0, 0); var wt = (d.getDay() + 6) % 7, mo = new Date(d); mo.setDate(d.getDate() - wt); if (wt >= 5) mo.setDate(mo.getDate() + 7);
