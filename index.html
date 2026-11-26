@@ -356,7 +356,7 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .pxb .pi,.pxb .pd,.pxb .pc{font-size:inherit!important;padding:0!important;margin:0!important;min-width:0!important;vertical-align:baseline!important}
 .pxb .ps{font-size:.42em!important;padding:0!important;min-width:0!important}
 .pxb.kl .ps{font-size:.74em!important} /* (2.36) Beträge größer */.dprow .r small{display:block;font-size:12px;font-weight:600;margin-top:2px}
-.dprow .r .dpkt{right:0;top:0}.dprow .s{position:relative}.dprow .s .dpkt{left:0;top:0}
+.dprow .r .dpkt{right:0;top:0}.dprow .s{position:relative}.dprow{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}.dprow small.dtog{cursor:pointer;padding:4px 0 4px 12px;margin:-2px 0 -4px}#pmenue{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,0);display:flex;align-items:flex-end;justify-content:center;transition:background .2s}#pmenue.auf{background:rgba(0,0,0,.5)}#pmenue .pmb{width:100%;max-width:520px;background:#232323;border-radius:22px 22px 0 0;padding:18px 18px calc(18px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .25s cubic-bezier(.2,.8,.2,1)}#pmenue.auf .pmb{transform:none}#pmenue h3{margin:0 0 2px;font-size:17px}#pmenue .pmk{color:var(--grau);font-size:13px;margin-bottom:12px}#pmenue button{display:block;width:100%;padding:14px;margin-top:8px;border:0;border-radius:14px;background:#2f2f2f;color:#fff;font:inherit;font-size:16px;text-align:left}#pmenue button.ab{background:none;color:var(--grau);text-align:center}#pmenue button.ok{background:#fff;color:#000;text-align:center;font-weight:600}#pmenue button.weg{color:var(--rot)}#pmenue input,#pmenue textarea{width:100%;box-sizing:border-box;padding:13px;border-radius:14px;border:1px solid #3a3a3a;background:#1b1b1b;color:#fff;font:inherit;font-size:17px}#pmenue textarea{min-height:90px;resize:none}.pkz{margin:14px 0 0;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.05);font-size:14px}.pkz b{font-weight:600}.pkz span{display:block;color:var(--grau);margin-top:3px}.dprow .s .dpkt{left:0;top:0}
 .dprow .mini{width:96px;height:48px;flex-shrink:0;margin-left:auto}.dprow .mini path{fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.dprow .mini .ref{stroke:rgba(255,255,255,.2);stroke-dasharray:2 3;stroke-width:1}.verdeckt .dprow .mini{opacity:0}
 .dpt.sort{cursor:pointer;-webkit-tap-highlight-color:transparent;display:flex;justify-content:space-between;align-items:center}.dpt.sort span{font-weight:600;color:#cfcfcf}
 .dprow{cursor:pointer;-webkit-tap-highlight-color:transparent;transition:opacity .15s}.dprow:active{opacity:.6}.dprow.fest{cursor:default}.dprow.fest:active{opacity:1}
@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.65';
+var VERSION = '3.66';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -2904,6 +2904,23 @@ function depotRenteHtml(d, zeile) {
     var t1 = /allianz/i.test(x.n) && daten.depotKurven && daten.depotKurven.k && daten.depotKurven.k.rente && daten.depotKurven.k.rente['1d']; if (t1 && t1.today && t1.today.length >= 2 && t1.base) pc = (t1.today[t1.today.length - 1] / t1.base - 1) * 100;
     return zeile(/allianz/i.test(x.n) ? 'Allianz-Rente' : depotKurz(x.n), x.p > 0 ? (pc !== pg && pg != null ? 'eingez. ' + euro(x.p) + ' · ' + pzKurz(pg) : 'eingezahlt ' + euro(x.p)) : 'Stand vom Mac', x.v, pc, /allianz/i.test(x.n) ? 'rente' : null, /allianz/i.test(x.n) ? posMini('rente', null) : ''); }).join(''); // (2.53) antippbar: Detail mit Einzahlungen // (2.51) Mini-Diagramm wie im Dashboard (vom Mac: positionen.json k.rente)
 }
+// (3.66, Andi 26.11. 14:19) Tipp auf die Prozentzahl: Euro statt Prozent (heute bzw. seit Kauf), nochmal Tippen zurück; merkt sich die Wahl
+var depotPE = (function () { try { return localStorage.getItem('cockpit_pcteur') === '1'; } catch (x) { return false; } })();
+function eurKurz(v) { var a = Math.abs(v); return (v >= 0 ? '+' : '−') + (a > 0 && a < 1 ? a.toLocaleString('de-DE', { minimumFractionDigits: a < 0.01 ? 4 : 2, maximumFractionDigits: a < 0.01 ? 4 : 2 }) : a.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })) + ' €'; }
+function pctOderEur(pct, eur) {
+  var e = depotPE && eur != null && isFinite(eur), v = e ? eur : pct; if (v == null || !isFinite(v)) return '';
+  return '<small class="dtog ' + (v >= 0 ? 'dplus' : 'dminus') + '">' + (e ? eurKurz(eur) : (v >= 0 ? '+' : '') + (Math.round(v * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %') + '</small>';
+}
+function pctUmschalten() { depotPE = !depotPE; try { localStorage.setItem('cockpit_pcteur', depotPE ? '1' : '0'); } catch (x) {} if ($('blattD').classList.contains('offen')) depotZeichnen(); if ($('blattW').classList.contains('offen')) wlZeichnen(); }
+// (3.66) Zeile antippen: Prozent/Euro (auf der Zahl), langes Drücken: Menü, sonst Detail
+function zeileKlick(z, oeffnen) {
+  var t0 = null, sx = 0, sy = 0, lp = function () { t0 = null; z.__lp = Date.now(); posMenue(z.dataset.key); };
+  z.addEventListener('touchstart', function (e) { var t = e.touches[0]; sx = t.clientX; sy = t.clientY; clearTimeout(t0); t0 = setTimeout(lp, 480); }, { passive: true });
+  z.addEventListener('touchmove', function (e) { var t = e.touches[0]; if (Math.abs(t.clientX - sx) > 8 || Math.abs(t.clientY - sy) > 8) { clearTimeout(t0); t0 = null; } }, { passive: true });
+  z.addEventListener('touchend', function (e) { clearTimeout(t0); t0 = null; if (z.__lp && Date.now() - z.__lp < 1500) e.preventDefault(); }, { passive: false });
+  z.addEventListener('contextmenu', function (e) { e.preventDefault(); lp(); });
+  z.onclick = function (e) { if (z.__lp && Date.now() - z.__lp < 1500) { z.__lp = 0; return; } if (e.target.closest && e.target.closest('.dtog')) { e.stopPropagation(); pctUmschalten(); return; } oeffnen(); };
+}
 function depotPosHtml(d) {
   if (!d.pos || !d.pos.length) return '';
   var L = (depotLive && depotPosLive && depotPosLive.length === d.pos.length) ? depotPosLive : d.pos.map(function (p) { return { n: p.n, k: p.k, q: p.q, sym: p.sym, isin: p.isin, w: p.v, pct: null }; });
@@ -2911,12 +2928,12 @@ function depotPosHtml(d) {
   L = L.map(function (p) { var c = cK[p.isin || p.sym]; return Object.assign({}, p, { kp: c ? (p.w / c - 1) * 100 : null }); });
   var wert = function (p) { return depotSort === 'heute' ? p.pct : depotSort === 'kauf' ? p.kp : p.w; };
   L.sort(function (a, b) { var x = wert(a), y = wert(b); if (x == null && y == null) return b.w - a.w; if (x == null) return 1; if (y == null) return -1; return y - x; });
-  var zeile = function (n, s, w, pct, key, mini, kursT) { // (3.62, Andi 26.11.) bei Positionen: links klein der Gesamtwert (statt Stückzahl), rechts groß der Kurs für 1 Stück
+  var zeile = function (n, s, w, pct, key, mini, kursT, eur) { // (3.62, Andi 26.11.) bei Positionen: links klein der Gesamtwert (statt Stückzahl), rechts groß der Kurs für 1 Stück
     return '<div class="dprow' + (key ? '' : ' fest') + '"' + (key ? ' data-key="' + esc(key) + '"' : '') + '><div><div class="n">' + esc(n) + '</div>' + (s ? '<div class="s">' + s + '</div>' : '') + '</div>' + (mini || '') + '<div class="r"><span class="dpkt">•••</span><span class="dw"><b>' + (kursT || euroH(w)) + '</b>' +
-      (pct != null ? '<small class="' + (pct >= 0 ? 'dplus' : 'dminus') + '">' + (pct >= 0 ? '+' : '') + (Math.round(pct * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %</small>' : '') + '</span></div></div>';
+      pctOderEur(pct, key ? eur : null) + '</span></div></div>';
   };
   var kursFmt = function (k) { return k == null || !isFinite(k) ? null : k >= 1 ? euroH(k) : k.toLocaleString('de-DE', k >= 0.01 ? { minimumFractionDigits: 4, maximumFractionDigits: 4 } : { maximumSignificantDigits: 4 }) + ' €'; };
-  var zz = function (p) { var k1 = p.kurs || (p.q ? p.w / p.q : null), kt = kursFmt(k1); return zeile(depotKurz(p.n), kt ? '<span class="dpkt">•••</span><span class="dw">' + euro(p.w) + '</span>' : depotMenge(p), p.w, depotSort === 'kauf' ? p.kp : p.pct, p.isin || p.sym, posMini(p.isin || p.sym, k1, p.pct), kt); };
+  var zz = function (p) { var k1 = p.kurs || (p.q ? p.w / p.q : null), kt = kursFmt(k1); var eu = depotSort === 'kauf' ? (cK[p.isin || p.sym] ? p.w - cK[p.isin || p.sym] : null) : (p.pct != null && isFinite(p.pct) && p.pct > -100 ? p.w - p.w / (1 + p.pct / 100) : null); return zeile(depotKurz(p.n), kt ? '<span class="dpkt">•••</span><span class="dw">' + euro(p.w) + '</span>' : depotMenge(p), p.w, depotSort === 'kauf' ? p.kp : p.pct, p.isin || p.sym, posMini(p.isin || p.sym, k1, p.pct), kt, eu); };
   var LK = L.filter(function (p) { return p.k === 'krypto'; }), LW = L.filter(function (p) { return p.k !== 'krypto'; }); // (2.47) wie im Dashboard: zuerst Krypto, dann der Rest (je Gruppe sortiert)
   return '<div class="dpos"><div class="dpt sort" id="dSort">Positionen<span>' + DSORT[depotSort] + ' ⇅</span></div>' + depotRenteHtml(d, zeile) + (LK.length ? '<div class="wltr"' + ((d.ex || []).length ? '' : ' style="margin-top:6px"') + '>Krypto</div>' + LK.map(zz).join('') : '') + (LW.length ? '<div class="wltr">Aktien &amp; ETFs</div>' + LW.map(zz).join('') : '') + /* (2.50) Allianz ganz oben */
     (depotRest(d) > 0.5 ? zeile((d.ex && d.ex.length ? 'Tagesgeld & eigene Werte' : 'Rente, Tagesgeld & eigene Werte'), 'Stand vom Mac', depotRest(d), null) : '') + '</div>';
@@ -2980,12 +2997,12 @@ function wlZeichnen() {
   var L = wlListe(); if (!L.length) { $('wKoerper').innerHTML = '<p class="hinweis">Die Watchlist kommt vom Mac, sobald er an ist.</p>'; return; }
   var zeile = function (x) { var v = wlWert(x), key = 'w:' + (x.isin || x.sym);
     return '<div class="dprow" data-key="' + esc(key) + '"><div><div class="n">' + esc(depotKurz(x.n)) + '</div><div class="s">' + esc(x.k === 'krypto' ? x.sym : (x.ty || 'Wertpapier')) + '</div></div>' + posMini(x.isin || x.sym, v.kurs, v.pct) + '<div class="r"><b>' + wlKurs(v.kurs) + '</b>' +
-      (v.pct != null ? '<small class="' + (v.pct >= 0 ? 'dplus' : 'dminus') + '">' + (v.pct >= 0 ? '+' : '') + (Math.round(v.pct * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %</small>' : '') + '</div></div>'; };
+      pctOderEur(v.pct, v.kurs != null && v.pct != null && isFinite(v.pct) && v.pct > -100 ? v.kurs - v.kurs / (1 + v.pct / 100) : null) + '</div></div>'; };
   var kr = L.filter(function (x) { return x.k === 'krypto'; }), wp = L.filter(function (x) { return x.k !== 'krypto'; });
   var h = (kr.length ? '<div class="wltr">Krypto</div>' + kr.map(zeile).join('') : '') + (wp.length ? '<div class="wltr">Aktien &amp; ETFs</div>' + wp.map(zeile).join('') : '');
   h += '<p class="hinweis" style="margin-top:16px">Kurse live: Aktien/ETFs von gettex (' + (boerseOffen() ? 'alle 10 s' : 'Börse zu, letzte Kurse') + '), Krypto von Binance alle 5 s (Veränderung seit 6 Uhr). Welche Werte auf der Watchlist stehen, kommt vom Mac.</p>';
   var sc = $('wKoerper').scrollTop; $('wKoerper').innerHTML = '<div class="dpos" style="margin-top:0">' + h + '</div>'; $('wKoerper').scrollTop = sc;
-  [].forEach.call(document.querySelectorAll('#wKoerper .dprow[data-key]'), function (z) { z.onclick = function () { posOeffnen(z.dataset.key); wlLiveRechnen(true); }; });
+  [].forEach.call(document.querySelectorAll('#wKoerper .dprow[data-key]'), function (z) { zeileKlick(z, function () { posOeffnen(z.dataset.key); wlLiveRechnen(true); }); });
 }
 // (2.42) Termine (Kalender-Kachel): Quartalszahlen, Notenbanken, Konjunkturdaten, Börsenfeiertage, SpaceX – Liste vom Mac (positionen.json „termine“)
 // (23.11.) Auf Andis Wunsch: nur noch eigene Arbeitstermine (termine.json im Daten-Repo, gleicht Handy und Mac-Cockpit ab), keine Börsen-Termine mehr
@@ -3276,6 +3293,64 @@ function lohnDetail() {
 // (2.41) Detail-Ansicht einer Position: Wert, heute, seit Kauf, Kennzahlen, Kursverlauf (1T/1M/1J), Käufe und Verkäufe
 var posKey = null, posZr = '1d', posAlt = null, posMorphR = 0, posBin = {};
 var posAendC = {};
+// (3.66, Andi 26.11. 14:19) Langes Drücken auf eine Position: Kursziel, Notiz, Kurs teilen. Kursziel/Notiz gehen über GitHub (jarvis/kz_handy.json) an den Mac
+// (dieselben Kursziele wie im Dashboard, Mac-Mitteilung beim Erreichen); bis der Mac sie übernommen hat, zeigt die App sie schon selbst an.
+var GHZ = GH.replace('daten.json', 'jarvis/kz_handy.json');
+function posInfo(key) { var a = posKey; posKey = key; var P = null; try { P = posDaten(); } catch (x) {} posKey = a; return P; }
+function kzSchl(P) { return P.m.isin || ('n:' + String(P.m.n || '').trim().toLowerCase()); }
+function kzEff(P) { if (!P) return null; var k = kzSchl(P), L = (daten.kzHandy || {})[k], d = depotEff(), S = d && d.kz && d.kz[k];
+  if (L && S && (L.weg ? false : (L.ziel == null || S.ziel === L.ziel) && (L.notiz == null || S.notiz === L.notiz))) { delete daten.kzHandy[k]; sichern(true); L = null; }
+  if (L && Date.now() - L.t > 3 * 86400e3) L = null; // nach 3 Tagen ohne Mac nicht mehr vorrangig
+  var e = Object.assign({}, S || {}); if (L) { if (L.weg) return null; if (L.ziel != null) e.ziel = L.ziel; if (L.notiz != null) e.notiz = L.notiz; }
+  return (e.ziel > 0 || e.notiz) ? e : null; }
+function kzSenden(P, a) { // a: {ziel} | {notiz} | {weg:true}
+  var k = kzSchl(P); daten.kzHandy = daten.kzHandy || {}; var L = daten.kzHandy[k] = Object.assign(a.weg ? {} : (daten.kzHandy[k] && !daten.kzHandy[k].weg ? daten.kzHandy[k] : {}), a, { t: Date.now() }); sichern(true);
+  var auf = { key: k, name: P.m.n, isin: P.m.isin || '', t: Date.now() }; if (a.weg) { auf.aktion = 'loeschen'; auf.was = 'alles'; } else { auf.aktion = 'setzen'; if (a.ziel != null) { auf.ziel = a.ziel; auf.ab = P.kurs || null; } if (a.notiz != null) auf.notiz = a.notiz; }
+  var kopf = jvKopf(), n = 0, los = function () { return fetch(GHZ + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) { return r.status === 404 ? { sha: null, a: [] } : r.ok ? r.json().then(function (j) { var x = {}; try { x = JSON.parse(b64dec(j.content) || '{}'); } catch (e) {} return { sha: j.sha, a: x.a || [] }; }) : Promise.reject(0); })
+    .then(function (f) { var b = { message: 'Kursziel vom Handy', content: b64enc(JSON.stringify({ a: f.a.concat([auf]) })) }; if (f.sha) b.sha = f.sha; return fetch(GHZ, { method: 'PUT', headers: kopf, body: JSON.stringify(b) }); })
+    .then(function (r) { if (!r.ok) throw 0; }).catch(function () { if (++n < 3) return new Promise(function (ok) { setTimeout(ok, 1500); }).then(los); toast('Konnte nicht gesendet werden – kein Netz?'); }); };
+  los();
+}
+function kzZeile(P) { var e = kzEff(P); if (!e) return ''; var k = P.kurs, a = e.ziel > 0 && k > 0 ? (e.ziel / k - 1) * 100 : null;
+  return '<div class="pkz">' + (e.ziel > 0 ? '<b>Kursziel ' + (e.ziel < 1 ? e.ziel.toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' €' : euro(e.ziel)) + '</b>' + (e.erreicht ? ' · erreicht' : a != null ? ' · ' + (Math.abs(a) < 0.05 ? 'genau am Ziel' : (a > 0 ? 'noch +' : 'noch −') + Math.abs(a).toLocaleString('de-DE', { maximumFractionDigits: 1 }) + ' %') : '') : '') + (e.notiz ? '<span>„' + esc(e.notiz) + '“</span>' : '') + '</div>'; }
+function posMenue(key) {
+  var P = posInfo(key); if (!P) return; var e = kzEff(P), alt = $('pmenue'); if (alt) alt.remove();
+  var m = document.createElement('div'); m.id = 'pmenue'; document.body.appendChild(m);
+  var zu = function () { m.classList.remove('auf'); setTimeout(function () { m.remove(); }, 250); }, kt = P.kurs != null ? (P.kurs < 1 ? P.kurs.toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' €' : euro(P.kurs)) : '';
+  var kopf = '<h3>' + esc(depotKurz(P.m.n)) + '</h3><div class="pmk">' + kt + (P.pct != null ? ' · ' + (P.pct >= 0 ? '+' : '') + (Math.round(P.pct * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2 }) + ' % heute' : '') + '</div>';
+  var haupt = function () { m.innerHTML = '<div class="pmb">' + kopf + '<button data-a="z">' + (e && e.ziel > 0 ? 'Kursziel ändern' : 'Kursziel setzen') + '</button><button data-a="n">' + (e && e.notiz ? 'Notiz ändern' : 'Notiz') + '</button><button data-a="t">Kurs teilen</button>' + (e ? '<button data-a="w" class="weg">Kursziel und Notiz löschen</button>' : '') + '<button data-a="x" class="ab">Abbrechen</button></div>'; binden(); };
+  var eingabe = function (art) { var z = art === 'z';
+    m.innerHTML = '<div class="pmb">' + kopf + (z ? '<input id="pmIn" inputmode="decimal" placeholder="Kursziel in €" value="' + (e && e.ziel > 0 ? String(e.ziel).replace('.', ',') : '') + '">' : '<textarea id="pmIn" placeholder="Notiz zu ' + esc(depotKurz(P.m.n)) + '">' + esc((e && e.notiz) || '') + '</textarea>') + '<button data-a="s" class="ok">Speichern</button><button data-a="x" class="ab">Abbrechen</button></div>';
+    binden(); var i = $('pmIn'); setTimeout(function () { i.focus(); }, 60);
+    m.querySelector('[data-a=s]').onclick = function () { var v = i.value.trim();
+      if (z) { var n = parseFloat(v.replace(/\./g, '').replace(',', '.')); if (!(n > 0)) { i.style.borderColor = 'var(--rot)'; return; } kzSenden(P, { ziel: n }); toast('Kursziel gespeichert'); }
+      else { kzSenden(P, { notiz: v.slice(0, 300) }); toast('Notiz gespeichert'); }
+      zu(); nachKz(); }; };
+  var binden = function () { [].forEach.call(m.querySelectorAll('[data-a]'), function (b) { var a = b.dataset.a; if (a === 's') return; b.onclick = function (ev) { ev.stopPropagation();
+    if (a === 'x') zu(); else if (a === 'z' || a === 'n') eingabe(a);
+    else if (a === 'w') { kzSenden(P, { weg: true }); toast('Gelöscht'); zu(); nachKz(); }
+    else if (a === 't') { var tx = depotKurz(P.m.n) + ': ' + kt + (P.pct != null ? ' (' + (P.pct >= 0 ? '+' : '') + (Math.round(P.pct * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2 }) + ' % heute)' : ''); zu();
+      if (navigator.share) navigator.share({ text: tx }).catch(function () {}); else { try { navigator.clipboard.writeText(tx); toast('Kurs kopiert'); } catch (x) {} } } }; }); };
+  m.onclick = function (ev) { if (ev.target === m) zu(); };
+  haupt(); requestAnimationFrame(function () { m.classList.add('auf'); });
+}
+// (3.66, Andi 26.11. 14:19) Im Detail nach links/rechts wischen: nächste/vorige Position in der Reihenfolge der Liste (Depot oder Watchlist). Vom linken Rand bleibt „zurück“.
+function posNachbar(r) { var L = [].map.call(document.querySelectorAll((/^w:/.test(posKey) ? '#wKoerper' : '#dKoerper') + ' .dprow[data-key]'), function (z) { return z.dataset.key; }), i = L.indexOf(posKey); return i < 0 ? null : L[i + r] || null; }
+(function () {
+  var b = $('blattP'), inn = b && b.querySelector('.innen'), sx = 0, sy = 0, dx = 0, an = false, aus = false; if (!inn) return;
+  inn.addEventListener('touchstart', function (e) { aus = an = false; dx = 0; if (e.touches.length !== 1 || querAn) return; var t = e.touches[0];
+    if (t.clientX <= 30 || (e.target.closest && e.target.closest('#pChart'))) return; sx = t.clientX; sy = t.clientY; aus = true; }, { passive: true });
+  inn.addEventListener('touchmove', function (e) { if (!aus) return; var t = e.touches[0], dy = t.clientY - sy; dx = t.clientX - sx;
+    if (!an) { if (Math.abs(dy) > 12 && Math.abs(dy) >= Math.abs(dx)) { aus = false; return; } if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy) * 1.4) an = true; else return; }
+    e.preventDefault(); var k = $('pKoerper'), rand = !posNachbar(dx < 0 ? 1 : -1); k.style.transition = 'none'; k.style.transform = 'translateX(' + (dx * (rand ? 0.18 : 0.6)).toFixed(1) + 'px)'; k.style.opacity = rand ? '' : String(1 - Math.min(0.5, Math.abs(dx) / 600)); }, { passive: false });
+  var ende = function () { if (!aus) return; aus = false; if (!an) return; an = false; var k = $('pKoerper'), nach = Math.abs(dx) > 70 ? posNachbar(dx < 0 ? 1 : -1) : null;
+    if (!nach) { k.style.transition = 'transform .25s cubic-bezier(.2,.8,.2,1), opacity .25s'; k.style.transform = ''; k.style.opacity = ''; return; }
+    var w = window.innerWidth, r = dx < 0 ? -1 : 1; k.style.transition = 'transform .16s ease-in, opacity .16s'; k.style.transform = 'translateX(' + (r * w * 0.5) + 'px)'; k.style.opacity = '0';
+    setTimeout(function () { posKey = nach; posAlt = null; posMorph.art = null; if (nach === 'rente') posZr = 'max'; else if (posZr === 'max') posZr = '1d'; posZeichnen(); k.scrollTop = 0;
+      k.style.transition = 'none'; k.style.transform = 'translateX(' + (-r * w * 0.4) + 'px)'; void k.offsetWidth; k.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1), opacity .22s'; k.style.transform = ''; k.style.opacity = ''; }, 160); };
+  inn.addEventListener('touchend', ende); inn.addEventListener('touchcancel', ende);
+})();
+function nachKz() { if ($('blattP').classList.contains('offen')) posZeichnen(); }
 function posOeffnen(key) { posKey = key; posZr = key === 'rente' ? 'max' : '1d'; posAlt = null; posMorph.art = null; posZeichnen(); var b = $('blattP'); b.classList.add('offen'); querPruefen(); }
 function posDaten() {
   var d = depotEff();
@@ -3409,7 +3484,7 @@ function posZeichnen() {
     } else h += '<p class="hinweis" style="margin-top:20px">Die Einzahlungen kommen mit dem nächsten Stand vom Mac.</p>';
     h += '<p class="hinweis" style="margin-top:16px">Wert aus den Fondskursen, gerechnet vom Mac wie im Dashboard (Stand ' + (daten.depotKurven && daten.depotKurven.stand ? new Date(daten.depotKurven.stand).toLocaleString('de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr' : 'kommt mit dem nächsten Abgleich') + '). Einzahlungen ohne Gebühren.</p></div>';
   } else
-  if (P.watch) h += '<p class="hinweis" style="margin-top:18px">Auf deiner Watchlist (nicht im Depot).</p>'; else
+  if ((h += kzZeile(P)), P.watch) h += '<p class="hinweis" style="margin-top:18px">Auf deiner Watchlist (nicht im Depot).</p>'; else
   h += '<div class="pgrid">' + kach('Stück', depotMenge(m)) + kach('Wert', euroH(w)) +
     (c ? kach('Kaufwert', euroH(c)) + kach('Ø Kaufkurs', m.q ? (c / m.q < 1 ? (c / m.q).toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' €' : euroH(c / m.q)) : '–') +
       kach('Seit Kauf', fe(gew), gew >= 0 ? 'dplus' : 'dminus') + kach('Seit Kauf in %', pz(gp), gp >= 0 ? 'dplus' : 'dminus') : '') +
@@ -3486,7 +3561,7 @@ function depotZeichnen() {
   [].forEach.call(document.querySelectorAll('#dVg button'), function (b) { b.onclick = function () { depotVg = b.dataset.v; try { localStorage.setItem('cockpit_vergleich_depot', depotVg); } catch (x) {} depotZeichnen(); }; });
   $('dArt').onclick = function () { depotArt = depotArt === 'pm' ? 'eur' : 'pm'; try { localStorage.setItem('cockpit_depotart2', depotArt); } catch (x) {} depotZeichnen(); }; // ganze Breite schaltet um
   $('dKoerper').insertAdjacentHTML('beforeend', depotPosHtml(d));
-  [].forEach.call(document.querySelectorAll('#dKoerper .dprow[data-key]'), function (z) { z.onclick = function () { posOeffnen(z.dataset.key); }; });
+  [].forEach.call(document.querySelectorAll('#dKoerper .dprow[data-key]'), function (z) { zeileKlick(z, function () { posOeffnen(z.dataset.key); }); });
   if ($('dSort')) $('dSort').onclick = function () { depotSort = depotSort === 'wert' ? 'heute' : depotSort === 'heute' ? 'kauf' : 'wert'; try { localStorage.setItem('cockpit_possort', depotSort); } catch (x) {} depotZeichnen(); };
   depotMorph();
   rollZahl($('dGross').querySelector('.dw'), 'dG', d.gesamt);
