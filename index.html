@@ -654,7 +654,7 @@ body.istoffline .sstand{color:#ff6b61}
   <div class="koerper" id="dKoerper"></div>
 </div></div>
 <div class="blatt" id="blattW"><div class="innen">
-  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattW" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Watchlist</b></div></div>
+  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattW" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Watchlist</b></div><div class="trechts"><button class="kugel" id="wPlus" aria-label="Aktie hinzufügen"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
   <div class="koerper" id="wKoerper"></div>
 </div></div>
 <div class="blatt" id="blattT"><div class="innen">
@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.75';
+var VERSION = '3.76';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -2964,7 +2964,41 @@ function depotMorph() {
 }
 // (2.42) Watchlist: Liste vom Mac (positionen.json „wl“), Kurse live im Cockpit – Aktien/ETFs gettex (Onvista), Krypto Binance (seit 6 Uhr), ohne Mac
 var wlBin = null, wlBinO = {}, wlBinT = 0, wlOnvT = 0, wlBusy = false;
-function wlListe() { var k = daten.depotKurven; return (k && k.wl) || []; }
+function wlListe() { var k = daten.depotKurven, B = (k && k.wl) || [], H = daten.wlHandy; if (!H) return B; // (3.76) Änderungen vom Handy sofort zeigen, bis der Mac sie übernommen hat
+  var da = {}, alt = Date.now() - 2 * 86400e3; B.forEach(function (x) { if (x.isin) da[x.isin] = 1; });
+  H.add = (H.add || []).filter(function (x) { return !da[x.isin] && x.t > alt; }); H.weg = (H.weg || []).filter(function (x) { return da[x.isin] && x.t > alt; });
+  var weg = {}; H.weg.forEach(function (x) { weg[x.isin] = 1; });
+  return B.filter(function (x) { return !weg[x.isin]; }).concat(H.add); }
+// (3.76, Andi 26.11. 18:50) Watchlist vom Handy bearbeiten: Aufträge gehen über GitHub (jarvis/wl_handy.json) an den Mac (eigene Watchlist im Dashboard; die Scalable-Watchlist bleibt unangetastet)
+function ghAuftrag(pfad, auf, txt) { var url = GH.replace('daten.json', pfad), kopf = jvKopf(), n = 0, los = function () { return fetch(url + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) { return r.status === 404 ? { sha: null, a: [] } : r.ok ? r.json().then(function (j) { var x = {}; try { x = JSON.parse(b64dec(j.content) || '{}'); } catch (e) {} return { sha: j.sha, a: x.a || [] }; }) : Promise.reject(0); })
+    .then(function (f) { var b = { message: txt, content: b64enc(JSON.stringify({ a: f.a.concat([auf]) })) }; if (f.sha) b.sha = f.sha; return fetch(url, { method: 'PUT', headers: kopf, body: JSON.stringify(b) }); })
+    .then(function (r) { if (!r.ok) throw 0; }).catch(function () { if (++n < 3) return new Promise(function (ok) { setTimeout(ok, 1500); }).then(los); toast('Konnte nicht gesendet werden – kein Netz?'); }); }; los(); }
+function wlLokal(isin) { return wlListe().some(function (x) { return x.isin === isin && x.lokal; }); }
+function wlHinzu(x) { var H = daten.wlHandy = daten.wlHandy || {}; H.add = (H.add || []).filter(function (y) { return y.isin !== x.isin; }); H.weg = (H.weg || []).filter(function (y) { return y.isin !== x.isin; });
+  H.add.push({ n: x.n, k: 'wp', isin: x.isin, ty: x.ty, lokal: true, t: Date.now() }); sichern(true);
+  ghAuftrag('jarvis/wl_handy.json', { aktion: 'add', name: x.n, isin: x.isin, sym: x.sym || '', ty: x.ty || '', t: Date.now() }, 'Watchlist vom Handy'); toast(depotKurz(x.n) + ' ist auf der Watchlist'); if ($('blattW').classList.contains('offen')) wlZeichnen(); }
+function wlWeg(isin, n) { var H = daten.wlHandy = daten.wlHandy || {}; H.add = (H.add || []).filter(function (y) { return y.isin !== isin; }); H.weg = (H.weg || []).filter(function (y) { return y.isin !== isin; }); H.weg.push({ isin: isin, t: Date.now() }); sichern(true);
+  ghAuftrag('jarvis/wl_handy.json', { aktion: 'remove', isin: isin, name: n || '', t: Date.now() }, 'Watchlist vom Handy'); toast('Von der Watchlist entfernt'); if ($('blattP').classList.contains('offen') && /^w:/.test(posKey)) $('blattP').classList.remove('offen'); if ($('blattW').classList.contains('offen')) wlZeichnen(); }
+function wlSuche() {
+  var alt = $('pmenue'); if (alt) alt.remove(); var m = document.createElement('div'); m.id = 'pmenue'; document.body.appendChild(m); var zu = function () { m.classList.remove('auf'); setTimeout(function () { m.remove(); }, 250); };
+  m.innerHTML = '<div class="pmb"><h3>Zur Watchlist hinzufügen</h3><div class="pmk">Name, Kürzel oder ISIN</div><input id="wsIn" placeholder="z. B. AMD oder Microsoft" autocomplete="off" autocapitalize="off"><div id="wsErg" style="max-height:46vh;overflow-y:auto;margin-top:4px"></div><button data-a="x" class="ab">Abbrechen</button></div>';
+  m.querySelector('[data-a=x]').onclick = zu; m.onclick = function (ev) { if (ev.target === m) zu(); }; menueWisch(m, zu);
+  var i = $('wsIn'), tm = 0, nr = 0, da = {}; wlListe().forEach(function (x) { if (x.isin) da[x.isin] = 1; }); (((daten.depot || {}).pos) || []).forEach(function (x) { if (x.isin) da[x.isin] = 2; });
+  var typ = { STOCK: 'Aktie', FUND: 'ETF/Fonds', ETF: 'ETF', CERTIFICATE: 'Zertifikat', BOND: 'Anleihe', INDEX: 'Index', DERIVATIVE: 'Derivat' };
+  i.oninput = function () { clearTimeout(tm); var q = i.value.trim(); if (q.length < 2) { $('wsErg').innerHTML = ''; return; } tm = setTimeout(function () { var me = ++nr;
+    fetch(ONV + 'query?limit=12&searchValue=' + encodeURIComponent(q), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) { if (me !== nr || !$('wsErg')) return;
+      var L = ((j && j.list) || []).filter(function (x) { return x.isin && /^(STOCK|FUND|ETF|CERTIFICATE)$/.test(x.entityType); }).slice(0, 10);
+      $('wsErg').innerHTML = L.length ? L.map(function (x, k) { var st = da[x.isin]; return '<button data-k="' + k + '"' + (st ? ' disabled style="opacity:.45"' : '') + '>' + esc(x.name) + '<small style="display:block;color:var(--grau);font-size:12px;margin-top:2px">' + esc([typ[x.entityType] || x.entityType, x.symbol, x.isin].filter(Boolean).join(' · ')) + (st === 1 ? ' · schon auf der Watchlist' : st === 2 ? ' · schon im Depot' : '') + '</small></button>'; }).join('') : '<p class="hinweis" style="margin:12px 2px">Nichts gefunden.</p>';
+      [].forEach.call($('wsErg').querySelectorAll('[data-k]'), function (b) { b.onclick = function (ev) { ev.stopPropagation(); var x = L[+b.dataset.k]; zu(); wlHinzu({ n: x.name, isin: x.isin, sym: x.symbol, ty: typ[x.entityType] || '' }); }; });
+    }).catch(function () { if ($('wsErg')) $('wsErg').innerHTML = '<p class="hinweis" style="margin:12px 2px">Suche gerade nicht erreichbar.</p>'; }); }, 300); };
+  requestAnimationFrame(function () { m.classList.add('auf'); setTimeout(function () { i.focus(); }, 80); });
+}
+// (3.76, Andi 18:50) Menüs mit dem Finger nach unten wegwischen (wie bei iPhone-Menüs)
+function menueWisch(m, zu) { var b = null, y0 = null, dy = 0; // am Hintergrund-Element: der Inhalt (.pmb) wird beim Umschalten neu gebaut
+  m.addEventListener('touchstart', function (e) { b = m.querySelector('.pmb'); var sc = e.target.closest && e.target.closest('#wsErg, textarea'); if (!b || (sc && sc.scrollTop > 0)) { y0 = null; return; } y0 = e.touches[0].clientY; dy = 0; }, { passive: true });
+  m.addEventListener('touchmove', function (e) { if (y0 == null || !b) return; dy = Math.max(0, e.touches[0].clientY - y0); if (dy > 4) { e.preventDefault(); b.style.transition = 'none'; b.style.transform = 'translateY(' + dy + 'px)'; } }, { passive: false });
+  var ende = function () { if (y0 == null || !b) return; y0 = null; b.style.transition = ''; b.style.transform = ''; if (dy > 90) zu(); dy = 0; };
+  m.addEventListener('touchend', ende); m.addEventListener('touchcancel', ende); }
 function wlWert(x) {
   if (x.k === 'krypto') {
     var B = wlBin || {}, e = B.EURUSDT, p = B[x.sym + 'USDT'], S6 = depotSechs.ts === depotSechsTs() ? depotSechs.k : {};
@@ -3319,7 +3353,7 @@ function posMenue(key) {
   var m = document.createElement('div'); m.id = 'pmenue'; document.body.appendChild(m);
   var zu = function () { m.classList.remove('auf'); setTimeout(function () { m.remove(); }, 250); }, kt = P.kurs != null ? (P.kurs < 1 ? P.kurs.toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' €' : euro(P.kurs)) : '';
   var kopf = '<h3>' + esc(depotKurz(P.m.n)) + '</h3><div class="pmk">' + kt + (P.pct != null ? ' · ' + (P.pct >= 0 ? '+' : '') + (Math.round(P.pct * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2 }) + ' % heute' : '') + '</div>';
-  var haupt = function () { m.innerHTML = '<div class="pmb">' + kopf + '<button data-a="z">' + (e && e.ziel > 0 ? 'Kursziel ändern' : 'Kursziel setzen') + '</button><button data-a="n">' + (e && e.notiz ? 'Notiz ändern' : 'Notiz') + '</button><button data-a="t">Kurs teilen</button>' + (e ? '<button data-a="w" class="weg">Kursziel und Notiz löschen</button>' : '') + '<button data-a="x" class="ab">Abbrechen</button></div>'; binden(); };
+  var haupt = function () { m.innerHTML = '<div class="pmb">' + kopf + '<button data-a="z">' + (e && e.ziel > 0 ? 'Kursziel ändern' : 'Kursziel setzen') + '</button><button data-a="n">' + (e && e.notiz ? 'Notiz ändern' : 'Notiz') + '</button><button data-a="t">Kurs teilen</button>' + (e ? '<button data-a="w" class="weg">Kursziel und Notiz löschen</button>' : '') + (P.watch && P.m.isin ? (wlLokal(P.m.isin) ? '<button data-a="r" class="weg">Von der Watchlist entfernen</button>' : '<div class="pmk" style="margin:12px 2px 0">Steht in deiner Scalable-Watchlist – entfernen geht nur in der Scalable-App (Scalable nur lesend).</div>') : '') + '<button data-a="x" class="ab">Abbrechen</button></div>'; binden(); };
   var eingabe = function (art) { var z = art === 'z';
     m.innerHTML = '<div class="pmb">' + kopf + (z ? '<input id="pmIn" inputmode="decimal" placeholder="Kursziel in €" value="' + (e && e.ziel > 0 ? String(e.ziel).replace('.', ',') : '') + '">' : '<textarea id="pmIn" placeholder="Notiz zu ' + esc(depotKurz(P.m.n)) + '">' + esc((e && e.notiz) || '') + '</textarea>') + '<button data-a="s" class="ok">Speichern</button><button data-a="x" class="ab">Abbrechen</button></div>';
     binden(); var i = $('pmIn'); setTimeout(function () { i.focus(); }, 60);
@@ -3330,9 +3364,10 @@ function posMenue(key) {
   var binden = function () { [].forEach.call(m.querySelectorAll('[data-a]'), function (b) { var a = b.dataset.a; if (a === 's') return; b.onclick = function (ev) { ev.stopPropagation();
     if (a === 'x') zu(); else if (a === 'z' || a === 'n') eingabe(a);
     else if (a === 'w') { kzSenden(P, { weg: true }); toast('Gelöscht'); zu(); nachKz(); }
+    else if (a === 'r') { zu(); wlWeg(P.m.isin, P.m.n); }
     else if (a === 't') { var tx = depotKurz(P.m.n) + ': ' + kt + (P.pct != null ? ' (' + (P.pct >= 0 ? '+' : '') + (Math.round(P.pct * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2 }) + ' % heute)' : ''); zu();
       if (navigator.share) navigator.share({ text: tx }).catch(function () {}); else { try { navigator.clipboard.writeText(tx); toast('Kurs kopiert'); } catch (x) {} } } }; }); };
-  m.onclick = function (ev) { if (ev.target === m) zu(); };
+  m.onclick = function (ev) { if (ev.target === m) zu(); }; menueWisch(m, zu);
   haupt(); requestAnimationFrame(function () { m.classList.add('auf'); });
 }
 // (3.66, Andi 26.11. 14:19) Im Detail nach links/rechts wischen: nächste/vorige Position in der Reihenfolge der Liste (Depot oder Watchlist). Vom linken Rand bleibt „zurück“.
@@ -3813,7 +3848,7 @@ function posTeilenMenue() {
     var k0_ = r === 'kauf' ? ((P.m.tr || []).filter(function (t) { return t.a !== 'V' && t.t; }).map(function (t) { return Date.parse(t.t); }).sort()[0] || 0) : 0, alt_ = (Date.now() - k0_) / 864e5, zr = r !== 'kauf' ? r : alt_ < 6.5 ? '1w' : alt_ < 29 ? '1m' : '1y'; /* Seit Kauf: so fein wie möglich */ if (posZr !== zr) { posZr = zr; posZeichnen(); } var t0 = Date.now(), warte = function () { var G = posStand && posStand.key === posKey && posStand.zr === zr ? posStand : null;
       if (G) return posTeilen(G, r); if (Date.now() - t0 > 6000) return toast('Diagramm wird noch geladen'); setTimeout(warte, 150); }; setTimeout(warte, 60); }; });
   if ($('tEur')) $('tEur').onclick = function (ev) { ev.stopPropagation(); teilenEur = !teilenEur; this.classList.toggle('an', teilenEur); try { localStorage.setItem('cockpit_teilen_eur', teilenEur ? '1' : '0'); } catch (x) {} };
-  m.onclick = function (ev) { if (ev.target === m) zu(); }; requestAnimationFrame(function () { m.classList.add('auf'); });
+  m.onclick = function (ev) { if (ev.target === m) zu(); }; menueWisch(m, zu); requestAnimationFrame(function () { m.classList.add('auf'); });
 }
 var teilenEur = (function () { try { return localStorage.getItem('cockpit_teilen_eur') !== '0'; } catch (x) { return true; } })(); // (3.75, Andi 18:42) Euro-Beträge im Teilen-Bild ein-/ausblenden, wird gemerkt
 function posTeilen(G, r) {
@@ -3850,6 +3885,7 @@ function posTeilen(G, r) {
   }, 'image/png');
 }
 $('pTeilen').onclick = posTeilenMenue;
+$('wPlus').onclick = wlSuche;
 function augeAlle() { if ($('dAuge')) $('dAuge').innerHTML = depotSicht ? AUGE_AUF : AUGE_ZU; $('pAuge').innerHTML = depotSicht ? AUGE_AUF : AUGE_ZU;
   [].forEach.call(document.querySelectorAll('#dBox, .sgrid [data-ziel=depot] .dbox, #pKoerper .dbox'), function (x) { x.classList.toggle('verdeckt', !depotSicht); }); }
 $('pAuge').onclick = function () { depotSicht = !depotSicht; augeAlle(); };
