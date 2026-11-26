@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.89';
+var VERSION = '3.90';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -5156,6 +5156,14 @@ if ('serviceWorker' in navigator) {
       if (!ge && !er) return 'Für den Zeitraum stehen keine Spesen im Plan, Meister.';
       var eu2 = function (n) { return (Math.round(n * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' Euro'; };
       return 'Spesen laut Einsatzplänen: ' + eu2(er) + ' von der Firma' + (zuk ? ', davon ' + zuk + ' Tage noch vor dir' : '') + '. Gesetzlich wären es ' + eu2(ge) + ', die ' + eu2(Math.max(0, ge - er)) + ' Unterschied kannst du in der Steuererklärung absetzen.' + (na ? ' Dazu ' + (na === 1 ? 'eine Hotelnacht' : na + ' Hotelnächte') + '.' : '');
+    }
+    /* Fahrzeit: „Wie lange bin ich heute gefahren?“, „Wie viel Fahrzeit hatte ich diese Woche?“ (echte Minuten aus Hin-, Zwischen- und Rückfahrt) */
+    if (/wie (?:lange|viel) (?:bin ich|sind wir|habe ich|hab ich)? ?(?:\S+ ){0,3}(?:gefahren|im auto)|wie ?viel fahrzeit|wie lange fahrzeit|fahrzeit (?:hatte|hab|habe)/.test(q) && !/zug|bahn|morgen|übermorgen|nächst|naechst/.test(q)) {
+      var Zf2 = zeit(q, false) || { art: 'tag', d: heute0() }, Bf = bereich(Zf2); if (!Bf) return null; var mi = 0, tg = 0, hin = 0, zw = 0, zu = 0;
+      E.forEach(function (x) { if (x.datum < Bf[0] || x.datum > Bf[1]) return; var a1 = +x.fahrHin || 0, a2 = +x.fahrZw || 0, a3 = +x.fahrZur || 0; if (a1 + a2 + a3) { tg++; hin += a1; zw += a2; zu += a3; } });
+      mi = hin + zw + zu; if (!mi) return 'Da sind keine Fahrzeiten eingetragen, Meister.';
+      var hm2 = function (m) { var h_ = Math.floor(m / 60), r_ = m % 60; return (h_ ? h_ + (h_ === 1 ? ' Stunde' : ' Stunden') + (r_ ? ' und ' : '') : '') + (r_ ? r_ + ' Minuten' : ''); };
+      return (Zf2.art === 'tag' ? wannTxt(Zf2.d) + ' bist du ' : 'An ' + tg + (tg === 1 ? ' Tag' : ' Tagen') + ' bist du ') + hm2(mi) + ' gefahren' + (Zf2.art === 'tag' ? ': hin ' + hm2(hin) + (zw ? ', zwischen den Läden ' + hm2(zw) : '') + (zu ? ', zurück ' + hm2(zu) : '') : '') + '.';
     }
     /* Läden zählen: „Wie viele Läden hatte ich diesen Monat?“ */
     if (/wie ?viele? (?:läden|laeden|filialen|märkte|maerkte)/.test(q)) {
