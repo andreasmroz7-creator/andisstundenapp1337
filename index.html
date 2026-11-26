@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.70';
+var VERSION = '3.71';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -3339,29 +3339,30 @@ function posNachbar(r) { var L = [].map.call(document.querySelectorAll((/^w:/.te
 // (3.69, Andi 26.11. 14:47 Video: neue Seite unsichtbar, Diagrammlinie blieb stehen, „springt rum“) Das iPhone malt verschobene Ebenen außerhalb des Bildschirms nicht
 // und lässt SVG-Linien (non-scaling-stroke) bei transform stehen → beide Seiten als Kopien, bewegt über „left“ Bild für Bild; die neue startet erst, wenn ihr Diagramm fertig ist.
 var posFertig = null;
+// (3.71, Andi 17:48: am iPhone kommt rechts immer noch nichts) wie bei iOS: schon beim Ziehen liegt die nächste Seite direkt neben der alten und wird mit dem Finger
+// hereingezogen (also schon gemalt, bevor man loslässt). Die alte Seite bleibt das berührte Element (sonst kommen keine Fingerbewegungen mehr an), die neue ist ein
+// frisches Fenster mit der id pKoerper. Beide werden über „left“ bewegt.
 (function () {
-  var b = $('blattP'), inn = b && b.querySelector('.innen'), sx = 0, sy = 0, dx = 0, an = false, aus = false, alt = null, x0 = 0, laeuft = false; if (!inn) return;
-  var k_ = function () { return $('pKoerper'); };
-  var kopie = function () { var k = k_(), c = k.cloneNode(true), st = k.scrollTop; [].forEach.call(c.querySelectorAll('[id]'), function (x) { x.removeAttribute('id'); }); c.removeAttribute('id');
-    c.style.cssText = 'position:absolute;left:' + k.offsetLeft + 'px;top:' + k.offsetTop + 'px;width:' + k.offsetWidth + 'px;height:' + k.offsetHeight + 'px;margin:0;animation:none;pointer-events:none;z-index:2;transition:none;overflow:hidden;-webkit-overflow-scrolling:auto';
-    inn.appendChild(c); c.scrollTop = st; return c; };
-  var lauf = function (els, von, bis, ms, fertig, basis) { var t0 = performance.now(), ease = function (q) { return 1 - Math.pow(1 - q, 3); };
-    var f = function (t) { var q = Math.min(1, (t - t0) / ms), e = ease(q); els.forEach(function (el, i) { el.style.left = ((basis ? basis[i] : x0) + von[i] + (bis[i] - von[i]) * e).toFixed(1) + 'px'; }); if (q < 1) requestAnimationFrame(f); else fertig(); };
-    requestAnimationFrame(f); };
-  var zeigK = function () { var k = k_(); k.style.visibility = ''; };
+  var b = $('blattP'), inn = b && b.querySelector('.innen'), sx = 0, sy = 0, dx = 0, an = false, aus = false, alt = null, neuK = null, x0 = 0, y0 = 0, w = 0, h0 = 0, laeuft = false, orig = null, zr0 = null, rich = 0, nach = null; if (!inn) return;
+  var nachbar = function (key, r) { var L = [].map.call(document.querySelectorAll((/^w:/.test(key) ? '#wKoerper' : '#dKoerper') + ' .dprow[data-key]'), function (z) { return z.dataset.key; }), i = L.indexOf(key); return i < 0 ? null : L[i + r] || null; };
+  var fix = function (el, x) { el.style.cssText = 'position:absolute;left:' + (x0 + x).toFixed(1) + 'px;top:' + y0 + 'px;width:' + w + 'px;height:' + h0 + 'px;margin:0;animation:none;transition:none;overflow:hidden;-webkit-overflow-scrolling:auto;z-index:2'; };
+  var zeige = function (key) { posFertig = null; posKey = key; posAlt = null; posMorph.art = null; posZr = key === 'rente' ? 'max' : (zr0 === 'max' ? '1d' : zr0); posZeichnen(); $('pKoerper').scrollTop = 0; };
+  var vorbereiten = function (r) { rich = r; nach = nachbar(orig, r); if (neuK) { neuK.remove(); neuK = null; } if (!nach) return;
+    neuK = document.createElement('div'); neuK.className = 'koerper'; neuK.id = 'pKoerper'; fix(neuK, dx + r * w); inn.appendChild(neuK); zeige(nach); };
+  var lauf = function (von, bis, ms, schritt, fertig) { var t0 = null, ease = function (q) { return 1 - Math.pow(1 - q, 3); };
+    var f = function (t) { if (t0 == null) t0 = t; var q = Math.min(1, (t - t0) / ms), x = von + (bis - von) * ease(q); schritt(x); if (q < 1) requestAnimationFrame(f); else fertig(); }; requestAnimationFrame(f); }; // Zeit zählt ab dem ersten gemalten Bild
   inn.addEventListener('touchstart', function (e) { aus = an = false; dx = 0; if (laeuft || e.touches.length !== 1 || querAn) return; var t = e.touches[0];
     if (t.clientX <= 30 || (e.target.closest && e.target.closest('#pChart'))) return; sx = t.clientX; sy = t.clientY; aus = true; }, { passive: true });
   inn.addEventListener('touchmove', function (e) { if (!aus) return; var t = e.touches[0], dy = t.clientY - sy; dx = t.clientX - sx;
-    if (!an) { if (Math.abs(dy) > 12 && Math.abs(dy) >= Math.abs(dx)) { aus = false; return; } if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy) * 1.4) { an = true; var k = k_(); x0 = k.offsetLeft; alt = kopie(); k.style.visibility = 'hidden'; } else return; }
-    e.preventDefault(); var rand = !posNachbar(dx < 0 ? 1 : -1); alt.style.left = (x0 + dx * (rand ? 0.18 : 1)).toFixed(1) + 'px'; }, { passive: false });
-  var ende = function () { if (!aus) return; aus = false; if (!an) return; an = false; var nach = Math.abs(dx) > 70 ? posNachbar(dx < 0 ? 1 : -1) : null, a = alt; alt = null;
-    if (!nach) { var v0 = parseFloat(a.style.left) - x0; laeuft = true; lauf([a], [v0], [0], 220, function () { zeigK(); a.remove(); laeuft = false; }); return; }
-    var k = k_(), w = k.offsetWidth || window.innerWidth, r = dx < 0 ? -1 : 1, los = false; laeuft = true;
-    // (3.70, Andi 17:34: rechts kommt am iPhone immer noch nichts) die neue Seite ist jetzt das echte Fenster selbst (keine Kopie), verschoben über position:relative + left
-    var start = function () { if (los) return; los = true; posFertig = null; k.scrollTop = 0; k.style.overflow = 'hidden'; k.style.webkitOverflowScrolling = 'auto'; /* iPhone: eigene Scroll-Ebene wird außerhalb des Bildschirms nicht gemalt */ k.style.position = 'relative'; k.style.left = (dx - r * w).toFixed(1) + 'px'; k.style.visibility = '';
-      lauf([a, k], [dx, dx - r * w], [r * w, 0], 300, function () { k.style.left = ''; k.style.position = ''; k.style.overflow = ''; k.style.webkitOverflowScrolling = ''; a.remove(); laeuft = false; }, [x0, 0]); };
-    posFertig = start; posKey = nach; posAlt = null; posMorph.art = null; if (nach === 'rente') posZr = 'max'; else if (posZr === 'max') posZr = '1d'; posZeichnen(); k.scrollTop = 0;
-    setTimeout(start, 700); }; // spätestens nach 0,7 s, auch wenn das Diagramm noch lädt
+    if (!an) { if (Math.abs(dy) > 12 && Math.abs(dy) >= Math.abs(dx)) { aus = false; return; } if (!(Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy) * 1.4)) return;
+      an = true; alt = $('pKoerper'); x0 = alt.offsetLeft; y0 = alt.offsetTop; w = alt.offsetWidth || window.innerWidth; h0 = alt.offsetHeight; orig = posKey; zr0 = posZr;
+      var st = alt.scrollTop; alt.id = 'pKoerperAlt'; [].forEach.call(alt.querySelectorAll('[id]'), function (x) { x.removeAttribute('id'); }); fix(alt, 0); alt.style.pointerEvents = 'none'; alt.scrollTop = st; neuK = null; vorbereiten(dx < 0 ? 1 : -1); }
+    e.preventDefault(); var r = dx < 0 ? 1 : -1; if (r !== rich) vorbereiten(r);
+    alt.style.left = (x0 + (nach ? dx : dx * 0.18)).toFixed(1) + 'px'; if (neuK) neuK.style.left = (x0 + dx + r * w).toFixed(1) + 'px'; }, { passive: false });
+  var ende = function () { if (!aus) return; aus = false; if (!an) return; an = false; laeuft = true; var a = alt, n = neuK, r = rich, d0 = nach ? dx : dx * 0.18;
+    var setz = function (x) { a.style.left = (x0 + x).toFixed(1) + 'px'; if (n) n.style.left = (x0 + x + r * w).toFixed(1) + 'px'; };
+    if (n && Math.abs(dx) > 70) { lauf(d0, -r * w, 300, setz, function () { a.remove(); n.style.cssText = 'animation:none'; alt = neuK = null; laeuft = false; }); return; }
+    lauf(d0, 0, 220, setz, function () { if (n) n.remove(); a.style.cssText = 'animation:none'; a.id = 'pKoerper'; alt = neuK = null; posZr = zr0; zeige(orig); laeuft = false; }); }; // zurück: alte Seite neu aufbauen (ihre ids wurden entfernt)
   inn.addEventListener('touchend', ende); inn.addEventListener('touchcancel', ende);
 })();
 function nachKz() { if ($('blattP').classList.contains('offen')) posZeichnen(); }
