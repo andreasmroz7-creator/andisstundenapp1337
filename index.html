@@ -706,7 +706,7 @@ body.istoffline .sstand{color:#ff6b61}
   <label class="l">Ausgeblendete Kacheln</label>
   <div class="kausliste" id="kAusListe"></div>
   <label class="l">Sicherheit</label>
-  <div class="sw" data-s="depotAuge" id="swAuge"><div>Depot-Beträge mit Auge verdecken<small>aus: Beträge immer sichtbar</small></div><div class="knopf"></div></div>
+  <div class="sw" data-s="depotAuge" id="swAuge"><div>Depot-Beträge beim Öffnen verdecken<small>an: erst nach Tipp aufs Auge sichtbar · aus: gleich sichtbar (das Auge ist immer da)</small></div><div class="knopf"></div></div>
   <div class="sw" id="swSperre"><div>App-Sperre mit Face ID<small>beim Öffnen und nach 1 Min. im Hintergrund</small></div><div class="knopf"></div></div>
   <label class="l">Abgleich mit GitHub (stunden-raten)</label>
   <input type="password" id="sToken" placeholder="Schlüssel github_pat_…" autocomplete="off" autocapitalize="off" spellcheck="false">
@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.80';
+var VERSION = '3.81';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -3650,8 +3650,8 @@ function depotFinger(d, R) {
   c.addEventListener('pointerup', ende); c.addEventListener('pointercancel', ende); c.addEventListener('lostpointercapture', ende);
 }
 $('start').addEventListener('click', function (e) { if (e.target.closest && e.target.closest('#startEinst')) { e.stopPropagation(); $('einstknopf').click(); } if (e.target.closest && e.target.closest('#startSuche')) { e.stopPropagation(); startZiel('suche'); } }, true); // (2.19) Zahnrad oben auf der Startseite
-function depotAugeSetzen() { var an = !!daten.einst.depotAuge; depotSicht = !an; $('dAuge').hidden = !an; $('dAuge').innerHTML = depotSicht ? AUGE_AUF : AUGE_ZU; if ($('pAuge')) $('pAuge').innerHTML = depotSicht ? AUGE_AUF : AUGE_ZU; depotNeuZeigen(); }
-try { depotSicht = !daten.einst.depotAuge; $('dAuge').hidden = !daten.einst.depotAuge; } catch (x) {}
+function depotAugeSetzen() { var an = !!daten.einst.depotAuge; depotSicht = !an; $('dAuge').hidden = false; /* (3.81, Andi 19:20) Auge im Depot immer da, die Einstellung bestimmt nur, ob es verdeckt startet */ $('dAuge').innerHTML = depotSicht ? AUGE_AUF : AUGE_ZU; if ($('pAuge')) $('pAuge').innerHTML = depotSicht ? AUGE_AUF : AUGE_ZU; depotNeuZeigen(); }
+try { depotSicht = !daten.einst.depotAuge; $('dAuge').hidden = false; $('dAuge').innerHTML = depotSicht ? AUGE_AUF : AUGE_ZU; } catch (x) {}
 $('dAuge').onclick = function () {
   depotSicht = !depotSicht; augeAlle(); // (3.74) auch das Auge im Detail
 };
