@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.91';
+var VERSION = '3.92';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -3816,7 +3816,20 @@ function querZeichnen() {
     $('qCur').style.left = (X[i] / W * 100) + '%'; $('qInfo').textContent = (depotSicht ? fmt(pkt[i].v) + ' · ' : '') + (pkt[i].t ? zeitKurz(pkt[i].t, zr === '1d' ? '1w' : zr) : ''); }
   spanneAn(F, Z, VV, pkt.map(function (q) { return q.w != null ? q.w : q.v; }), pkt.map(function (q) { return q.t; }), zr, preis);
 }
-// --- Depot als Bild teilen: nur Prozent, keine Euro-Beträge ---
+// --- Depot als Bild teilen ---
+// (3.92, Andi 27.11. 09:16) Gesamtes Depot teilen wie eine Position: erst Zeitraum wählen (1 Tag … seit Beginn), Euro-Betrag ein-/ausblendbar (derselbe gemerkte Schalter)
+function depotTeilenMenue() {
+  var alt = $('pmenue'); if (alt) alt.remove();
+  var m = document.createElement('div'); m.id = 'pmenue'; document.body.appendChild(m); var zu = function () { m.classList.remove('auf'); setTimeout(function () { m.remove(); }, 250); };
+  var Z = [['1d', 'Heute'], ['1w', '1 Woche'], ['1m', '1 Monat'], ['6m', '6 Monate'], ['1y', '1 Jahr'], ['max', 'Seit Beginn']];
+  m.innerHTML = '<div class="pmb"><h3>Depot teilen</h3><div class="pmk">Welcher Zeitraum soll aufs Bild?</div><div class="sw' + (teilenEur ? ' an' : '') + '" id="tEur" style="margin:4px 0 6px"><div>Euro-Betrag zeigen</div><div class="knopf"></div></div>' + Z.map(function (z) { return '<button data-r="' + z[0] + '">' + z[1] + '</button>'; }).join('') + '<button data-r="x" class="ab">Abbrechen</button></div>';
+  [].forEach.call(m.querySelectorAll('[data-r]'), function (b) { b.onclick = function (ev) { ev.stopPropagation(); var r = b.dataset.r; zu(); if (r === 'x') return;
+    if (depotZr !== r) { depotZr = r; try { depotZeichnen(); } catch (x) {} }
+    var t0 = Date.now(), warte = function () { var G = grafStand && grafStand.art === 'depot' && grafStand.R && grafStand.R.r === r ? grafStand : null;
+      if (G) return depotTeilen(); if (Date.now() - t0 > 8000) return toast('Diagramm wird noch geladen'); setTimeout(warte, 150); }; setTimeout(warte, 60); }; });
+  $('tEur').onclick = function (ev) { ev.stopPropagation(); teilenEur = !teilenEur; this.classList.toggle('an', teilenEur); try { localStorage.setItem('cockpit_teilen_eur', teilenEur ? '1' : '0'); } catch (x) {} };
+  m.onclick = function (ev) { if (ev.target === m) zu(); }; menueWisch(m, zu); requestAnimationFrame(function () { m.classList.add('auf'); });
+}
 function depotTeilen() {
   var G = grafStand && grafStand.art === 'depot' ? grafStand : null; if (!G) { toast('Diagramm wird noch geladen'); return; }
   var R = G.R, W = 1080, H = 1350, cv = document.createElement('canvas'); cv.width = W; cv.height = H; var c = cv.getContext('2d');
@@ -3827,8 +3840,10 @@ function depotTeilen() {
   c.fillStyle = '#8e8e93'; c.font = '600 42px ' + fnt; c.fillText('MEIN DEPOT', 90, 170);
   c.fillStyle = '#ffffff'; c.font = '700 58px ' + fnt; c.fillText(zt, 90, 250);
   c.fillStyle = gr; c.font = '800 190px ' + fnt; c.fillText(pzKurz(pct), 80, 470);
+  var eurD = R.eur, mitE = teilenEur && eurD != null && isFinite(eurD);
+  if (mitE) { c.font = '700 70px ' + fnt; c.fillText((eurD >= 0 ? '+' : '−') + Math.abs(eurD).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €', 90, 570); }
   var vo = R.r === '1d' && R.vor ? R.vor.map(function (q) { return q[1]; }) : [], L = R.g || R.v, base = R.g ? 0 : (R.ref != null ? R.ref : R.v[0]);
-  var vs = vo.map(function (v) { return R.g ? v - (R.ref || v) : v; }).concat(L), x0 = 90, x1 = W - 90, y0 = 600, y1 = 1120, mn = Math.min.apply(null, vs.concat([base])), mx = Math.max.apply(null, vs.concat([base])), sp = (mx - mn) || 1;
+  var vs = vo.map(function (v) { return R.g ? v - (R.ref || v) : v; }).concat(L), x0 = 90, x1 = W - 90, y0 = mitE ? 660 : 600, y1 = 1120, mn = Math.min.apply(null, vs.concat([base])), mx = Math.max.apply(null, vs.concat([base])), sp = (mx - mn) || 1;
   var X = function (i) { return x0 + i / (vs.length - 1) * (x1 - x0); }, Y = function (v) { return y1 - (v - mn) / sp * (y1 - y0); };
   c.setLineDash([10, 12]); c.strokeStyle = 'rgba(255,255,255,.25)'; c.lineWidth = 3; c.beginPath(); c.moveTo(x0, Y(base)); c.lineTo(x1, Y(base)); c.stroke(); c.setLineDash([]);
   c.lineJoin = 'round'; c.lineWidth = 7;
@@ -3842,7 +3857,7 @@ function depotTeilen() {
     else { var u = URL.createObjectURL(b), a = document.createElement('a'); a.href = u; a.download = 'Depot.png'; document.body.appendChild(a); a.click(); a.remove(); }
   }, 'image/png');
 }
-$('dTeilen').onclick = depotTeilen;
+$('dTeilen').onclick = depotTeilenMenue;
 // (3.74, Andi 26.11. 18:39) Teilen und Auge auch im Detail einer Position (Depot und Watchlist)
 var posStand = null;
 // (3.75, Andi 18:40/18:41: „+ oder − rein machen“, „Zeitraum zum Auswählen … seit Kauf, mit Gewinnen flexen“) Teilen: erst Zeitraum wählen, im Bild Prozent und +/− Euro
