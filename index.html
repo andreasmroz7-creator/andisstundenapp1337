@@ -739,7 +739,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.92';
+var VERSION = '3.93';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -2691,6 +2691,27 @@ function depotLiveRechnen(stark) {
     if (!alt !== !depotLive || (alt && depotLive && Math.abs(alt.gesamt - depotLive.gesamt) >= 0.005) || stark) depotNeuZeigen();
   }).then(function () { depotLiveBusy = false; }, function () { depotLiveBusy = false; });
 }
+// (3.93, Andi 27.11. 10:20: Mac aus → Aktien-Linien endeten um 06:34) Ist der Mac-Stand älter als 20 Min. und die Börse offen, holt die App die Tageslinie
+// der Aktien/ETFs selbst von Onvista (gettex, 5-Minuten-Kurse ab 6 Uhr) – nur als Ersatz, bis der Mac wieder liefert. Krypto kommt ohnehin von Binance.
+var kvErsatz = {}, kvErsatzT = {}, kvErsatzBusy = false;
+function kvAnwenden() { var K = daten.depotKurven && daten.depotKurven.k, n = 0; if (!K) return 0; Object.keys(kvErsatz).forEach(function (k) { var e = kvErsatz[k], o = K[k] && K[k]['1d']; if (!o || e.tag !== iso2(new Date())) return; if (!o.t1 || o.t1 < e.t1 - 60) { var x = {}; Object.keys(o).forEach(function (z) { x[z] = o[z]; }); x.today = e.today; x.t0 = e.t0; x.t1 = e.t1; x.ersatz = true; K[k]['1d'] = x; n++; } }); return n; }
+function kurvenErsatz() {
+  var d = daten.depot, K = daten.depotKurven && daten.depotKurven.k; if (!d || !d.stand || !K || kvErsatzBusy) return;
+  if (!boerseOffen() || Date.now() - new Date(d.stand) < 20 * 60e3) return;
+  var h6 = new Date(); h6.setHours(HANDEL_AB, 0, 0, 0); var tag = iso2(new Date()), morgen = new Date(); morgen.setDate(morgen.getDate() + 1);
+  var L = Object.keys(K).filter(function (k) { return /^[A-Z]{2}[A-Z0-9]{9}\d$/.test(k) && K[k]['1d'] && Date.now() - (kvErsatzT[k] || 0) > 5 * 60e3; }).slice(0, 12);
+  if (!L.length) { if (kvAnwenden()) kvNeuZeichnen(); return; } kvErsatzBusy = true;
+  Promise.all(L.map(function (isin) { kvErsatzT[isin] = Date.now();
+    return onvTypHolen(isin).then(function (t) { if (!t) return;
+      return fetch(ONV + t + '/ISIN:' + isin + '/quote?codeMarket=_TRO', { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (q) {
+        if (!q || !q.market || q.isoCurrency !== 'EUR') return; var O = ONV + t + '/ISIN:' + isin;
+        return fetch(O + '/simple_chart_history?chartType=PRICE&idNotation=' + q.market.idNotation + '&interval=PT5M&startDate=' + tag + '&endDate=' + iso2(morgen), { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+          if (!j || !j.tick || !j.datetimeTick) return; var T = [], V = []; j.datetimeTick.forEach(function (ms, i) { if (ms >= h6.getTime() && j.tick[i] > 0) { T.push(Math.round(ms / 1000)); V.push(j.tick[i]); } });
+          if (V.length >= 2) kvErsatz[isin] = { tag: tag, today: V, t0: T[0], t1: T[T.length - 1] }; }); }); }).catch(function () {}); }))
+  .then(function () { kvErsatzBusy = false; if (kvAnwenden()) kvNeuZeichnen(); }, function () { kvErsatzBusy = false; });
+}
+function kvNeuZeichnen() { try { if ($('blattD').classList.contains('offen')) depotZeichnen(); } catch (x) {} try { if ($('blattW').classList.contains('offen')) wlZeichnen(); } catch (x) {} }
+setInterval(function () { if (!document.hidden) kurvenErsatz(); }, 20000); setTimeout(kurvenErsatz, 2500);
 setInterval(function () { if (!document.hidden && daten.depot && daten.depot.pos) depotLiveRechnen(); }, 5000); // (2.30) alle 5 s, solange das Cockpit offen ist
 setInterval(function () { if (!document.hidden && depotKopf) depotHolen(depotKopf, true); }, 30000); // (2.30) Mac-Stand alle 30 s abholen (der Mac schreibt alle paar Minuten)
 document.addEventListener('visibilitychange', function () { if (!document.hidden && daten.depot && daten.depot.pos) depotLiveRechnen(true); });
@@ -3030,6 +3051,7 @@ function wlNeuZeigen() {
 setInterval(function () { if (!document.hidden && wlListe().length && ($('blattW').classList.contains('offen') || $('blattP').classList.contains('offen') || !$('start').classList.contains('aus'))) wlLiveRechnen(); }, 5000);
 function wlKurs(k) { return k == null ? '–' : k < 1 ? k.toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' €' : euroH(k); }
 function wlZeichnen() {
+  try { kvAnwenden(); } catch (x) {}
   var L = wlListe(); if (!L.length) { $('wKoerper').innerHTML = '<p class="hinweis">Die Watchlist kommt vom Mac, sobald er an ist.</p>'; return; }
   var zeile = function (x) { var v = wlWert(x), key = 'w:' + (x.isin || x.sym);
     return '<div class="dprow" data-key="' + esc(key) + '"><div><div class="n">' + esc(depotKurz(x.n)) + '</div><div class="s">' + esc(x.k === 'krypto' ? x.sym : (x.ty || 'Wertpapier')) + '</div></div>' + posMini(x.isin || x.sym, v.kurs, v.pct) + '<div class="r"><b>' + wlKurs(v.kurs) + '</b>' +
@@ -3604,6 +3626,7 @@ function depotZeit(t, r) {
   return 'am ' + d.toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric', year: 'numeric' });
 }
 function depotZeichnen() {
+  try { kvAnwenden(); } catch (x) {}
   var dc0 = $('dChart'), qf0 = $('qFlaeche'); if ((dc0 && (dc0.classList.contains('zieht') || dc0.classList.contains('zwei'))) || (querAn && qf0 && (qf0.classList.contains('zieht') || qf0.classList.contains('zwei')))) return; // (2.84) Finger liegt auf dem Diagramm
   var d = depotEff(), zu = !depotSicht;
   $('dAuge').innerHTML = zu ? AUGE_ZU : AUGE_AUF;
