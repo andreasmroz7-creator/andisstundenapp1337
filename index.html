@@ -769,7 +769,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '4.02';
+var VERSION = '4.03';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -2627,6 +2627,34 @@ $('tvHell').onchange = function () { tvHellT = Date.now(); tvSenden('hell:' + th
 try { var tvA = localStorage.getItem('cockpit_tvapp'); if (tvA) $('tvApp').value = tvA; } catch (x) {}
 $('tvApp').onchange = function () { try { localStorage.setItem('cockpit_tvapp', this.value); } catch (x) {} };
 $('tvFolgen').onclick = function (ev) { var e = ev.target.closest('[data-folge]'); if (e) tvSenden('waehle:' + e.dataset.folge); };
+// (4.03, Andi 28.11.) Siri-Kurzbefehle vom iPhone, die der Mac nicht beantworten konnte (Mac aus / Dashboard zu), liegen als jarvis/s_siri<JJJJMMTTHHMMSS>.json bereit:
+// beim Öffnen der App hier eintragen (Stunden mit Datum des Siri-Befehls; „Ich fang an“ & Co. nur, wenn höchstens 15 Min. alt)
+var siriSchlangeT = 0;
+function siriSchlange() {
+  if (!daten.einst || !daten.einst.token || Date.now() - siriSchlangeT < 20000 || typeof window.jvCockpitFrage !== 'function') return; siriSchlangeT = Date.now();
+  var kopf = jvKopf();
+  fetch(GHJ.replace(/\/$/, '') + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : []; }).then(function (L) {
+    var S = (L || []).filter(function (f) { return /^s_siri\d{14}\.json$/.test(f.name); }).sort(function (a, b) { return a.name < b.name ? -1 : 1; });
+    var kette = Promise.resolve(), antworten = [];
+    S.forEach(function (f) { kette = kette.then(function () {
+      return fetch(GHJ + f.name + '?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+        if (!j) return; var q = {}; try { q = JSON.parse(b64dec(j.content) || '{}'); } catch (x) {}
+        var m = f.name.match(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})/), d = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]), alt = Date.now() - d;
+        var t = String(q.text || '').trim(), stunden = /\d{1,2}(?:[:.,]\d{2})?\s*(?:uhr\s*)?(?:\d{1,2}\s*)?bis\s*\d/i.test(t);
+        var weg = function () { return fetch(GHJ + f.name, { method: 'DELETE', headers: kopf, body: JSON.stringify({ message: 'Siri-Eintrag erledigt', sha: j.sha }) }).catch(function () {}); };
+        if (!t || (!stunden && !/fang\w* (?:jetzt |gerade )?an\b|feierabend|laden (?:ist )?fertig|wechsel/i.test(t))) return weg(); // sonstige Jarvis-Fragen beantwortet nur der Mac
+        if (!stunden && alt > 15 * 60e3) { antworten.push('„' + t + '“ vom iPhone (' + d.getHours() + ':' + ('0' + d.getMinutes()).slice(-2) + ' Uhr) war zu alt – bitte von Hand.'); return weg(); }
+        if (stunden && iso2(d) !== iso2(new Date()) && !/\d{1,2}\.\d{1,2}\.|gestern|vorgestern|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag/i.test(t)) t = d.getDate() + '.' + (d.getMonth() + 1) + '. ' + t;
+        return Promise.resolve(window.jvCockpitFrage(t)).then(function (a) { antworten.push(a ? 'iPhone: ' + a : '„' + t + '“ vom iPhone konnte ich nicht eintragen.'); return weg(); });
+      }).catch(function () {}); }); });
+    kette.then(function () { if (!antworten.length) return; try { startZeichnen(true); } catch (x) {} var i = 0;
+      (function zeig() { if (i >= antworten.length) return; var t = antworten[i++];
+        if (/Sag ja oder nein/.test(t)) { toastAktion(t.replace(/ ?Sag ja oder nein\.?/, ''), 'Ja, ersetzen', function () { Promise.resolve(window.jvCockpitFrage('ja')).then(function (a) { if (a) toast(a); try { startZeichnen(true); } catch (x) {} setTimeout(zeig, 2500); }); }); clearTimeout(toast.t); toast.t = setTimeout(function () { $('toast').style.display = 'none'; zeig(); }, 15000); }
+        else toastAktion(t, 'OK', zeig); })(); });
+  }).catch(function () {});
+}
+document.addEventListener('visibilitychange', function () { if (!document.hidden) setTimeout(siriSchlange, 1500); });
+setTimeout(siriSchlange, 5000);
 function jvSenden(text) {
   text = jvHoerFix((text || '').trim()); if (!text || jv.laeuft) return; // (3.06) „selber“ → „Silber“ auch für die Frage an den Mac
   var lok = null; try { lok = jvLokal(text); } catch (x) {}
