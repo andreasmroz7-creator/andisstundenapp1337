@@ -740,7 +740,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.95';
+var VERSION = '3.96';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -2635,7 +2635,7 @@ function boerseZu() { if (boerseOffen()) return null; var n = new Date(), WT = [
   var heute = l.toDateString() === n.toDateString(), morgen = new Date(n); morgen.setDate(n.getDate() + 1);
   var lt = heute ? 'heute' : WT[l.getDay()] + ', ' + l.getDate() + '.' + (l.getMonth() + 1) + '.', lk = heute ? 'heute' : WT[l.getDay()].slice(0, 2) + '.';
   var wt = w.toDateString() === n.toDateString() ? 'heute ' + HANDEL_AB + ' Uhr' : w.toDateString() === morgen.toDateString() ? 'morgen ' + HANDEL_AB + ' Uhr' : WT[w.getDay()] + ' ' + HANDEL_AB + ' Uhr';
-  return { lang: 'Börse geschlossen · Aktien & ETFs zeigen ' + lt + ' · wieder offen ' + wt, kurz: 'Börse zu · Stand ' + lk }; }
+  return { lang: 'Börse geschlossen · Aktien & ETFs zeigen ' + lt + ' · wieder offen ' + wt, kurz: 'Börse zu · Stand ' + lk, tag: heute ? 'heute' : WT[l.getDay()].slice(0, 2) + '. ' + l.getDate() + '.' + (l.getMonth() + 1) + '.' }; }
 function boerseZuHtml(kryptoDabei) { var z = boerseZu(); return z ? '<div class="bzu"><span class="bzup"></span>' + esc(z.lang) + (kryptoDabei ? ' · Krypto läuft weiter' : '') + '</div>' : ''; }
 function onvTypHolen(isin) {
   if (onvTyp[isin]) return Promise.resolve(onvTyp[isin]);
@@ -3522,7 +3522,8 @@ function posFinger(P, S) {
   var V = (S.vor || []).concat(S.heute), T = (S.vt || (S.vor || []).map(function () { return null; })).concat(S.ht || S.heute.map(function () { return null; })), nV = (S.vor || []).length;
   var ref = S.ref != null ? S.ref : S.heute[0], q = 1 /* (2.56) Andi: im Diagramm der Preis des Werts, nicht der Positionswert */, aktiv = false, letzt = -1, oG = '', oA = '';
   var pz = function (v) { return (v >= 0 ? '+' : '') + (Math.round(v * 100) / 100).toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' %'; };
-  var zeit = function (i) { var t = T[i]; if (i === V.length - 1) return 'jetzt'; if (!t) return i < nV ? 'Vortag' : (posZr === '1d' ? 'heute' : ''); var d = new Date(t * 1000);
+  var BZ = posZr === '1d' && !(P && ((P.m && P.m.k) || P.k) === 'krypto') ? boerseZu() : null; // (3.96, Andi 28.11.: oben „Stand Fr.“, beim Finger aber „heute“) Börse zu → letzter Handelstag statt heute/jetzt
+  var zeit = function (i) { var t = T[i]; if (i === V.length - 1) return BZ ? 'Schluss ' + BZ.tag : 'jetzt'; if (!t) return i < nV ? 'Vortag' : (posZr === '1d' ? (BZ ? BZ.tag : 'heute') : ''); var d = new Date(t * 1000);
     return posZr === '1d' ? d.toLocaleDateString('de-DE', { weekday: 'short' }) + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr' : posZr === '1w' ? d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'numeric' }) + ', ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr' : 'am ' + d.toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric', year: 'numeric' }); };
   var zeig = function (cx) {
     if (c.classList.contains('zwei')) return;
@@ -3837,7 +3838,7 @@ function querZeichnen() {
     (S.vor || []).forEach(function (v, i) { pkt.push({ t: S.vt ? S.vt[i] : null, v: v, g: 1 }); });
     S.heute.forEach(function (v, i) { pkt.push({ t: S.ht ? S.ht[i] : null, v: v }); });
     farbe = G.up ? 'var(--ok)' : 'var(--rot)'; $('qTitel').textContent = G.titel || ''; var kq = G.P && (G.P.rente || G.P.kurs == null ? G.P.w : G.P.kurs); $('qWert').textContent = kq == null ? '' : depotSicht ? (kq < 1 ? kq.toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' €' : euro(kq)) : '••••••';
-    var a0 = S.ref != null ? S.ref : S.heute[0], a1 = S.heute[S.heute.length - 1], pq = a0 ? (a1 / a0 - 1) * 100 : 0; $('qAend').innerHTML = '<span class="' + (pq >= 0 ? 'dplus' : 'dminus') + '">' + pzKurz(pq) + '</span> <span style="color:var(--grau)">' + ({ '1d': 'heute', '1w': 'seit 1 Woche', '1m': 'seit 1 Monat', '1y': 'seit 1 Jahr', max: 'seit Beginn' }[posZr] || '') + '</span>'; }
+    var a0 = S.ref != null ? S.ref : S.heute[0], a1 = S.heute[S.heute.length - 1], pq = a0 ? (a1 / a0 - 1) * 100 : 0; $('qAend').innerHTML = '<span class="' + (pq >= 0 ? 'dplus' : 'dminus') + '">' + pzKurz(pq) + '</span> <span style="color:var(--grau)">' + ({ '1d': (G.P && ((G.P.m && G.P.m.k) || G.P.k) !== 'krypto' && boerseZu()) ? boerseZu().tag : 'heute', '1w': 'seit 1 Woche', '1m': 'seit 1 Monat', '1y': 'seit 1 Jahr', max: 'seit Beginn' }[posZr] || '') + '</span>'; }
   $('qInfo').textContent = '';
   var ZRL = G.art === 'depot' ? DZR : [['1d', '1T'], ['1w', '1W'], ['1m', '1M'], ['1y', '1J']].concat(G.P && G.P.rente ? [['max', 'Max']] : []);
   $('qZr').innerHTML = ZRL.map(function (z) { return '<button type="button" data-r="' + z[0] + '" class="' + (z[0] === zr ? 'an' : '') + '">' + z[1] + '</button>'; }).join('');
