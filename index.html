@@ -212,6 +212,9 @@ body.zumstart .kopf .mitte,body.zumstart .summe,body.zumstart .suche,body.zumsta
 .notiz .bt{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
 .nozw{font-size:12px;color:var(--grau);text-transform:uppercase;letter-spacing:.5px;margin:20px 0 4px}
 .noleer{text-align:center;color:var(--grau);font-size:14px;margin:40px 0}
+.tvp{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0 22px}.tvpill{height:64px;border-radius:22px;border:1px solid rgba(255,255,255,.18);background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.22),rgba(255,255,255,.05) 60%,rgba(0,0,0,.15));box-shadow:inset 0 1px 1px rgba(255,255,255,.25),0 4px 14px rgba(0,0,0,.35);color:var(--txt);font:600 15px/1.2 inherit;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px}.tvpill:active{transform:scale(.95);box-shadow:inset 0 1px 1px rgba(255,255,255,.25),0 0 18px rgba(180,180,180,.45)}.tvpill svg,.tvk svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tvr{display:flex;justify-content:space-around;align-items:center;margin:4px 0 20px}.tvk.kugel{width:68px;height:68px}.tvk.gross{width:84px;height:84px}.tvk small{display:block;font-size:10px;margin-top:2px;color:var(--grau)}.tvk{flex-direction:column}
+.tvst{min-height:20px;text-align:center;color:var(--grau);font-size:14px;margin:6px 0 14px}.tvst.ok{color:var(--ok)}.tvst.feh{color:var(--rot)}.tvf{margin-top:6px}.tvf .suz{cursor:pointer}
 .gbneu{display:flex;flex-direction:column;gap:10px;margin:12px 0 6px}
 .gb{display:flex;gap:14px;align-items:center;background:var(--karte);border:1px solid var(--rand);border-radius:16px;padding:12px 14px;margin:10px 0;cursor:pointer;animation:auftauchen .35s cubic-bezier(.2,.8,.2,1) backwards}
 .gb .tg{flex:none;width:50px;text-align:center;line-height:1.05}.gb .tg b{display:block;font-size:22px;font-weight:750}.gb .tg small{font-size:10.5px;color:var(--grau);text-transform:uppercase;letter-spacing:.4px}
@@ -645,6 +648,16 @@ body.istoffline .sstand{color:#ff6b61}
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattG" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Geburtstage</b></div></div>
   <div class="koerper"><div class="gbneu"><input type="text" id="gbName" placeholder="Name" autocomplete="off"><input type="text" id="gbDat" inputmode="numeric" placeholder="TT.MM.JJJJ (Jahr optional)" autocomplete="off"><button id="gbPlus" class="nobtn">Hinzufügen</button></div><div id="gbListe"></div></div>
 </div></div>
+<div class="blatt" id="blattTv"><div class="innen">
+  <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattTv" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Fernbedienung</b></div></div>
+  <div class="koerper"><p class="hinweis" style="margin-top:6px">Steuert Netflix in Safari, die TV-App und Prime Video auf dem Mac. Der Mac muss an sein.</p>
+  <div class="tvp"><button class="tvpill" data-tv="intro"><svg viewBox="0 0 24 24"><path d="M5 5l8 7-8 7zM14 5l6 7-6 7"/></svg>Intro überspringen</button><button class="tvpill" data-tv="weiter"><svg viewBox="0 0 24 24"><path d="M6 5l10 7-10 7zM19 5v14"/></svg>Nächste Folge</button></div>
+  <div class="tvr"><button class="kugel tvk" data-tv="zurueck"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg><small>10 s</small></button><button class="kugel tvk gross" data-tv="pause"><svg viewBox="0 0 24 24"><path d="M6 5l7 7-7 7zM15 6v12M19 6v12"/></svg></button><button class="kugel tvk" data-tv="vor"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg><small>10 s</small></button></div>
+  <div class="tvr"><button class="kugel tvk" data-tv="leiser"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4zM17 12h4"/></svg></button><button class="kugel tvk" data-tv="stumm"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4zM17 9l5 6M22 9l-5 6"/></svg></button><button class="kugel tvk" data-tv="lauter"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4zM17 12h4M19 10v4"/></svg></button></div>
+  <div class="tvst" id="tvSt"></div>
+  <button class="tvpill" data-tv="folgen" style="width:100%"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>Folgen anzeigen</button>
+  <div class="tvf" id="tvFolgen"></div></div>
+</div></div>
 <div class="blatt" id="blattJv"><div class="innen">
   <div class="titel"><div class="tlinks"><button class="kugel schliessen" data-zu="blattJv" aria-label="Zurück"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><b>Jarvis</b></div><button class="kugel" id="jvLeise" aria-label="Ton an/aus"><svg viewBox="0 0 24 24"><path d="M11 5L6 9H3v6h3l5 4z"/><path class="wl" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/><path class="aus" d="M16 9l6 6M22 9l-6 6" style="display:none"/></svg></button></div>
   <div class="koerper jvk"><div class="jvplatz" id="jvPlatz"></div><div class="jvstatus" id="jvStatus">Tippe aufs Mikrofon oder schreib etwas</div><div id="jvVerlauf"></div></div>
@@ -740,7 +753,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.96';
+var VERSION = '3.97';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -1627,6 +1640,7 @@ document.addEventListener('visibilitychange', function () { if (document.hidden)
 window.addEventListener('scroll', function () { document.body.classList.toggle('runter', window.scrollY > 40); }, { passive: true });
 // ---------- Startseite: Kacheln für Stunden, Arbeitsnachweis, laufende Kosten, Jahr ----------
 var IC = {
+  tv: '<svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="3"/><circle cx="12" cy="7" r="1.6"/><path d="M10 12h4M10 15.5h4M10 19h4"/></svg>',
   lohn: '<svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M14.5 12.2a3 3 0 1 0 0 3.6M8.5 13.2h4M8.5 14.8h4"/></svg>',
   uhr: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   geld: '<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M16 14.5h2"/></svg>',
@@ -1660,7 +1674,7 @@ function startZeichnen(still) {
   var k0 = function (ziel, ic, farbe, titel, wert, unter, extra, breit, delay) {
     return '<div class="kachel rein' + (breit ? ' breit' : '') + '" data-ziel="' + ziel + '" style="animation-delay:' + delay + 's"><div class="glanz" style="background:' + farbe + '"></div><span class="pfeil">›</span><div class="ic" style="background:' + farbe + '">' + ic + '</div>' + (ziel === 'depot' ? '<button class="kugel kauge" aria-label="Beträge zeigen oder verdecken">' + (depotSicht ? AUGE_AUF : AUGE_ZU) + '</button>' : '') + '<div><div class="t">' + titel + '</div><div class="w">' + wert + '</div><div class="u">' + unter + '</div>' + (extra || '') + '</div></div>';
   };
-  var kk = {}, kdef = ['stunden', 'kosten', 'nachweis', 'jahr', 'urlaub', 'notizen', 'geburtstage', 'depot', 'watchlist', 'termine', 'lohn', 'uebrig', 'plan'];
+  var kk = {}, kdef = ['stunden', 'kosten', 'nachweis', 'jahr', 'urlaub', 'notizen', 'geburtstage', 'depot', 'watchlist', 'termine', 'lohn', 'uebrig', 'plan', 'tv'];
   var k = function (ziel, ic, farbe, titel, wert, unter, extra, breit) { kk[ziel] = function (delay) { return k0(ziel, ic, farbe, titel, wert, unter, extra, breit, delay); }; };
   k('stunden', IC.uhr, 'linear-gradient(135deg,#b4b4b4,#737373)', 'Stunden ' + MONATE[d.getMonth()], z(std.s), std.s ? '<div class="mgeld kz"><span>Brutto</span><i>=</i><span>' + euroH(std.s * lohn) + '</span><span class="nt">Netto</span><i class="nt">≈</i><span class="nt">' + euroH(netto(std.s * lohn)) + '</span></div>' : '', '', false, .12); // (2.55) ohne Tage, Beträge sauber untereinander
   k('kosten', IC.geld, 'linear-gradient(135deg,#b0b0b0,#5a5a5a)', 'Laufende Kosten', f ? pxEuro(fk) : '–', f ? (naechste ? 'nächste: ' + esc(naechste.p.name.split(' (')[0]) + ' am ' + naechste.p.tag + '.' : '') : 'noch nicht geladen', '', false, .18);
@@ -1692,6 +1706,7 @@ function startZeichnen(still) {
   k('termine', IC.kalender, 'linear-gradient(135deg,#9e9e9e,#585858)', 'Termine', tm0 ? tmTagKurz(tm0) : '–', tm0 ? esc(tm0.ti) + (tm0.g ? '' : ' · ' + tmUhr(tm0)) + (tmL[1] ? '<br>danach ' + tmTagKurz(tmL[1]) + ': ' + esc(tmL[1].ti) : '') : 'Tippen, um einen Arbeitstermin einzutragen', '', false);
   var PW = planWoche(); // (2.81) Einsatzplan der Woche (ab Samstag die nächste)
   k('plan', IC.kalender, 'linear-gradient(135deg,#a4a4a4,#5a5a5a)', 'Einsatzplan', 'KW ' + PW.kw, PW.text, '', false);
+  k('tv', IC.tv, 'linear-gradient(135deg,#a2a2a2,#585858)', 'Fernbedienung', 'TV ›', 'Intro überspringen, nächste Folge, Folgen wählen', '', false); // (3.97, Andi 28.11.) Serien am Mac/Fernseher steuern
   var kr = kachelReihe(kdef), KG = kachelGroessen(), KB = kachelAutoBreit(kr, KG); kr.forEach(function (z, i) { h += kk[z](.12 + i * .06).replace('class="kachel rein', 'class="kachel rein' + (KG[z] === 'b' || KB === z ? ' breit' : KG[z] === 'k' ? ' klein' : '')).replace('<span class="pfeil">', '<button type="button" class="kweg" aria-label="Ausblenden"><svg viewBox="0 0 24 24"><path d="M6 12h12"/></svg></button><button type="button" class="kgr" aria-label="Größe ändern"><svg viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button><span class="pfeil">'); });
   h += '</div><div class="kzurueck" id="kzurueck"></div><div class="ordtipp">Kachel ziehen zum Verschieben · ⤢ ändert die Größe · – blendet aus</div><button class="ordfertig" id="ordfertig">Fertig</button>';
   $('start').innerHTML = '<div class="ptr" id="ptr"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></div>' + h + '<div class="sversion">Cockpit ' + VERSION + '</div>';
@@ -1861,13 +1876,14 @@ function startZiel(z) {
     $('blattHt').dataset.vonstart = '1'; document.body.classList.add('versteckt'); htZeichnen(); $('blattHt').classList.add('offen');
   }
   else {
-    var id = { kosten: 'blattF', nachweis: 'blattN', jahr: 'blattJ', notizen: 'blattNo', urlaub: 'blattU', geburtstage: 'blattG', jarvis: 'blattJv', depot: 'blattD', watchlist: 'blattW', termine: 'blattT', lohn: 'blattL', uebrig: 'blattUb', plan: 'blattLb', suche: 'blattSu' }[z]; if (!id) return;
+    var id = { tv: 'blattTv', kosten: 'blattF', nachweis: 'blattN', jahr: 'blattJ', notizen: 'blattNo', urlaub: 'blattU', geburtstage: 'blattG', jarvis: 'blattJv', depot: 'blattD', watchlist: 'blattW', termine: 'blattT', lohn: 'blattL', uebrig: 'blattUb', plan: 'blattLb', suche: 'blattSu' }[z]; if (!id) return;
     var s = $('start'); s.classList.add('oben'); void s.offsetWidth; s.classList.add('weg'); setTimeout(function () { s.classList.add('aus'); s.classList.remove('oben'); }, 420);
     $(id).dataset.vonstart = '1'; document.body.classList.add('versteckt');
     if (z === 'kosten') { fixZeichnen(); $('blattF').classList.add('offen'); }
     else if (z === 'jarvis') { jvOeffnen(); }
     else if (z === 'depot') { depotZr = '1d'; depotZeichnen(); $('blattD').classList.add('offen'); depotLiveRechnen(); querPruefen(); }
     else if (z === 'geburtstage') { gbZeichnen(); $('blattG').classList.add('offen'); }
+    else if (z === 'tv') { $('blattTv').classList.add('offen'); }
     else if (z === 'watchlist') { wlZeichnen(); $('blattW').classList.add('offen'); wlLiveRechnen(true); }
     else if (z === 'termine') { tmZeichnen(); $('blattT').classList.add('offen'); }
     else if (z === 'lohn') { lohnJahr = null; lohnZeichnen(); $('blattL').classList.add('offen'); }
@@ -2554,6 +2570,33 @@ function gemeinsamHolen(kopf) {
     if (h.t && +h.t > tl) jvgSetz(h);
   }).catch(function () {});
 }
+// (3.97, Andi 28.11.) Fernbedienung: Befehl über jarvis/f_<id>.json an den Mac (quelle fernbedienung = ohne Stimme), Antwort jarvis/a_<id>.json
+var tvLaeuft = 0;
+function tvSt(t, art) { var e = $('tvSt'); if (!e) return; e.textContent = t || ''; e.className = 'tvst' + (art ? ' ' + art : ''); }
+function tvSenden(akt) {
+  if (!daten.einst.token) { tvSt('Kein GitHub-Schlüssel in den Einstellungen', 'feh'); return; }
+  var nr = ++tvLaeuft, id = Date.now() + '-' + Math.random().toString(36).slice(2, 6), kopf = jvKopf(), start = Date.now(), fsha = null;
+  var weg = function (pfad, sha) { if (sha) fetch(GHJ + pfad, { method: 'DELETE', headers: kopf, body: JSON.stringify({ message: 'Fernbedienung aufräumen', sha: sha }) }).catch(function () {}); };
+  tvSt(akt === 'folgen' ? 'Suche Folgen …' : 'Sende an den Mac …');
+  try { navigator.vibrate && navigator.vibrate(12); } catch (x) {}
+  fetch(GHJ + 'f_' + id + '.json', { method: 'PUT', headers: kopf, body: JSON.stringify({ message: 'Fernbedienung', content: b64enc(JSON.stringify({ id: id, text: '__tv:' + akt, zeit: new Date().toISOString(), quelle: 'fernbedienung' })) }) }).then(function (r) { if (!r.ok) throw new Error('Senden ging nicht (' + r.status + ')'); return r.json(); }).then(function (j) {
+    fsha = j.content && j.content.sha;
+    (function warte() {
+      if (Date.now() - start > 20000) { if (nr === tvLaeuft) tvSt('Der Mac antwortet nicht. Ist er an?', 'feh'); weg('f_' + id + '.json', fsha); return; }
+      fetch(GHJ + 'a_' + id + '.json?t=' + Date.now(), { headers: kopf, cache: 'no-store' }).then(function (r) {
+        if (r.status === 404) { setTimeout(warte, 700); return; }
+        if (!r.ok) { setTimeout(warte, 1500); return; }
+        return r.json().then(function (j2) {
+          var a = JSON.parse(b64dec(j2.content) || '{}'), T = a.tv || {}; weg('a_' + id + '.json', j2.sha);
+          if (nr === tvLaeuft) tvSt(a.text || '', T.ok ? 'ok' : 'feh');
+          if (akt === 'folgen' && T.folgen) $('tvFolgen').innerHTML = T.folgen.length ? '<div class="wltr">' + esc(T.app || 'Folgen') + '</div>' + T.folgen.map(function (f) { return '<div class="suz" data-folge="' + esc(f) + '"><div><b>' + esc(f.length > 70 ? f.slice(0, 70) + '…' : f) + '</b></div><i>›</i></div>'; }).join('') : '';
+        });
+      }).catch(function () { setTimeout(warte, 1500); });
+    })();
+  }).catch(function (x) { tvSt(x instanceof TypeError ? 'Keine Internetverbindung.' : x.message, 'feh'); });
+}
+[].forEach.call(document.querySelectorAll('#blattTv [data-tv]'), function (b) { b.onclick = function () { tvSenden(b.dataset.tv); }; });
+$('tvFolgen').onclick = function (ev) { var e = ev.target.closest('[data-folge]'); if (e) tvSenden('waehle:' + e.dataset.folge); };
 function jvSenden(text) {
   text = jvHoerFix((text || '').trim()); if (!text || jv.laeuft) return; // (3.06) „selber“ → „Silber“ auch für die Frage an den Mac
   var lok = null; try { lok = jvLokal(text); } catch (x) {}
