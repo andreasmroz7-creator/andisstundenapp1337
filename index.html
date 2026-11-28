@@ -548,6 +548,7 @@ body.istoffline .sstand{color:#ff6b61}
 .htplanD img{display:block;width:100%;height:auto}
 .htplanD .pgrid{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(148px,44%);overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:4px;scrollbar-width:none}.htplanD .pgrid::-webkit-scrollbar{display:none}.htplanD .ptag{scroll-snap-align:start}
 .htplanD .pteam .pzeile{grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr) auto;gap:10px;font-size:13px}
+.bzu{display:flex;align-items:center;gap:8px;margin:8px 0 2px;padding:7px 12px;border-radius:12px;background:rgba(255,255,255,.07);color:#c9c9ce;font-size:13px;line-height:1.3}.bzup{flex:none;width:8px;height:8px;border-radius:50%;background:#ff9f0a;box-shadow:0 0 6px rgba(255,159,10,.6)}.bzus{color:#ff9f0a;font-weight:500;text-transform:none;letter-spacing:0}
 </style>
 </head>
 <body style="background:#000;margin:0">
@@ -739,7 +740,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.93';
+var VERSION = '3.94';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -2627,6 +2628,15 @@ var depotPosLive = window.__depotPosLiveStart || null, ONV = 'https://api.onvist
 var onvTyp = (function () { try { return JSON.parse(localStorage.getItem('cockpit_onvtyp') || '{}'); } catch (x) { return {}; } })();
 var HANDEL_AB = 6; // (3.72, Andi 26.11. 18:23) Aktien/ETFs: „heute“ ab 6 Uhr (Scalable liefert ab 6), vorher ab 8
 function boerseOffen() { var n = new Date(), d = n.getDay(), h = n.getHours(); return d >= 1 && d <= 5 && h >= HANDEL_AB && h < 23; } // Scalable/gettex Mo–Fr 6–23 Uhr
+// (3.94, Andi 28.11.: Wochenende, aber kein Hinweis, dass die Börse zu ist) deutlicher Hinweis + letzter Handelstag + wann es wieder losgeht
+function boerseZu() { if (boerseOffen()) return null; var n = new Date(), WT = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'], l = new Date(n), w = new Date(n);
+  if (n.getHours() < HANDEL_AB || l.getDay() === 0 || l.getDay() === 6) { do { l.setDate(l.getDate() - 1); } while (l.getDay() === 0 || l.getDay() === 6); }
+  if (n.getHours() >= 23 || w.getDay() === 0 || w.getDay() === 6) { do { w.setDate(w.getDate() + 1); } while (w.getDay() === 0 || w.getDay() === 6); }
+  var heute = l.toDateString() === n.toDateString(), morgen = new Date(n); morgen.setDate(n.getDate() + 1);
+  var lt = heute ? 'heute' : WT[l.getDay()] + ', ' + l.getDate() + '.' + (l.getMonth() + 1) + '.', lk = heute ? 'heute' : WT[l.getDay()].slice(0, 2) + '.';
+  var wt = w.toDateString() === n.toDateString() ? 'heute ' + HANDEL_AB + ' Uhr' : w.toDateString() === morgen.toDateString() ? 'morgen ' + HANDEL_AB + ' Uhr' : WT[w.getDay()] + ' ' + HANDEL_AB + ' Uhr';
+  return { lang: 'Börse geschlossen · Aktien & ETFs zeigen ' + lt + ' · wieder offen ' + wt, kurz: 'Börse zu · Stand ' + lk }; }
+function boerseZuHtml(kryptoDabei) { var z = boerseZu(); return z ? '<div class="bzu"><span class="bzup"></span>' + esc(z.lang) + (kryptoDabei ? ' · Krypto läuft weiter' : '') + '</div>' : ''; }
 function onvTypHolen(isin) {
   if (onvTyp[isin]) return Promise.resolve(onvTyp[isin]);
   return fetch(ONV + 'query?searchValue=' + isin, { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
@@ -2958,7 +2968,7 @@ function depotPosHtml(d) {
   var kursFmt = function (k) { return k == null || !isFinite(k) ? null : k >= 1 ? euroH(k) : k.toLocaleString('de-DE', k >= 0.01 ? { minimumFractionDigits: 4, maximumFractionDigits: 4 } : { maximumSignificantDigits: 4 }) + ' €'; };
   var zz = function (p) { var k1 = p.kurs || (p.q ? p.w / p.q : null), kt = kursFmt(k1); var eu = depotSort === 'kauf' ? (cK[p.isin || p.sym] ? p.w - cK[p.isin || p.sym] : null) : (p.pct != null && isFinite(p.pct) && p.pct > -100 ? p.w - p.w / (1 + p.pct / 100) : null); return zeile(depotKurz(p.n), kt ? '<span class="dpkt">•••</span><span class="dw">' + euro(p.w) + '</span>' : depotMenge(p), p.w, depotSort === 'kauf' ? p.kp : p.pct, p.isin || p.sym, posMini(p.isin || p.sym, k1, p.pct), kt, eu); };
   var LK = L.filter(function (p) { return p.k === 'krypto'; }), LW = L.filter(function (p) { return p.k !== 'krypto'; }); // (2.47) wie im Dashboard: zuerst Krypto, dann der Rest (je Gruppe sortiert)
-  return '<div class="dpos"><div class="dpt sort" id="dSort">Positionen<span>' + DSORT[depotSort] + ' ⇅</span></div>' + depotRenteHtml(d, zeile) + (LK.length ? '<div class="wltr"' + ((d.ex || []).length ? '' : ' style="margin-top:6px"') + '>Krypto</div>' + LK.map(zz).join('') : '') + (LW.length ? '<div class="wltr">Aktien &amp; ETFs</div>' + LW.map(zz).join('') : '') + /* (2.50) Allianz ganz oben */
+  return '<div class="dpos"><div class="dpt sort" id="dSort">Positionen<span>' + DSORT[depotSort] + ' ⇅</span></div>' + depotRenteHtml(d, zeile) + (LK.length ? '<div class="wltr"' + ((d.ex || []).length ? '' : ' style="margin-top:6px"') + '>Krypto</div>' + LK.map(zz).join('') : '') + (LW.length ? '<div class="wltr">Aktien &amp; ETFs' + (boerseZu() ? '<span class="bzus"> · ' + boerseZu().kurz + '</span>' : '') + '</div>' + LW.map(zz).join('') : '') + /* (2.50) Allianz ganz oben */
     (depotRest(d) > 0.5 ? zeile((d.ex && d.ex.length ? 'Tagesgeld & eigene Werte' : 'Rente, Tagesgeld & eigene Werte'), 'Stand vom Mac', depotRest(d), null) : '') + '</div>';
 }
 // Weicher Übergang zwischen den Linien (Zeitraum, € / ±, neue Kurse): alte und neue Linie werden auf gleich viele Punkte gebracht und ineinander überblendet
@@ -3057,7 +3067,7 @@ function wlZeichnen() {
     return '<div class="dprow" data-key="' + esc(key) + '"><div><div class="n">' + esc(depotKurz(x.n)) + '</div><div class="s">' + esc(x.k === 'krypto' ? x.sym : (x.ty || 'Wertpapier')) + '</div></div>' + posMini(x.isin || x.sym, v.kurs, v.pct) + '<div class="r"><b>' + wlKurs(v.kurs) + '</b>' +
       pctOderEur(v.pct, v.kurs != null && v.pct != null && isFinite(v.pct) && v.pct > -100 ? v.kurs - v.kurs / (1 + v.pct / 100) : null) + '</div></div>'; };
   var kr = L.filter(function (x) { return x.k === 'krypto'; }), wp = L.filter(function (x) { return x.k !== 'krypto'; });
-  var h = (kr.length ? '<div class="wltr">Krypto</div>' + kr.map(zeile).join('') : '') + (wp.length ? '<div class="wltr">Aktien &amp; ETFs</div>' + wp.map(zeile).join('') : '');
+  var h = (kr.length ? '<div class="wltr">Krypto</div>' + kr.map(zeile).join('') : '') + (wp.length ? '<div class="wltr">Aktien &amp; ETFs' + (boerseZu() ? '<span class="bzus"> · ' + boerseZu().kurz + '</span>' : '') + '</div>' + wp.map(zeile).join('') : '');
   h += '<p class="hinweis" style="margin-top:16px">Kurse live: Aktien/ETFs von gettex (' + (boerseOffen() ? 'alle 10 s' : 'Börse zu, letzte Kurse') + '), Krypto von Binance alle 5 s (Veränderung seit 6 Uhr). Welche Werte auf der Watchlist stehen, kommt vom Mac.</p>';
   var sc = $('wKoerper').scrollTop; $('wKoerper').innerHTML = '<div class="dpos" style="margin-top:0">' + h + '</div>'; $('wKoerper').scrollTop = sc;
   [].forEach.call(document.querySelectorAll('#wKoerper .dprow[data-key]'), function (z) { zeileKlick(z, function () { posOeffnen(z.dataset.key); wlLiveRechnen(true); }); });
@@ -3547,6 +3557,7 @@ function posZeichnen() {
     '<div class="pkopf">' + esc(m.n) + '<br>' + esc([m.ty || (m.k === 'krypto' ? 'Kryptowährung' : ''), m.isin || m.sym].filter(Boolean).join(' · ')) + '</div>' +
     '<div class="dgross" id="pGross"><span class="dpkt">••••••</span><span class="dw">' + (kk < 1 ? kk.toLocaleString('de-DE', { minimumFractionDigits: 4, maximumFractionDigits: 4 }) + ' €' : pxEuro(kk)) + '</span></div>' +
     '<div class="dheute" id="pAend">' + (posZr !== '1d' && posAendC[posKey + '|' + posZr] ? posAendC[posKey + '|' + posZr] : posZr !== '1d' ? '<span class="dwann">&nbsp;</span>' : P.pct != null ? '<span class="dpkt">•••</span><span class="dw ' + (P.pct >= 0 ? 'dplus' : 'dminus') + '">' + (heuteE >= 0 ? '+' : '') + euroH(heuteE) + ' (' + pz(P.pct) + ') <span class="dwann">' + (m.k === 'krypto' ? 'seit 6 Uhr' : P.rente ? 'letzter Handelstag, ohne Einzahlung' : 'letzter Handelstag') + '</span></span>' : '<span class="dwann">Tagesveränderung kommt mit den nächsten Kursen</span>') + '</div>';
+  if (m.k !== 'krypto' && !P.rente && posZr === '1d') h += boerseZuHtml(false);
   var altC = $('pChartBox') && $('blattP').classList.contains('offen') ? $('pChartBox').innerHTML : ''; // beim Live-Update bleibt das Diagramm stehen, bis das neue da ist
   h += '<div id="pChartBox">' + (altC || '<div class="dchart"><svg class="dlinie gross" viewBox="0 0 300 170"></svg></div>') + '</div>';
   h += '<div class="dzr" id="pZr">' + [['1d', '1T'], ['1w', '1W'], ['1m', '1M'], ['1y', '1J']].concat(P.rente ? [['max', 'Max']] : []).map(function (z) { return '<button type="button" data-r="' + z[0] + '" class="' + (z[0] === posZr ? 'an' : '') + '">' + z[1] + '</button>'; }).join('') + '</div>';
@@ -3634,7 +3645,7 @@ function depotZeichnen() {
   var st = new Date(d.stand), alt = (Date.now() - st) > 3 * 3600e3, R = depotVgDazu(depotLinieWahl(depotReihe(d, depotZr)));
   if (!$('blattD').classList.contains('offen')) depotAltLinie = null; // beim Öffnen ohne Übergang
   $('dKoerper').innerHTML = '<div class="dbox' + (zu ? ' verdeckt' : '') + '" id="dBox"><div class="dkopf"><small class="hinweis">Gesamtvermögen</small><span class="dart' + (depotArt === 'eur' ? ' eu' : '') + '" id="dArt" role="switch" aria-checked="' + (depotArt === 'eur') + '" aria-label="Diagramm Plus/Minus oder Euro"><span>±</span><span>€</span></span></div><div class="dgross" id="dGross"><span class="dpkt">••••••</span><span class="dw">' + pxEuro(d.gesamt) + '</span></div>' +
-    '<div class="dheute" id="dAend">' + (R.leer ? '<span class="dwann">' + R.txt + ': kommt mit dem nächsten Stand vom Mac</span>' : depotAend(R.eur, R.pct, R.txt)) + '</div>' + depotGrafik(R) + '</div>' +
+    '<div class="dheute" id="dAend">' + (R.leer ? '<span class="dwann">' + R.txt + ': kommt mit dem nächsten Stand vom Mac</span>' : depotAend(R.eur, R.pct, R.txt)) + '</div>' + (depotZr === '1d' ? boerseZuHtml(true) : '') + depotGrafik(R) + '</div>' +
     '<div class="dzr" id="dZr">' + DZR.map(function (z) { return '<button type="button" data-r="' + z[0] + '" class="' + (z[0] === depotZr ? 'an' : '') + '">' + z[1] + '</button>'; }).join('') + '</div>' +
     '<div class="dzr pvg" id="dVg">' + [['', 'Kein Vergleich'], ['msci', 'MSCI World'], ['btc', 'Bitcoin']].map(function (z) { return '<button type="button" data-v="' + z[0] + '" class="' + (z[0] === depotVg ? 'an' : '') + '">' + z[1] + '</button>'; }).join('') + '</div><div class="pvgtxt" id="dVgTxt">' + (R.cmp ? '┄ ' + esc(R.cmp.txt) : depotVg && !R.leer ? 'Vergleich wird geladen …' : '') + '</div>' +
     '<p class="hinweis" style="margin-top:14px">' + (d.live ? (Date.now() - st > 20 * 60e3 ? 'Mac aus: live' : 'Live') + ' gerechnet (' + (d.live.neuK ? 'Krypto alle 5 s' : '') + (d.live.neuK && d.live.neuW ? ', ' : '') + (d.live.neuW ? 'Aktien/ETFs ' + (boerseOffen() ? 'alle 10 s' : 'Börse zu') + ', Stand ' + new Date(d.live.tW * 1000).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' Uhr' : '') + '). Letzter Stand vom Mac: ' : 'Stand ') + st.toLocaleString('de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' Uhr' + (d.live ? '' : ', vom Mac' + (alt ? ' (älter, der Mac ist wohl aus)' : '')) + '. Mit dem Finger über das Diagramm fahren zeigt den Wert zu jedem Zeitpunkt.</p>';
