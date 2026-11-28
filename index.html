@@ -740,7 +740,7 @@ body.istoffline .sstand{color:#ff6b61}
 <script src="rechnen.js"></script>
 <script src="pdf.js"></script>
 <script>
-var VERSION = '3.94';
+var VERSION = '3.95';
 // (3.57, Andi 26.11. 07:30: im Nachweis stand „Urlaub 3,08, Urlaub la“ / „Anreisetag, Anreise la“) Notizen, die die App selbst anlegt (Urlaubsantrag, Anreise aus Plan/Reiseinfo), gehören nicht in die Bemerkung – eigene Notizen weiter schon
 function notizNachweis(x) { var n = String(x.notiz || '').trim(); if (!n || x.quelle || /\(automatisch\)\s*$/i.test(n) || /^(?:Urlaub|Anreise|Abreise|Krank\w*) laut /i.test(n)) return ''; return n; }
 var R = window.Rechnen;
@@ -2762,9 +2762,29 @@ function depotEff() {
   var dl = e.gesamt - d.gesamt; Object.keys(e.z || {}).forEach(function (k) { var Z = e.z[k]; if (!Z.p || !Z.p.length) return; var l = Z.p[Z.p.length - 1]; Z.p.push([Math.round(Date.now() / 1000), e.gesamt, Z.pl ? l[2] + dl : l[2]]); Z.eur = Math.round((Z.eur + dl) * 100) / 100; var bs = e.gesamt - Z.eur; if (Z.pl && bs > 0) Z.pct = Math.round(Z.eur / bs * 1e4) / 100; });
   if (heute) { e.heute_eur = Math.round((e.gesamt - d.ref) * 100) / 100; e.heute_pct = d.ref ? Math.round((e.gesamt / d.ref - 1) * 1e4) / 100 : 0; if (e.linie && e.linie.length) { var lz = e.lt && e.lt.length ? e.lt[e.lt.length - 1] : 0; if (e.lt && e.lt.length === e.linie.length) depotTicks().forEach(function (x) { if (x[0] > lz + 20) { e.linie.push(x[1]); e.lt.push(x[0]); } }); e.linie.push(e.gesamt); if (e.lt) e.lt.push(Math.max(e.lt[e.lt.length - 1] + 1, Math.round((depotLive.t || Date.now()) / 1000))); } }
   else { e.heute_eur = Math.round((e.gesamt - d.gesamt) * 100) / 100; e.heute_pct = d.gesamt ? Math.round((e.gesamt / d.gesamt - 1) * 1e4) / 100 : 0; e.seitMac = true; }
+  if (Date.now() - new Date(d.stand) > 20 * 60e3) { var S = null; try { S = depotSelbstLinie(d, e.gesamt); } catch (x) { S = null; }
+    if (S) { e.linie = S.linie; e.lt = S.lt; e.vor = S.vor; e.ax = S.ax; e.ref = S.ref; e.heute_eur = Math.round((e.gesamt - S.ref) * 100) / 100; e.heute_pct = S.ref ? Math.round((e.gesamt / S.ref - 1) * 1e4) / 100 : 0; e.seitMac = false; e.selbst = true; } }
   return e;
 }
-function depotWann(d) { if (d.seitMac) { var m = new Date(d.stand); return 'seit ' + m.getDate() + '.' + (m.getMonth() + 1) + '.'; } var t = new Date(d.stand); return iso2(t) === iso2(new Date()) ? 'heute' : 'am ' + t.getDate() + '.' + (t.getMonth() + 1) + '.'; }
+// (3.95, Andi 28.11.: Linie hatte nur ein paar Punkte, weil der Mac wegen Scalable nichts schickte) Mac-Stand älter als 20 Min. → Tageslinie selbst rechnen:
+// Krypto Minute für Minute (Binance, depotFeinK), Aktien/ETFs aus den Tageskurven (bei Mac aus: Onvista-Ersatz 3.93), Rest fest; alle 5 Min. ein Punkt, 0–6 Uhr grau wie beim Mac
+function depotSelbstLinie(d, gJetzt) {
+  var mi = new Date(); mi.setHours(0, 0, 0, 0); var ab = Math.round(mi / 1000), sechs = ab + HANDEL_AB * 3600, jetzt = Math.round(Date.now() / 1000);
+  if (jetzt < sechs + 900) return null;
+  var kr = (d.pos || []).filter(function (p) { return p.k === 'krypto' && p.sym && +p.q > 0; });
+  var M = null, MK = null; if (kr.length) { depotFeinHolen(d, ab); if (!depotFeinK.m || depotFeinK.ab > ab + 60) return null; M = depotFeinK.m; MK = Object.keys(M).map(Number).sort(function (a, b) { return a - b; }); if (MK.length < 30 || MK[0] > ab + 900) return null; }
+  var mAm = function (t) { if (!MK) return 0; var lo = 0, hi = MK.length - 1; if (t <= MK[0]) return M[MK[0]]; if (t >= MK[hi]) return M[MK[hi]]; while (hi - lo > 1) { var mid = (lo + hi) >> 1; if (MK[mid] <= t) lo = mid; else hi = mid; } return M[MK[lo]]; };
+  var K = (daten.depotKurven && daten.depotKurven.k) || {}, heuteIso = iso2(new Date()), W = [];
+  (d.pos || []).forEach(function (p) { if (p.k !== 'wp' || !p.isin || !(+p.q > 0)) return; var o = K[p.isin] && K[p.isin]['1d']; if (!o || !o.today || o.today.length < 2 || !o.t0 || !o.t1) return; if (iso2(new Date(o.t1 * 1000)) !== heuteIso) return;
+    W.push({ q: +p.q, v: o.today, t0: o.t0, t1: o.t1 }); });
+  var wAm = function (w, t) { if (t <= w.t0) return w.v[0]; if (t >= w.t1) return w.v[w.v.length - 1]; var f = (t - w.t0) / (w.t1 - w.t0) * (w.v.length - 1), i = Math.floor(f); return w.v[i] + (w.v[Math.min(i + 1, w.v.length - 1)] - w.v[i]) * (f - i); };
+  var mJ = mAm(jetzt), wert = function (t) { var v = gJetzt - (mJ - mAm(t)); W.forEach(function (w) { v -= w.q * (wAm(w, jetzt) - wAm(w, t)); }); return Math.round(v * 100) / 100; };
+  var vor = [], l = [], lt = [], t; for (t = ab; t < sechs; t += 300) vor.push([t, wert(t)]); vor.push([sechs, wert(sechs)]);
+  for (t = sechs; t < jetzt - 60; t += 300) { l.push(wert(t)); lt.push(t); } l.push(Math.round(gJetzt * 100) / 100); lt.push(jetzt);
+  if (l.length < 3) return null;
+  return { linie: l, lt: lt, vor: vor, ax: { t0: ab, len: sechs - ab, open: sechs }, ref: vor[0][1] };
+}
+function depotWann(d) { if (d.selbst) return 'heute'; if (d.seitMac) { var m = new Date(d.stand); return 'seit ' + m.getDate() + '.' + (m.getMonth() + 1) + '.'; } var t = new Date(d.stand); return iso2(t) === iso2(new Date()) ? 'heute' : 'am ' + t.getDate() + '.' + (t.getMonth() + 1) + '.'; }
 function euroK(n) { return (Math.round(n)).toLocaleString('de-DE') + ' €'; }
 (function () { var sz = startZeichnen; startZeichnen = function () { var r = sz.apply(this, arguments); try { depotRollenKachel(); } catch (e) {} return r; }; })();
 var depotKvT = 0;
